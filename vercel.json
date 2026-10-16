@@ -1,0 +1,12 @@
+{
+    "crons": [
+        {
+            "path": "/api/email-agent/cron/send-scheduled",
+            "schedule": "*/5 * * * *"
+        },
+        {
+            "path": "/api/email-agent/cron/retry-failed",
+            "schedule": "*/30 * * * *"
+        }
+    ]
+}

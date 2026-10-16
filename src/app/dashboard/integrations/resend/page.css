@@ -1,0 +1,373 @@
+* {
+    box-sizing: border-box;
+}
+
+.resendPage {
+    min-height: 100vh;
+    background: #ffffff;
+    color: #111111;
+    font-family: "Inter", sans-serif;
+    padding: 38px 30px 80px;
+}
+
+.resendContainer {
+    width: min(820px, 100%);
+    margin: 0 auto;
+}
+
+.backLink {
+    display: inline-flex;
+    align-items: center;
+    margin-bottom: 30px;
+    color: #686868;
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition:
+        color 160ms ease,
+        transform 160ms ease;
+}
+
+.backLink:hover {
+    color: #111111;
+    transform: translateX(-2px);
+}
+
+.resendHeader {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 28px;
+}
+
+.resendLogo {
+    display: grid;
+    width: 48px;
+    height: 48px;
+    flex: 0 0 48px;
+    place-items: center;
+    overflow: hidden;
+    border: 1px solid #e7e7e7;
+    border-radius: 13px;
+    background: #ffffff;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.04);
+}
+
+.resendLogo img {
+    width: 27px;
+    height: 27px;
+    object-fit: contain;
+}
+
+.headerTitleRow {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+}
+
+.resendHeader h1 {
+    margin: 0;
+    color: #101010;
+    font-size: 25px;
+    font-weight: 650;
+    letter-spacing: -0.65px;
+}
+
+.resendHeader p {
+    max-width: 670px;
+    margin: 7px 0 0;
+    color: #6b6b6b;
+    font-size: 13.5px;
+    line-height: 1.65;
+}
+
+.connectedBadge {
+    display: inline-flex;
+    align-items: center;
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid #bfe9cc;
+    border-radius: 999px;
+    background: #f1fbf4;
+    color: #18713a;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.notice {
+    margin-bottom: 18px;
+    padding: 12px 14px;
+    border-radius: 10px;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.errorNotice {
+    border: 1px solid #f0c8c8;
+    background: #fff7f7;
+    color: #a82e2e;
+}
+
+.successNotice {
+    border: 1px solid #bfe6ca;
+    background: #f4fbf6;
+    color: #176d37;
+}
+
+.resendCard,
+.setupCard {
+    margin-bottom: 18px;
+    border: 1px solid #e8e8e8;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 23px;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.025);
+}
+
+.cardHeading {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 23px;
+}
+
+.cardHeading h2,
+.setupCard h2 {
+    margin: 0;
+    color: #171717;
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.25px;
+}
+
+.cardHeading p {
+    margin: 6px 0 0;
+    color: #777777;
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+
+.formGrid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+}
+
+.formGroup {
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 18px;
+}
+
+.formGroup label {
+    margin-bottom: 7px;
+    color: #262626;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.formGroup input {
+    width: 100%;
+    height: 43px;
+    border: 1px solid #dddddd;
+    border-radius: 9px;
+    outline: none;
+    background: #ffffff;
+    padding: 0 12px;
+    color: #151515;
+    font-family: inherit;
+    font-size: 13px;
+    transition:
+        border-color 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.formGroup input::placeholder {
+    color: #aaaaaa;
+}
+
+.formGroup input:hover {
+    border-color: #c8c8c8;
+}
+
+.formGroup input:focus {
+    border-color: #989898;
+    box-shadow: 0 0 0 3px rgba(0, 0, 0, 0.055);
+}
+
+.formGroup span {
+    margin-top: 7px;
+    color: #858585;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.formActions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 4px;
+    padding-top: 20px;
+    border-top: 1px solid #eeeeee;
+}
+
+.cancelButton,
+.connectButton,
+.disconnectButton {
+    display: inline-flex;
+    height: 38px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 8px;
+    padding: 0 14px;
+    font-family: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    text-decoration: none;
+    cursor: pointer;
+    transition:
+        background 150ms ease,
+        border-color 150ms ease,
+        opacity 150ms ease;
+}
+
+.cancelButton {
+    border: 1px solid #dedede;
+    background: #ffffff;
+    color: #353535;
+}
+
+.cancelButton:hover {
+    background: #f8f8f8;
+}
+
+.connectButton {
+    border: 1px solid #111111;
+    background: #111111;
+    color: #ffffff;
+}
+
+.connectButton:hover:not(:disabled) {
+    background: #2a2a2a;
+}
+
+.disconnectButton {
+    border: 1px solid #e5c7c7;
+    background: #ffffff;
+    color: #a33a3a;
+}
+
+.disconnectButton:hover:not(:disabled) {
+    border-color: #d9b0b0;
+    background: #fff7f7;
+}
+
+.connectButton:disabled,
+.disconnectButton:disabled {
+    cursor: not-allowed;
+    opacity: 0.55;
+}
+
+.connectionDetails {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 0;
+    margin: 0;
+    overflow: hidden;
+    border: 1px solid #ededed;
+    border-radius: 10px;
+}
+
+.connectionDetails>div {
+    min-width: 0;
+    padding: 15px;
+    border-bottom: 1px solid #ededed;
+}
+
+.connectionDetails>div:nth-child(odd) {
+    border-right: 1px solid #ededed;
+}
+
+.connectionDetails>div:nth-last-child(-n + 2) {
+    border-bottom: 0;
+}
+
+.connectionDetails dt {
+    margin-bottom: 6px;
+    color: #888888;
+    font-size: 10.5px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.45px;
+}
+
+.connectionDetails dd {
+    margin: 0;
+    overflow: hidden;
+    color: #222222;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.setupCard {
+    box-shadow: none;
+}
+
+.setupCard ol {
+    margin: 15px 0 0;
+    padding-left: 20px;
+    color: #666666;
+    font-size: 12.5px;
+    line-height: 1.9;
+}
+
+.loadingText {
+    margin: 0;
+    color: #777777;
+    font-size: 13px;
+}
+
+@media (max-width: 680px) {
+    .resendPage {
+        padding: 25px 18px 60px;
+    }
+
+    .resendHeader {
+        align-items: flex-start;
+    }
+
+    .formGrid,
+    .connectionDetails {
+        grid-template-columns: 1fr;
+    }
+
+    .connectionDetails>div,
+    .connectionDetails>div:nth-child(odd),
+    .connectionDetails>div:nth-last-child(-n + 2) {
+        border-right: 0;
+        border-bottom: 1px solid #ededed;
+    }
+
+    .connectionDetails>div:last-child {
+        border-bottom: 0;
+    }
+
+    .cardHeading {
+        flex-direction: column;
+    }
+
+    .formActions {
+        flex-direction: column-reverse;
+        align-items: stretch;
+    }
+
+    .cancelButton,
+    .connectButton {
+        width: 100%;
+    }
+}

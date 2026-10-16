@@ -1,0 +1,432 @@
+.emailSidebar {
+    width: 240px;
+    min-width: 240px;
+    height: 100vh;
+    position: sticky;
+    top: 0;
+    align-self: flex-start;
+    background: #ffffff;
+    border-right: 1px solid #eef2f7;
+    padding: 26px 18px;
+    display: flex;
+    flex-direction: column;
+    flex-shrink: 0;
+    overflow-y: auto;
+    overflow-x: hidden;
+    transition:
+        width 180ms ease,
+        min-width 180ms ease,
+        padding 180ms ease;
+}
+
+.emailSidebarCollapsed {
+    width: 76px;
+    min-width: 76px;
+    padding: 26px 12px;
+}
+
+.emailSidebar:not(.emailSidebarReady) {
+    transition: none;
+}
+
+.sidebarTop {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.brand {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 11px;
+    padding: 0 4px;
+}
+
+.brandIcon {
+    width: 13px;
+    height: 13px;
+    flex: 0 0 13px;
+    border-radius: 999px;
+    background: #6d4aff;
+}
+
+.brandLabel {
+    overflow: hidden;
+    font-size: 18px;
+    font-weight: 400;
+    color: #111827;
+    white-space: nowrap;
+    transition:
+        opacity 120ms ease,
+        width 180ms ease;
+}
+
+.emailSidebarCollapsed .brand {
+    padding: 0;
+}
+
+.emailSidebarCollapsed .brandLabel {
+    width: 0;
+    opacity: 0;
+    pointer-events: none;
+}
+
+.collapseButton {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 0;
+    border: 1px solid #eef2f7;
+    border-radius: 10px;
+    display: grid;
+    place-items: center;
+    background: #ffffff;
+    color: #6b7280;
+    cursor: pointer;
+    transition:
+        background 140ms ease,
+        color 140ms ease,
+        border-color 140ms ease;
+}
+
+.collapseButton:hover {
+    background: #f8fafc;
+    border-color: #e5e7eb;
+    color: #111827;
+}
+
+.emailSidebarCollapsed .sidebarTop {
+    flex-direction: column;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 22px;
+}
+
+.sidebarSearchInput {
+    width: 100%;
+    height: 44px;
+    border: 1px solid #f1f5f9;
+    background: #fafafa;
+    border-radius: 14px;
+    padding: 0 15px;
+    font-size: 14px;
+    outline: none;
+    margin-bottom: 22px;
+}
+
+.sidebarSearchInput:focus {
+    border-color: #e5e7eb;
+    background: #ffffff;
+}
+
+.sideNav {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.sidebarLink {
+    width: 100%;
+    height: 43px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 13px;
+    background: transparent;
+    text-decoration: none;
+    text-align: left;
+    color: #4b5563;
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 400;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.sidebarLink svg {
+    width: 17px;
+    height: 17px;
+    flex: 0 0 17px;
+    stroke-width: 1.8;
+    color: #6b7280;
+}
+
+.sidebarLabel {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sidebarLink:hover {
+    background: #f8fafc;
+    color: #111827;
+}
+
+.active {
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: 500;
+}
+
+.emailSidebarCollapsed .sidebarLink {
+    width: 44px;
+    height: 44px;
+    margin: 0 auto;
+    padding: 0;
+    justify-content: center;
+    border-radius: 12px;
+}
+
+.emailSidebarCollapsed .sidebarLabel {
+    display: none;
+}
+
+.emailSidebarCollapsed .sidebarLink svg {
+    width: 18px;
+    height: 18px;
+    flex-basis: 18px;
+}
+
+.inboxNavigation {
+    width: 100%;
+}
+
+.inboxToggle {
+    justify-content: flex-start;
+}
+
+.inboxToggleLabel {
+    flex: 1;
+    min-width: 0;
+}
+
+.inboxUnreadCount {
+    min-width: 22px;
+    height: 22px;
+    padding: 0 7px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.active .inboxUnreadCount {
+    background: #ffffff;
+    color: #111827;
+}
+
+.emailSidebarCollapsed .inboxUnreadCount {
+    min-width: 16px;
+    height: 16px;
+    padding: 0 4px;
+    position: absolute;
+    transform: translate(12px, -12px);
+    border: 2px solid #ffffff;
+    background: #6d4aff;
+    color: #ffffff;
+    font-size: 9px;
+}
+
+.emailSidebarCollapsed .inboxToggle {
+    position: relative;
+}
+
+.inboxToggle .inboxChevron {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    margin-left: auto;
+    transition: transform 180ms ease;
+}
+
+.inboxToggle .inboxChevronOpen {
+    transform: rotate(180deg);
+}
+
+.inboxSubmenu {
+    display: grid;
+    grid-template-rows: 0fr;
+    opacity: 0;
+    overflow: hidden;
+    transition:
+        grid-template-rows 180ms ease,
+        opacity 160ms ease;
+}
+
+.inboxSubmenuOpen {
+    grid-template-rows: 1fr;
+    opacity: 1;
+}
+
+.inboxSubmenuInner {
+    min-height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 4px 0 2px 41px;
+}
+
+.inboxSubmenuLink {
+    width: 100%;
+    min-height: 35px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 10px;
+    background: transparent;
+    color: #6b7280;
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 400;
+    line-height: 1;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.inboxSubmenuLink svg {
+    width: 15px;
+    height: 15px;
+    flex: 0 0 15px;
+    stroke-width: 1.8;
+    color: #9ca3af;
+}
+
+.inboxSubmenuLink:hover {
+    background: #f8fafc;
+    color: #111827;
+}
+
+.inboxSubmenuLink:hover svg {
+    color: #6b7280;
+}
+
+.inboxSubmenuLinkActive {
+    background: #f3f4f6;
+    color: #111827;
+    font-weight: 500;
+}
+
+.inboxSubmenuLinkActive svg {
+    color: #4b5563;
+}
+
+.emailSidebarCollapsed .inboxSubmenu {
+    display: none;
+}
+
+.automationAction {
+    appearance: none;
+}
+
+@media (max-width: 900px) {
+    .emailSidebar {
+        width: 76px;
+        min-width: 76px;
+        padding: 26px 12px;
+    }
+
+    .emailSidebar .sidebarTop {
+        flex-direction: column;
+        justify-content: center;
+        gap: 14px;
+        margin-bottom: 22px;
+    }
+
+    .emailSidebar .brand {
+        padding: 0;
+    }
+
+    .emailSidebar .brandLabel,
+    .emailSidebar .sidebarLabel,
+    .emailSidebar .sidebarSearchInput,
+    .emailSidebar .inboxChevron,
+    .emailSidebar .inboxSubmenu {
+        display: none;
+    }
+
+    .emailSidebar .sidebarLink {
+        width: 44px;
+        height: 44px;
+        margin: 0 auto;
+        padding: 0;
+        justify-content: center;
+        border-radius: 12px;
+    }
+}
+
+
+
+
+
+
+
+.collapseButton {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 34px;
+    padding: 0;
+    border: 0;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    background: transparent;
+    color: #6b7280;
+    cursor: pointer;
+    transition:
+        background 140ms ease,
+        color 140ms ease;
+}
+
+.collapseButton:hover {
+    background: #f8fafc;
+    color: #111827;
+}
+
+.collapseButton svg {
+    width: 18px;
+    height: 18px;
+}
+
+
+
+
+.inboxSubmenuLink>span:first-child {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.inboxSubmenuCount {
+    flex: 0 0 auto;
+    margin-left: auto;
+    color: #9ca3af;
+    font-size: 12px;
+    font-weight: 400;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+}
+
+.inboxSubmenuLinkActive .inboxSubmenuCount {
+    color: #6b7280;
+}

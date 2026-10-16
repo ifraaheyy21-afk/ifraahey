@@ -1,0 +1,1731 @@
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    margin: 0;
+    min-height: 100%;
+    font-family: Inter, sans-serif;
+    background: #ffffff;
+    color: #111827;
+}
+
+button,
+a {
+    font-family: inherit;
+}
+
+.mailDashPage {
+    min-height: 100vh;
+    width: 100%;
+    padding: 34px 36px;
+    background: #ffffff;
+    color: #111827;
+}
+
+.mailDashHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 24px;
+    margin-bottom: 22px;
+}
+
+.mailDashHeader h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 650;
+    letter-spacing: -0.04em;
+}
+
+.mailDashHeader p {
+    margin: 7px 0 0;
+    font-size: 13px;
+    color: #8a94a6;
+}
+
+.mailDashActions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.mailDashActions button,
+.viewAllBtn,
+.mailViewLink {
+    border: 1px solid #e8ecf3;
+    background: #ffffff;
+    color: #475569;
+    border-radius: 999px;
+    padding: 9px 13px;
+    font-size: 12px;
+    font-weight: 600;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.mailDashPrimary {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+.mailStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 14px;
+    margin-bottom: 16px;
+}
+
+.mailStatCard {
+    border: 1px solid #edf0f5;
+    border-radius: 20px;
+    background: #ffffff;
+    padding: 17px;
+    display: flex;
+    align-items: center;
+    gap: 13px;
+}
+
+.mailStatIcon {
+    width: 38px;
+    height: 38px;
+    border-radius: 14px;
+    display: grid;
+    place-items: center;
+    color: #64748b;
+    background: #f8fafc;
+    border: 1px solid #eef2f7;
+}
+
+.mailStatCard p {
+    margin: 0;
+    font-size: 12px;
+    color: #8a94a6;
+}
+
+.mailStatCard h2 {
+    margin: 4px 0 2px;
+    font-size: 18px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+}
+
+.mailStatCard span {
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.good {
+    color: #16a34a;
+}
+
+.bad {
+    color: #dc2626;
+}
+
+.neutral {
+    color: #64748b;
+}
+
+.mailMainGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 16px;
+}
+
+.mailPanel {
+    border: 1px solid #edf0f5;
+    background: #ffffff;
+    border-radius: 22px;
+    padding: 16px;
+}
+
+.mailChartPanel {
+    min-height: 300px;
+}
+
+.mailPanelHeader,
+.automationHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 14px;
+    margin-bottom: 14px;
+}
+
+.mailPanelHeader h2,
+.automationHeader h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 650;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.panelSubheading,
+.automationHeader p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: #8a94a6;
+}
+
+.rangeButtons {
+    display: flex;
+    gap: 5px;
+    background: #f8fafc;
+    border: 1px solid #edf0f5;
+    border-radius: 999px;
+    padding: 4px;
+}
+
+.rangeButtons button {
+    border: 0;
+    background: transparent;
+    color: #64748b;
+    font-size: 11.5px;
+    font-weight: 600;
+    padding: 7px 10px;
+    border-radius: 999px;
+    cursor: pointer;
+}
+
+.rangeButtons .activeRange {
+    background: #ffffff;
+    color: #111827;
+    box-shadow: 0 4px 10px rgba(15, 23, 42, 0.06);
+}
+
+.mailChart {
+    height: 205px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 4px;
+    padding: 12px 0 6px;
+    position: relative;
+}
+
+.mailBarWrap {
+    flex: 1;
+    min-width: 7px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    cursor: pointer;
+}
+
+.mailBar {
+    width: 10px;
+    max-width: 10px;
+    background: #2563eb;
+    border-radius: 8px 8px 2px 2px;
+    transition: all 0.2s ease;
+}
+
+.mailBarWrap:hover .mailBar {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.chartTooltip {
+    position: absolute;
+    z-index: 5;
+    transform: translate(-50%, -115%);
+    background: #111827;
+    color: #ffffff;
+    padding: 8px 10px;
+    border-radius: 12px;
+    pointer-events: none;
+    box-shadow: 0 12px 28px rgba(15, 23, 42, 0.18);
+}
+
+.chartTooltip strong {
+    display: block;
+    font-size: 12px;
+}
+
+.chartTooltip span {
+    display: block;
+    margin-top: 2px;
+    font-size: 11px;
+    color: #cbd5e1;
+}
+
+.mailChartDates {
+    display: flex;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 0 4px;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.scheduledEmailsPanel {
+    min-height: 430px;
+    display: flex;
+    flex-direction: column;
+    padding: 18px 18px 16px;
+}
+
+.scheduledPanelHeader {
+    align-items: center;
+    margin-bottom: 12px;
+}
+
+.scheduledPanelHeader h2 {
+    font-size: 17px;
+    font-weight: 550;
+}
+
+.scheduledPanelHeader .viewAllBtn {
+    border-radius: 9px;
+    padding: 8px 13px;
+    color: #2563eb;
+    background: #ffffff;
+    font-weight: 500;
+}
+
+.scheduledSummaryGrid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    border: 1px solid #e8ebf0;
+    border-radius: 10px;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.scheduledSummaryItem {
+    min-width: 0;
+    min-height: 82px;
+    padding: 14px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+}
+
+.scheduledSummaryItem+.scheduledSummaryItem {
+    border-left: 1px solid #e8ebf0;
+}
+
+.scheduledSummaryCopy {
+    min-width: 0;
+    width: 100%;
+}
+
+.scheduledSummaryCopy strong {
+    display: block;
+    color: #111827;
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.025em;
+    line-height: 1.1;
+    white-space: nowrap;
+}
+
+.scheduledSummaryCopy span,
+.scheduledSummaryCopy small {
+    display: block;
+    margin-top: 5px;
+    color: #667085;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.2;
+    white-space: nowrap;
+}
+
+.scheduledSummaryCopy small {
+    margin-top: 4px;
+    color: #2563eb;
+    font-weight: 500;
+}
+
+.scheduledActivityHeader {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 14px;
+    margin-bottom: 2px;
+}
+
+.scheduledActivityHeader h3 {
+    margin: 0;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 550;
+}
+
+.scheduledActivityBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    padding: 3px 7px;
+    border-radius: 6px;
+    color: #15803d;
+    background: #ecfdf3;
+    font-size: 8.5px;
+    font-weight: 550;
+    text-transform: uppercase;
+}
+
+.scheduledActivityBadge i {
+    width: 5px;
+    height: 5px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.scheduledWindowList {
+    position: relative;
+}
+
+.scheduledWindowRow {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    min-height: 58px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.scheduledTimeline {
+    position: relative;
+    align-self: stretch;
+    display: grid;
+    place-items: center;
+}
+
+.scheduledTimeline::after {
+    content: "";
+    position: absolute;
+    top: calc(50% + 15px);
+    bottom: calc(-50% + 15px);
+    left: 50%;
+    width: 1px;
+    background: #e4e7ec;
+    transform: translateX(-50%);
+}
+
+.scheduledWindowRow:last-child .scheduledTimeline::after {
+    display: none;
+}
+
+.scheduledWindowIcon {
+    position: relative;
+    z-index: 1;
+    width: 30px;
+    height: 30px;
+    border-radius: 999px;
+    display: grid;
+    place-items: center;
+    color: #667085;
+    background: #f8fafc;
+    border: 1px solid #eef1f5;
+}
+
+.scheduledWindowIcon.live {
+    color: #16a34a;
+    background: #ecfdf3;
+    border-color: #d1fadf;
+}
+
+.scheduledWindowMain {
+    min-width: 0;
+}
+
+.scheduledWindowMain strong {
+    display: block;
+    color: #111827;
+    font-size: 11px;
+    font-weight: 500;
+    line-height: 1.3;
+    white-space: nowrap;
+}
+
+.scheduledWindowMain span {
+    display: block;
+    margin-top: 3px;
+    color: #667085;
+    font-size: 10px;
+    font-weight: 400;
+    line-height: 1.25;
+}
+
+.scheduledWindowMain span b {
+    color: #2563eb;
+    font-weight: 500;
+}
+
+.scheduledWindowCount {
+    min-width: 70px;
+    text-align: right;
+    white-space: nowrap;
+}
+
+.scheduledWindowCount strong,
+.scheduledWindowCount span {
+    display: block;
+}
+
+.scheduledWindowCount strong {
+    color: #111827;
+    font-size: 10.5px;
+    font-weight: 500;
+}
+
+.scheduledWindowCount span {
+    margin-top: 3px;
+    color: #667085;
+    font-size: 9.5px;
+    font-weight: 400;
+}
+
+.scheduledPeakRow {
+    display: grid;
+    grid-template-columns: 36px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 8px;
+    margin-top: auto;
+    padding-top: 12px;
+}
+
+.scheduledPeakIcon {
+    width: 30px;
+    height: 30px;
+    border-radius: 9px;
+    display: grid;
+    place-items: center;
+    color: #2563eb;
+    background: #eff6ff;
+}
+
+.scheduledPeakCopy span,
+.scheduledPeakValue span {
+    display: block;
+    color: #667085;
+    font-size: 9.5px;
+    font-weight: 400;
+}
+
+.scheduledPeakCopy strong,
+.scheduledPeakValue strong {
+    display: block;
+    margin-top: 2px;
+    color: #111827;
+    font-size: 10px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.scheduledPeakValue {
+    text-align: right;
+}
+
+.scheduledChartEmpty {
+    min-height: 190px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    border-top: 1px solid #edf0f5;
+}
+
+.scheduledChartEmpty strong {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.scheduledChartEmpty p {
+    margin: 4px 0 0;
+    color: #9ca3af;
+    font-size: 10.5px;
+    font-weight: 400;
+    line-height: 1.4;
+}
+
+.mailBottomGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 16px;
+    align-items: start;
+    margin-top: 0;
+}
+
+.recentEmailsPanel {
+    width: min(100%, 980px);
+    min-width: 0;
+    margin-inline: auto;
+}
+
+.agentActivityPanel {
+    width: 100%;
+    min-width: 0;
+    margin-top: 0;
+}
+
+.dashboardRecentTable {
+    width: 100%;
+    min-width: 0;
+}
+
+.dashboardRecentHead,
+.dashboardRecentRow {
+    display: grid;
+    grid-template-columns: minmax(145px, 0.9fr) minmax(235px, 1.35fr) 88px minmax(125px, 0.75fr) 40px;
+    gap: 12px;
+    align-items: center;
+}
+
+.dashboardRecentHead {
+    min-height: 40px;
+    padding: 0 16px;
+    border-top: 1px solid #edf0f5;
+    border-bottom: 1px solid #edf0f5;
+    font-size: 12px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.dashboardRecentActionHeading {
+    text-align: center;
+}
+
+.dashboardRecentBody {
+    width: 100%;
+}
+
+.dashboardRecentRow {
+    min-height: 58px;
+    padding: 8px 16px;
+    border-bottom: 1px solid #edf0f5;
+    background: #ffffff;
+    transition: background-color 0.18s ease;
+}
+
+.dashboardRecentRow:last-child {
+    border-bottom: 0;
+}
+
+.dashboardRecentRow:hover {
+    background: #fafafa;
+}
+
+.dashboardRecentRowLink {
+    color: inherit;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.dashboardRecentRowLink:focus-visible {
+    outline: 2px solid #2563eb;
+    outline-offset: -2px;
+}
+
+.recentAccountCell {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 0;
+}
+
+.recentAccountDetails {
+    min-width: 0;
+}
+
+.recentAccountDetails strong {
+    display: block;
+    overflow: hidden;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recentAccountDetails p {
+    margin: 2px 0 0;
+    overflow: hidden;
+    color: #9ca3af;
+    font-size: 11.5px;
+    font-weight: 400;
+    line-height: 1.35;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recentEmailContent,
+.recentEmailTime {
+    min-width: 0;
+}
+
+.recentEmailContent strong,
+.recentEmailTime strong {
+    display: block;
+    overflow: hidden;
+    color: #374151;
+    font-size: 12.5px;
+    font-weight: 500;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recentEmailContent p,
+.recentEmailTime p {
+    margin: 2px 0 0;
+    overflow: hidden;
+    color: #9ca3af;
+    font-size: 11.5px;
+    font-weight: 400;
+    line-height: 1.4;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.recentEmailStatus {
+    width: fit-content;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px !important;
+    font-weight: 500;
+    line-height: 1.2;
+}
+
+.recentEmailStatus.replied,
+.recentEmailStatus.delivered {
+    background: #f0fdf4;
+    color: #15803d;
+}
+
+.recentEmailStatus.opened,
+.recentEmailStatus.clicked {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.recentEmailStatus.sent,
+.recentEmailStatus.sending,
+.recentEmailStatus.scheduled,
+.recentEmailStatus.ignored {
+    background: #f8fafc;
+    color: #64748b;
+}
+
+.recentEmailStatus.failed,
+.recentEmailStatus.bounced,
+.recentEmailStatus.complained {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.recentEmailAction {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    justify-self: center;
+    border-radius: 9px;
+    color: #9ca3af;
+    text-decoration: none;
+    transition: background-color 0.18s ease, color 0.18s ease;
+}
+
+.recentEmailAction:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.dashboardRecentEmptyRow {
+    color: #9ca3af;
+}
+
+.agentLiveBadge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f0fdf4;
+    border: 1px solid #dcfce7;
+    color: #15803d;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.agentLiveBadge::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 999px;
+    background: currentColor;
+}
+
+.aiActionsList {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+.aiActionRow {
+    width: 100%;
+    min-height: 76px;
+    border: 1px solid #edf0f5;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 12px;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+    cursor: pointer;
+    text-align: left;
+    transition: 0.18s ease;
+}
+
+.aiActionRow:hover {
+    border-color: #dfe7f2;
+    background: #fbfcff;
+    transform: translateY(-1px);
+    box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.aiActionIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    flex: 0 0 auto;
+    color: #2563eb;
+    background: #eff6ff;
+    border: 1px solid #dbeafe;
+}
+
+.aiActionIcon.reply {
+    color: #16a34a;
+    background: #f0fdf4;
+    border-color: #dcfce7;
+}
+
+.aiActionIcon.scheduled {
+    color: #2563eb;
+    background: #eff6ff;
+    border-color: #dbeafe;
+}
+
+.aiActionIcon.optimised {
+    color: #7c3aed;
+    background: #f5f3ff;
+    border-color: #ede9fe;
+}
+
+.aiActionIcon.warning {
+    color: #d97706;
+    background: #fffbeb;
+    border-color: #fef3c7;
+}
+
+.aiActionIcon.sent {
+    color: #0891b2;
+    background: #ecfeff;
+    border-color: #cffafe;
+}
+
+.aiActionIcon.sequence {
+    color: #475569;
+    background: #f8fafc;
+    border-color: #e2e8f0;
+}
+
+.aiActionContent {
+    min-width: 0;
+    flex: 1;
+}
+
+.aiActionTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 3px;
+}
+
+.aiActionTop strong {
+    font-size: 12.5px;
+    font-weight: 650;
+    color: #111827;
+}
+
+.aiActionTop span {
+    font-size: 10.5px;
+    color: #98a2b3;
+    white-space: nowrap;
+}
+
+.aiActionContent p {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.aiActionContent small {
+    display: block;
+    margin-top: 4px;
+    font-size: 11.2px;
+    line-height: 1.35;
+    color: #94a3b8;
+}
+
+.automationPagination {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 9px;
+}
+
+.automationPagination button {
+    width: 28px;
+    height: 28px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #64748b;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+    transition: 0.18s ease;
+}
+
+.automationPagination button:hover:not(:disabled) {
+    background: #f8fafc;
+    border-color: #d7deea;
+}
+
+.automationPagination button:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.automationPagination span {
+    font-size: 11.5px;
+    color: #94a3b8;
+}
+
+.rescheduleOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    background: rgba(15, 23, 42, 0.35);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.rescheduleModal {
+    width: min(460px, 100%);
+    background: #ffffff;
+    border-radius: 24px;
+    border: 1px solid #edf0f5;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.18);
+    padding: 18px;
+}
+
+.rescheduleHeader {
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+    margin-bottom: 14px;
+}
+
+.rescheduleHeader h2 {
+    margin: 0;
+    font-size: 18px;
+    letter-spacing: -0.03em;
+}
+
+.rescheduleHeader p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: #8a94a6;
+}
+
+.rescheduleHeader button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 12px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.reschedulePreview {
+    border: 1px solid #edf0f5;
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 14px;
+    margin-bottom: 14px;
+}
+
+.reschedulePreview span {
+    font-size: 11px;
+    font-weight: 700;
+    color: #2563eb;
+}
+
+.reschedulePreview strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 14px;
+}
+
+.reschedulePreview p {
+    margin: 5px 0 0;
+    font-size: 12px;
+    color: #8a94a6;
+}
+
+.calendarTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 12px;
+}
+
+.calendarTop h3 {
+    margin: 0;
+    font-size: 14px;
+}
+
+.calendarTop button {
+    width: 32px;
+    height: 32px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 11px;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.calendarWeek,
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 7px;
+}
+
+.calendarWeek {
+    margin-bottom: 7px;
+}
+
+.calendarWeek span {
+    text-align: center;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.calendarGrid button {
+    height: 34px;
+    border: 1px solid #edf0f5;
+    background: #ffffff;
+    border-radius: 11px;
+    cursor: pointer;
+    font-size: 12px;
+    color: #475569;
+}
+
+.calendarGrid .selectedCalendarDay {
+    background: #2563eb;
+    color: #ffffff;
+    border-color: #2563eb;
+}
+
+.rescheduleFields {
+    margin-top: 14px;
+}
+
+.rescheduleFields label {
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #475569;
+}
+
+.rescheduleFields input {
+    height: 42px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 0 12px;
+    outline: none;
+}
+
+.quickScheduleButtons {
+    display: flex;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.quickScheduleButtons button {
+    flex: 1;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 12px;
+    padding: 10px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.rescheduleActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 9px;
+    margin-top: 16px;
+}
+
+.rescheduleActions button {
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 14px;
+    padding: 11px 14px;
+    font-size: 12px;
+    font-weight: 650;
+    cursor: pointer;
+}
+
+.saveReschedule {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+@media (max-width: 1150px) {
+
+    .mailMainGrid,
+    .mailBottomGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .scheduledEmailMain p {
+        max-width: none;
+    }
+
+    .scheduledEmailsPanel {
+        min-height: auto;
+    }
+}
+
+@media (max-width: 900px) {
+    .mailDashPage {
+        padding: 24px;
+    }
+
+    .mailDashHeader {
+        flex-direction: column;
+    }
+
+    .mailStatsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .dashboardRecentTable {
+        overflow-x: auto;
+    }
+
+    .dashboardRecentHead,
+    .dashboardRecentRow {
+        min-width: 780px;
+    }
+}
+
+@media (max-width: 760px) {
+    .scheduledSummaryGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .scheduledSummaryItem+.scheduledSummaryItem {
+        border-left: 0;
+        border-top: 1px solid #e8ebf0;
+    }
+
+    .scheduledWindowRow {
+        grid-template-columns: 40px minmax(0, 1fr) auto;
+    }
+
+    .scheduledPeakRow {
+        grid-template-columns: 40px minmax(0, 1fr);
+    }
+
+    .scheduledPeakValue {
+        grid-column: 2;
+        text-align: left;
+    }
+}
+
+@media (max-width: 560px) {
+    .mailStatsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .mailDashActions {
+        width: 100%;
+        flex-direction: column;
+    }
+
+    .mailDashActions button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
+
+
+
+.mailChartPanel {
+    min-height: 0;
+    padding-bottom: 18px;
+}
+
+.performanceSplit {
+    display: grid;
+    grid-template-columns: 150px minmax(0, 1fr);
+    gap: 18px;
+    align-items: end;
+    padding: 10px 0 12px;
+}
+
+.bottomPerformance {
+    border-top: 1px solid #edf0f5;
+    margin-top: 4px;
+    padding-top: 16px;
+}
+
+.performanceMetric {
+    align-self: center;
+}
+
+.performanceMetric p {
+    margin: 0;
+    font-size: 12px;
+    color: #8a94a6;
+}
+
+.performanceMetric strong {
+    display: block;
+    margin-top: 6px;
+    font-size: 28px;
+    font-weight: 750;
+    letter-spacing: -0.06em;
+    color: #111827;
+}
+
+.performanceMetric span {
+    display: inline-flex;
+    margin-top: 8px;
+    border-radius: 999px;
+    background: #f0fdf4;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+.performanceChart {
+    height: 116px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 5px;
+    position: relative;
+}
+
+.performanceChart.mini {
+    height: 88px;
+}
+
+.mailBarWrap {
+    flex: 1;
+    min-width: 7px;
+    height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-end;
+    cursor: pointer;
+}
+
+.mailBar {
+    width: 10px;
+    max-width: 10px;
+    background: #2563eb;
+    border-radius: 8px 8px 2px 2px;
+    transition: all 0.2s ease;
+}
+
+.secondaryBar {
+    background: #22c55e;
+}
+
+.mailBarWrap:hover .mailBar {
+    transform: translateY(-2px);
+    opacity: 0.9;
+}
+
+.chartAxis {
+    grid-column: 2;
+    display: flex;
+    justify-content: space-between;
+    margin-top: -6px;
+    font-size: 10.5px;
+    color: #94a3b8;
+}
+
+.mailMainGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 320px;
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 16px;
+}
+
+.mailBottomGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    justify-items: center;
+    gap: 16px;
+    align-items: start;
+    margin-top: 0;
+}
+
+.aiActionsList {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 10px;
+}
+
+@media (max-width: 1150px) {
+
+    .mailMainGrid,
+    .mailBottomGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .performanceSplit {
+        grid-template-columns: 1fr;
+    }
+
+    .chartAxis {
+        grid-column: 1;
+    }
+}
+
+
+.performanceMetric span {
+    display: inline-flex;
+    margin-top: 8px;
+    border-radius: 999px;
+    background: #eff6ff;
+    color: #1d4ed8;
+    padding: 5px 8px;
+    font-size: 11px;
+    font-weight: 700;
+}
+
+
+.secondaryBar {
+    background: linear-gradient(180deg, #60a5fa 0%, #1d9bf0 100%);
+}
+
+
+.fullAxis {
+    display: grid;
+    width: 100%;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 4px;
+    margin-top: 10px;
+}
+
+.fullAxis span {
+    text-align: center;
+    font-size: 11px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+/* Dashboard typography — match Email Queue */
+
+.mailDashPage,
+.mailDashPage * {
+    font-family: "Inter", sans-serif;
+}
+
+/* Page header */
+.mailDashHeader h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.mailDashHeader p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+/* Buttons + links */
+.mailDashActions button,
+.mailDashPrimary,
+.rangeButtons button,
+.viewAllBtn,
+.mailViewLink,
+.automationPagination button,
+.quickScheduleButtons button,
+.rescheduleActions button,
+.rescheduleHeader button,
+.calendarTop button,
+.calendarGrid button {
+    font-size: 12px;
+    font-weight: 500;
+    color: #374151;
+}
+
+/* Panel titles */
+.mailPanelHeader h2,
+.automationHeader h2,
+.rescheduleHeader h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+/* Panel descriptions */
+.panelSubheading,
+.automationHeader p,
+.rescheduleHeader p {
+    font-size: 13px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+/* KPI cards */
+.mailStatCard p {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.mailStatCard h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #111827;
+}
+
+.mailStatCard span {
+    font-size: 10.5px;
+    font-weight: 600;
+}
+
+/* Chart text */
+.performanceMetric p {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.performanceMetric strong {
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #111827;
+}
+
+.performanceMetric span,
+.chartAxis span {
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #9ca3af;
+}
+
+
+
+/* Recent emails table */
+.dashboardRecentHead span {
+    font-size: 11px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.dashboardRecentRow strong {
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.dashboardRecentRow span {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.dashboardRecentRow p {
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #9ca3af;
+}
+
+.recentEmailStatus {
+    font-size: 10.5px !important;
+    font-weight: 500;
+}
+
+/* Agent activity */
+.aiActionTop strong {
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.aiActionTop span,
+.aiActionContent small {
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #9ca3af;
+}
+
+.aiActionContent p {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.agentLiveBadge {
+    font-size: 10.5px;
+    font-weight: 500;
+}
+
+/* Modal */
+.reschedulePreview span,
+.reschedulePreview p,
+.rescheduleFields label,
+.calendarWeek span {
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.reschedulePreview strong {
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.calendarTop h3 {
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.rescheduleFields input {
+    font-size: 12px;
+    font-weight: 400;
+    color: #374151;
+}
+
+
+
+.chartTooltip {
+    z-index: 20;
+    transform: translate(-50%, -115%);
+    pointer-events: none;
+    min-width: 160px;
+    max-width: 240px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14);
+}
+
+.chartTooltip strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+    white-space: nowrap;
+}
+
+.chartTooltip span {
+    display: block;
+    margin-top: 3px;
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+
+
+
+.mailDashActions {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.mailDashActions .mailDashPrimary,
+.mailDashActions .mailDashPrimary:link,
+.mailDashActions .mailDashPrimary:visited {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+
+    height: 34px;
+    padding: 0 12px;
+
+    background-color: #ffffff !important;
+    background-image: none !important;
+    color: #374151 !important;
+
+    border: 1px solid #e5e7eb !important;
+    border-radius: 9px;
+
+    font-size: 12px;
+    font-weight: 500;
+    line-height: 1;
+
+    text-decoration: none;
+    box-shadow: none;
+    cursor: pointer;
+}
+
+.mailDashActions .mailDashPrimary:hover {
+    background-color: #f9fafb !important;
+    background-image: none !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+
+.mailDashActions .mailDashPrimary:active {
+    background-color: #f3f4f6 !important;
+}
+
+.mailDashActions .mailDashPrimary svg {
+    width: 15px;
+    height: 15px;
+    color: currentColor;
+}
+
+.sentEmailsPagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    min-height: 46px;
+    padding: 8px 16px 0;
+    border-top: 1px solid #edf0f5;
+}
+
+.sentEmailsPagination>span {
+    font-size: 10.5px;
+    font-weight: 400;
+    color: #9ca3af;
+}
+
+.sentEmailsPaginationActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.sentEmailsPaginationActions button {
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #6b7280;
+    cursor: pointer;
+    transition:
+        background-color 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease;
+}
+
+.sentEmailsPaginationActions button:hover:not(:disabled) {
+    background: #f9fafb;
+    border-color: #d1d5db;
+    color: #111827;
+}
+
+.sentEmailsPaginationActions button:disabled {
+    opacity: 0.35;
+    cursor: not-allowed;
+}
+
+@media (max-width: 900px) {
+    .recentEmailsPanel {
+        width: 100%;
+    }
+
+    .sentEmailsPagination {
+        min-width: 780px;
+    }
+}
+
+
+
+.scheduledSummaryIcon {
+    display: none;
+}
+
+.scheduledSummaryItem {
+    padding: 16px 10px;
+    text-align: center;
+}
+
+.scheduledSummaryItem strong {
+    font-size: 24px;
+    font-weight: 500;
+    line-height: 1.1;
+}
+
+.scheduledSummaryItem span {
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.scheduledSummaryItem small {
+    display: block;
+    margin-top: 4px;
+    font-size: 12px;
+    font-weight: 500;
+    color: #2563eb;
+}

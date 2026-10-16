@@ -1,0 +1,506 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Workspace {
+  id                  String                 @id @default(cuid())
+  name                String?
+  userEmail           String?                @unique
+  createdAt           DateTime               @default(now())
+  updatedAt           DateTime               @updatedAt
+  brandProfiles       BrandEmailProfile[]
+  customers           Customer[]
+  customerTags        CustomerTag[]
+  emailEvents         EmailEvent[]
+  masterTemplates     EmailMasterTemplate[]
+  emailSamples        EmailSample[]
+  generatedEmails     GeneratedEmail[]
+  scheduledEmails     ScheduledEmail[]
+  suppressions        Suppression[]
+  trackedLinks        TrackedLink[]
+  integrations        WorkspaceIntegration[]
+  automationWorkflows AutomationWorkflow[]
+  automationRuns      AutomationRun[]
+  oauthConsents           OAuthConsent[]
+  oauthAuthorizationCodes OAuthAuthorizationCode[]
+  oauthAccessTokens       OAuthAccessToken[]
+  oauthRefreshTokens      OAuthRefreshToken[]
+}
+
+model BrandEmailProfile {
+  id                    String    @id @default(cuid())
+  workspaceId           String
+  companyName           String?
+  website               String?
+  companyDescription    String?
+  idealCustomer         String?
+  guidelines            Json?
+  logoStyle             String?
+  primaryColor          String?
+  secondaryColor        String?
+  backgroundColor       String?
+  fontFamily            String?
+  layoutStyle           String?
+  buttonStyle           Json?
+  emojiStyle            String?
+  iconStyle             String?
+  headerStyle           String?
+  footerStyle           String?
+  tone                  String?
+  spacing               String?
+  contentPattern        String?
+  ctaPattern            String?
+  recommendedEmailTypes Json?
+  rawProfile            Json?
+  createdAt             DateTime  @default(now())
+  updatedAt             DateTime  @updatedAt
+  workspace             Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model EmailSample {
+  id          String    @id @default(cuid())
+  workspaceId String
+  title       String
+  imageUrl    String
+  fileName    String?
+  mimeType    String?
+  sizeBytes   Int?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+}
+
+model GeneratedEmail {
+  id              String           @id @default(cuid())
+  workspaceId     String
+  emailType       String
+  subject         String
+  html            String
+  plainText       String?
+  status          String           @default("draft")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  emailEvents     EmailEvent[]
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  scheduledEmails ScheduledEmail[]
+
+  @@index([workspaceId])
+  @@index([status])
+}
+
+model Customer {
+  id              String           @id @default(cuid())
+  workspaceId     String
+  name            String
+  email           String
+  company         String
+  emailsSent      Int              @default(0)
+  openRate        Float            @default(0)
+  clickRate       Float            @default(0)
+  status          String           @default("Active")
+  lastEmail       String           @default("Never")
+  createdAt       DateTime         @default(now())
+  updatedAt       DateTime         @updatedAt
+  mrr               Float     @default(0)
+  syncedMrr         Float?
+  plan              String?
+  renewalDate       DateTime?
+  notes             String?
+
+  manualName        String?
+  manualEmail       String?
+  manualCompany     String?
+  manualMrr         Float?
+  manualPlan        String?
+  manualStatus      String?
+  manualRenewalDate  DateTime?
+  manualNotes       String?
+
+  source            String    @default("unknown")
+  externalId        String?
+  archivedAt        DateTime?
+  unsubscribedAt  DateTime?
+  workspace       Workspace        @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  emailEvents     EmailEvent[]
+  scheduledEmails ScheduledEmail[]
+  automationRuns  AutomationRun[]
+  tags            CustomerTag[]
+
+  @@index([workspaceId])
+  @@index([email])
+}
+
+model CustomerTag {
+  id             String   @id @default(cuid())
+  workspaceId    String
+  customerId     String
+  name           String
+  normalizedName String
+  createdAt      DateTime @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Customer  @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@unique([customerId, normalizedName])
+  @@index([workspaceId])
+  @@index([customerId])
+  @@index([normalizedName])
+}
+
+model Suppression {
+  id          String    @id @default(cuid())
+  workspaceId String
+  email       String
+  reason      String?
+  createdAt   DateTime  @default(now())
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, email])
+  @@index([workspaceId])
+  @@index([email])
+}
+
+model ScheduledEmail {
+  id                String          @id @default(cuid())
+  workspaceId       String
+  customerId        String
+  generatedEmailId  String?
+  automationRunId   String?
+  automationNodeId  String?
+  emailType         String
+  subject           String
+  html              String
+  plainText         String?
+  scheduledFor      DateTime
+  sentAt            DateTime?
+  status            String          @default("scheduled")
+  failureReason     String?
+  providerRfcMessageId String?
+  providerMessageId String?
+  retryCount        Int             @default(0)
+  lastRetryAt       DateTime?
+
+  // Persist the exact provider request before the first send attempt.
+  sendPayload     Json?
+  sendAttemptedAt DateTime?
+
+  // Fence worker writes and allow expired claims to be reviewed/recovered.
+  sendLockToken   String?
+  sendLockedUntil DateTime?
+
+  // Detect a changed provider credential before replaying an uncertain request.
+  sendCredentialFingerprint String?
+
+  openedAt       DateTime?
+  clickedAt      DateTime?
+  deliveredAt    DateTime?
+  bouncedAt      DateTime?
+  complainedAt   DateTime?
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  emailEvents    EmailEvent[]
+  customer       Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  generatedEmail GeneratedEmail? @relation(fields: [generatedEmailId], references: [id])
+  workspace      Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([automationRunId, automationNodeId])
+  @@index([workspaceId])
+  @@index([customerId])
+  @@index([generatedEmailId])
+  @@index([status])
+  @@index([scheduledFor])
+  @@index([workspaceId, providerRfcMessageId])
+}
+
+model EmailEvent {
+  id                String          @id @default(cuid())
+  workspaceId       String
+  customerId        String
+  generatedEmailId  String?
+  scheduledEmailId  String?
+  emailType         String
+  subject           String
+  status            String
+  reason            String?
+  providerMessageId String?
+  webhookEventId    String?         @unique
+  createdAt         DateTime        @default(now())
+  customer          Customer        @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  generatedEmail    GeneratedEmail? @relation(fields: [generatedEmailId], references: [id])
+  scheduledEmail    ScheduledEmail? @relation(fields: [scheduledEmailId], references: [id])
+  workspace         Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([customerId])
+  @@index([generatedEmailId])
+  @@index([scheduledEmailId])
+  @@index([status])
+  @@index([createdAt])
+}
+
+model EmailMasterTemplate {
+  id          String    @id @default(cuid())
+  workspaceId String
+  sampleId    String?
+  title       String
+  html        String
+  subject     String
+  heading     String
+  body        String
+  ctaText     String
+  ctaLink     String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([sampleId])
+}
+
+model TrackedLink {
+  id               String    @id @default(cuid())
+  workspaceId      String
+  scheduledEmailId String
+  customerId       String
+  originalUrl      String
+  createdAt        DateTime  @default(now())
+  workspace        Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId])
+  @@index([scheduledEmailId])
+  @@index([customerId])
+}
+
+model WorkspaceIntegration {
+  id               String              @id @default(cuid())
+  workspaceId      String
+  provider         IntegrationProvider
+  status           IntegrationStatus   @default(connected)
+  accessToken      String?
+  metadata         Json?
+  refreshToken     String?
+  instanceUrl      String?
+  tokenType        String?
+  scope            String?
+  issuedAt         DateTime?
+  expiresAt        DateTime?
+  externalUserId   String?
+  externalOrgId    String?
+  lastSyncedAt     DateTime?
+  syncStatus       String?
+  syncError        String?
+  createdAt        DateTime            @default(now())
+  updatedAt        DateTime            @updatedAt
+  webhookChannel   String?
+  webhookChannelId String?
+  webhookUrl       String?
+  webhookId              String?
+  webhookSecretEncrypted String?
+  workspace        Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId])
+  @@index([provider])
+}
+
+model AutomationWorkflow {
+  id          String                   @id @default(cuid())
+  workspaceId String
+  name        String
+  description String?                  @db.Text
+  status      AutomationWorkflowStatus @default(draft)
+  definition  Json
+  version     Int                      @default(1)
+  lastRunAt   DateTime?
+  createdAt   DateTime                 @default(now())
+  updatedAt   DateTime                 @updatedAt
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  runs      AutomationRun[]
+
+  @@index([workspaceId])
+  @@index([workspaceId, status])
+  @@index([updatedAt])
+}
+
+model AutomationRun {
+  id             String              @id @default(cuid())
+  workflowId     String
+  workspaceId    String
+  customerId     String?
+  status         AutomationRunStatus @default(queued)
+  idempotencyKey String?
+  triggerNodeId  String?
+  currentNodeId  String?
+  input          Json?
+  context        Json?
+  output         Json?
+  error          String?             @db.Text
+  resumeAt       DateTime?
+  startedAt      DateTime            @default(now())
+  completedAt    DateTime?
+  createdAt      DateTime            @default(now())
+  updatedAt      DateTime            @updatedAt
+
+  workflowDefinition Json?
+  workflowVersion    Int?
+
+  workflow  AutomationWorkflow  @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  workspace Workspace           @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  customer  Customer?           @relation(fields: [customerId], references: [id], onDelete: SetNull)
+  steps     AutomationStepRun[]
+
+  @@unique([workflowId, idempotencyKey])
+  @@index([workspaceId])
+  @@index([workflowId])
+  @@index([customerId])
+  @@index([status, resumeAt])
+  @@index([createdAt])
+}
+
+model AutomationStepRun {
+  id          String               @id @default(cuid())
+  runId       String
+  nodeId      String
+  nodeType    String
+  title       String
+  status      AutomationStepStatus @default(pending)
+  attempt     Int                  @default(1)
+  input       Json?
+  output      Json?
+  error       String?              @db.Text
+  startedAt   DateTime             @default(now())
+  completedAt DateTime?
+  createdAt   DateTime             @default(now())
+  updatedAt   DateTime             @updatedAt
+
+  run AutomationRun @relation(fields: [runId], references: [id], onDelete: Cascade)
+
+  @@unique([runId, nodeId, attempt])
+  @@index([runId])
+  @@index([status])
+}
+
+enum IntegrationProvider {
+  salesforce
+  hubspot
+  stripe
+  pipedrive
+  resend
+  sendgrid
+  mailgun
+  posthog
+  intercom
+  slack
+  google_calendar
+  zapier
+}
+
+enum IntegrationStatus {
+  connected
+  disconnected
+  expired
+  error
+}
+
+enum AutomationWorkflowStatus {
+  draft
+  active
+  paused
+  archived
+}
+
+enum AutomationRunStatus {
+  queued
+  running
+  waiting
+  completed
+  failed
+  cancelled
+}
+
+enum AutomationStepStatus {
+  pending
+  running
+  waiting
+  completed
+  skipped
+  failed
+}
+
+
+
+
+model OAuthConsent {
+  id          String   @id @default(cuid())
+  workspaceId String
+  clientId    String
+  scopes      String
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, clientId])
+}
+
+model OAuthAuthorizationCode {
+  id                  String    @id @default(cuid())
+  codeHash            String    @unique
+  clientId            String
+  workspaceId         String
+  redirectUri         String
+  scopes              String
+  codeChallenge       String?
+  codeChallengeMethod String?
+  expiresAt           DateTime
+  usedAt              DateTime?
+  createdAt           DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, clientId])
+  @@index([expiresAt])
+}
+
+model OAuthAccessToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  clientId    String
+  workspaceId String
+  scopes      String
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, clientId])
+  @@index([expiresAt])
+}
+
+model OAuthRefreshToken {
+  id          String    @id @default(cuid())
+  tokenHash   String    @unique
+  familyId    String
+  clientId    String
+  workspaceId String
+  scopes      String
+  expiresAt   DateTime
+  revokedAt   DateTime?
+  replacedAt  DateTime?
+  createdAt   DateTime  @default(now())
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, clientId])
+  @@index([familyId])
+  @@index([expiresAt])
+}

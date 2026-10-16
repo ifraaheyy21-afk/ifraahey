@@ -1,0 +1,3108 @@
+.emailQueuePage {
+    width: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    background: #ffffff;
+    color: #111827;
+    font-family: "Inter", sans-serif;
+}
+
+.emailQueueTopbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.emailQueueTopbar h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.emailQueueTopbar p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.emailQueueActions {
+    display: flex;
+    gap: 8px;
+}
+
+.emailQueueActions button,
+.emailQueueFilters button,
+.emailQueueRowActions button,
+.emailQueueFooter button {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.emailQueueActions button:hover,
+.emailQueueFilters button:hover,
+.emailQueueRowActions button:hover,
+.emailQueueFooter button:hover {
+    background: #f9fafb;
+}
+
+.primaryButton {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+/* KPIs */
+
+.emailQueueStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.emailQueueStatCard {
+    min-height: 86px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.emailQueueStatTop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.emailQueueStatIcon {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+    color: #6b7280;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.emailQueueStatCard p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.emailQueueStatBottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.emailQueueStatBottom h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #111827;
+}
+
+.emailQueueTrend {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.emailQueueTrend.up {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.emailQueueTrend.down {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.emailQueueTrend.neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Main panel */
+
+.emailQueuePanel {
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.emailQueueFilters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.8fr) 150px 150px 90px;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.emailQueueFilters input,
+.emailQueueFilters select {
+    height: 38px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0 11px;
+    font-size: 12px;
+    color: #374151;
+    outline: none;
+}
+
+.emailQueueFilters input:focus,
+.emailQueueFilters select:focus {
+    border-color: #d1d5db;
+    box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.22);
+}
+
+.emailQueueTable {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.emailQueueTableHead,
+.emailQueueTableRow {
+    display: grid;
+    grid-template-columns: 1.15fr 1.45fr 0.75fr 0.75fr 1fr 1fr 1.35fr 0.85fr;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    min-width: 1080px;
+}
+
+.emailQueueTableHead {
+    background: #fafafa;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.emailQueueTableHead span {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.emailQueueTableRow {
+    min-height: 62px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.emailQueueTableRow:hover {
+    background: #fafafa;
+}
+
+.emailQueueTableRow span {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.emailQueueTableRow strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.emailQueueTableRow p {
+    margin: 3px 0 0;
+    font-size: 10.5px;
+    color: #9ca3af;
+}
+
+.queueBadge {
+    width: fit-content;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10.5px !important;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.queueBadge.pending {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.queueBadge.sending {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.queueBadge.sent,
+.queueBadge.low,
+.queueBadge.normal,
+.queueBadge.cancelled {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.queueBadge.failed,
+.queueBadge.high {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.emailQueueRowActions {
+    display: flex;
+    gap: 5px;
+}
+
+.emailQueueRowActions button {
+    height: 28px;
+    padding: 0 9px;
+    font-size: 11px;
+    color: #374151;
+}
+
+.emailQueueRowActions button:disabled,
+.queueModalActions button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.emailQueueFooter {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-top: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.emailQueueFooter p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.emailQueueFooter div {
+    display: flex;
+    gap: 5px;
+}
+
+.emailQueueFooter button {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+}
+
+.activePage {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+/* Email modal */
+
+.queueModalOverlay,
+.confirmCancelOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.confirmCancelOverlay {
+    z-index: 10000;
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.queueEmailModal {
+    width: min(980px, calc(100vw - 48px));
+    max-height: 92vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+    padding: 24px;
+}
+
+.queueModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.queueModalHeader h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.queueModalHeader p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.queueModalHeader button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+.queueModalBody {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
+}
+
+.queueEmailEditorPanel,
+.queueDeliveryPanel {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #ffffff;
+    padding: 18px;
+}
+
+.queueEmailMeta {
+    margin-bottom: 16px;
+}
+
+.queueEmailMeta span {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 11px;
+    margin-bottom: 10px;
+}
+
+.queueEmailMeta p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.queueEditorLabel {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.queueEditorLabel input,
+.queueEditorLabel textarea {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 13px;
+    color: #111827;
+    outline: none;
+    background: #ffffff;
+}
+
+.queueEditorLabel input {
+    height: 42px;
+    margin-top: 6px;
+    padding: 0 12px;
+}
+
+.queueEditorLabel textarea {
+    min-height: 340px;
+    margin-top: 6px;
+    padding: 12px;
+    resize: none;
+    line-height: 1.7;
+    font-family: inherit;
+}
+
+.queueDeliveryPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.queueInfoCard {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 14px;
+}
+
+.queueInfoCard span {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.queueInfoCard strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.queueModalActions {
+    margin-top: auto;
+    display: flex;
+    gap: 10px;
+}
+
+.queueModalActions button,
+.confirmCancelActions button {
+    flex: 1;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.queueCancelBtn,
+.queueSaveBtn,
+.confirmCancelBtn {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+/* Confirm modal */
+
+.confirmCancelModal {
+    width: min(420px, calc(100vw - 48px));
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+    padding: 22px;
+}
+
+.confirmCancelHeader h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.confirmCancelHeader p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6b7280;
+}
+
+.confirmCancelPreview {
+    margin: 18px 0;
+    border: 1px solid #e5e7eb;
+    background: #fafafa;
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.confirmCancelPreview span {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.confirmCancelPreview strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.confirmCancelActions {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width: 1100px) {
+    .emailQueueStatsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .emailQueueFilters {
+        grid-template-columns: 1fr;
+    }
+
+    .emailQueueTopbar {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 900px) {
+    .queueModalBody {
+        grid-template-columns: 1fr;
+    }
+
+    .queueEmailModal {
+        width: 100%;
+        max-height: 95vh;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.emailQueueMegaCard {
+    width: min(560px, 100%);
+    margin: 0 0 20px 0;
+    padding: 24px 26px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.emailQueueMegaHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.emailQueueMegaLabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 400;
+    color: #4b5563;
+}
+
+.emailQueueMegaLabel svg {
+    color: #9ca3af;
+}
+
+.emailQueueMegaMain {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.emailQueueMegaMain h2 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.05em;
+    color: #374151;
+}
+
+.emailQueueMegaIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #9ca3af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emailQueueMegaStats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.emailQueueMegaStats div {
+    min-width: 0;
+}
+
+.emailQueueMegaStats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.emailQueueMegaStats span svg {
+    color: #b6bec8;
+}
+
+.emailQueueMegaStats strong {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #4b5563;
+}
+
+.megaTrend {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.megaTrend.up {
+    color: #4f9f7b;
+}
+
+.megaTrend.down {
+    color: #c76b6b;
+}
+
+.emailQueueStatsGrid,
+.emailQueueStatCard,
+.emailQueueStatTop,
+.emailQueueStatIcon,
+.emailQueueStatBottom,
+.emailQueueTrend {
+    display: none;
+}
+
+
+.emailQueueMegaCard {
+    width: min(620px, 100%);
+    margin: 0 0 22px 0;
+    padding: 24px 28px 22px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.emailQueueMegaHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 26px;
+}
+
+.emailQueueMegaLabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 400;
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+.emailQueueMegaLabel svg,
+.emailQueueMegaStats span svg {
+    color: #a1aab5;
+    flex-shrink: 0;
+}
+
+.emailQueueMegaMain {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.emailQueueMegaMain h2 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.06em;
+    color: #374151;
+}
+
+.emailQueueMegaIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #9ca3af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.emailQueueMegaStats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 28px;
+}
+
+.emailQueueMegaStats div {
+    min-width: 0;
+}
+
+.emailQueueMegaStats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    line-height: 1.1;
+    font-weight: 400;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.emailQueueMegaStats strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.05em;
+    color: #4b5563;
+}
+
+.megaTrend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.megaTrend.up {
+    color: #4f9f7b;
+}
+
+.megaTrend.down {
+    color: #c76b6b;
+}
+
+.megaTrend.neutral {
+    color: #6b7280;
+}
+
+@media (max-width: 900px) {
+    .emailQueueMegaCard {
+        width: 100%;
+    }
+
+    .emailQueueMegaStats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 18px;
+    }
+}
+
+/* Queue overview + seven-day stacked chart */
+
+.emailQueueOverviewGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(500px, 1.14fr);
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 22px;
+}
+
+.emailQueueOverviewGrid .emailQueueMegaCard {
+    width: 100%;
+    height: 100%;
+    min-height: 332px;
+    margin: 0;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.emailQueueChartCard {
+    min-width: 0;
+    min-height: 332px;
+    padding: 22px 22px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.emailQueueChartHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.emailQueueChartEyebrow {
+    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.emailQueueChartHeadline {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.emailQueueChartHeadline>strong {
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    color: #111827;
+}
+
+.emailQueueChartTrend {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 1px;
+}
+
+.emailQueueChartTrend span {
+    font-size: 10.5px;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.emailQueueChartTrend small {
+    font-size: 9.5px;
+    line-height: 1.2;
+    color: #9ca3af;
+}
+
+.emailQueueChartTrend.up span {
+    color: #4f9f7b;
+}
+
+.emailQueueChartTrend.down span {
+    color: #c76b6b;
+}
+
+.emailQueueChartActions {
+    display: flex;
+    gap: 7px;
+}
+
+.emailQueueChartActions button {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.emailQueueChartActions button:hover {
+    background: #f9fafb;
+    color: #374151;
+}
+
+.emailQueueChart {
+    display: grid;
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 10px;
+    height: 208px;
+}
+
+.emailQueueChartScale {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1px 0 24px;
+    text-align: right;
+}
+
+.emailQueueChartScale span {
+    font-size: 9px;
+    line-height: 1;
+    color: #9ca3af;
+}
+
+.emailQueueChartPlot {
+    position: relative;
+    min-width: 0;
+    height: 100%;
+}
+
+.emailQueueChartGrid {
+    position: absolute;
+    inset: 0 0 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.emailQueueChartGrid span {
+    width: 100%;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.emailQueueChartBars {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 12px;
+    height: 100%;
+}
+
+.emailQueueChartColumn {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) 24px;
+    min-width: 0;
+    text-align: center;
+}
+
+.emailQueueChartTrack {
+    position: relative;
+    width: min(46px, 80%);
+    height: 100%;
+    margin: 0 auto;
+}
+
+.emailQueueForecastBar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 9px 9px 3px 3px;
+    background: #edf1f5;
+    transition: height 220ms ease;
+}
+
+.emailQueueActualStack {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    overflow: hidden;
+    border-radius: 9px 9px 3px 3px;
+}
+
+.emailQueueChartSegment {
+    width: 100%;
+    min-height: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.24);
+    transition: height 220ms ease;
+}
+
+.emailQueueChartSegment.sent {
+    background: #2f2bd3;
+}
+
+.emailQueueChartSegment.scheduled {
+    background: #5754df;
+}
+
+.emailQueueChartSegment.failed {
+    background: #8c8bea;
+}
+
+.emailQueueChartColumn>span {
+    align-self: end;
+    font-size: 10px;
+    color: #6b7280;
+}
+
+.emailQueueChartLegend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 9px 16px;
+    margin-top: 12px;
+}
+
+.emailQueueChartLegend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.emailQueueChartLegend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.emailQueueChartLegend i.forecast {
+    background: #edf1f5;
+}
+
+.emailQueueChartLegend i.scheduled {
+    background: #5754df;
+}
+
+.emailQueueChartLegend i.sent {
+    background: #2f2bd3;
+}
+
+.emailQueueChartLegend i.failed {
+    background: #8c8bea;
+}
+
+@media (max-width: 1180px) {
+    .emailQueueOverviewGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .emailQueueOverviewGrid .emailQueueMegaCard,
+    .emailQueueChartCard {
+        min-height: unset;
+    }
+}
+
+@media (max-width: 700px) {
+    .emailQueuePage {
+        padding: 18px;
+    }
+
+    .emailQueueChartCard {
+        padding: 18px 14px 14px;
+        overflow-x: auto;
+    }
+
+    .emailQueueChartHeader,
+    .emailQueueChart,
+    .emailQueueChartLegend {
+        min-width: 540px;
+    }
+}
+
+.emailQueuePage {
+    width: 100%;
+    min-height: 100vh;
+    padding: 24px;
+    background: #ffffff;
+    color: #111827;
+    font-family: "Inter", sans-serif;
+}
+
+.emailQueueTopbar {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 18px;
+}
+
+.emailQueueTopbar h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+    color: #111827;
+}
+
+.emailQueueTopbar p {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.emailQueueActions {
+    display: flex;
+    gap: 8px;
+}
+
+.emailQueueActions button,
+.emailQueueFilters button,
+.emailQueueRowActions button,
+.emailQueueFooter button {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 10px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.emailQueueActions button:hover,
+.emailQueueFilters button:hover,
+.emailQueueRowActions button:hover,
+.emailQueueFooter button:hover {
+    background: #f9fafb;
+}
+
+.primaryButton {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+/* KPIs */
+
+.emailQueueStatsGrid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.emailQueueStatCard {
+    min-height: 86px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.emailQueueStatTop {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 10px;
+}
+
+.emailQueueStatIcon {
+    width: 28px;
+    height: 28px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #fafafa;
+    color: #6b7280;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.emailQueueStatCard p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+    font-weight: 400;
+}
+
+.emailQueueStatBottom {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.emailQueueStatBottom h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #111827;
+}
+
+.emailQueueTrend {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    height: 22px;
+    padding: 0 8px;
+    border-radius: 999px;
+    font-size: 10.5px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.emailQueueTrend.up {
+    background: #ecfdf5;
+    color: #047857;
+}
+
+.emailQueueTrend.down {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.emailQueueTrend.neutral {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+/* Main panel */
+
+.emailQueuePanel {
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 18px;
+    overflow: hidden;
+}
+
+.emailQueueFilters {
+    display: grid;
+    grid-template-columns: minmax(260px, 1.8fr) 150px 150px 90px;
+    gap: 10px;
+    padding: 12px;
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.emailQueueFilters input,
+.emailQueueFilters select {
+    height: 38px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0 11px;
+    font-size: 12px;
+    color: #374151;
+    outline: none;
+}
+
+.emailQueueFilters input:focus,
+.emailQueueFilters select:focus {
+    border-color: #d1d5db;
+    box-shadow: 0 0 0 3px rgba(209, 213, 219, 0.22);
+}
+
+.emailQueueTable {
+    width: 100%;
+    overflow-x: auto;
+}
+
+.emailQueueTableHead,
+.emailQueueTableRow {
+    display: grid;
+    grid-template-columns: 1.15fr 1.45fr 0.75fr 0.75fr 1fr 1fr 1.35fr 0.85fr;
+    align-items: center;
+    gap: 10px;
+    padding: 12px 14px;
+    min-width: 1080px;
+}
+
+.emailQueueTableHead {
+    background: #fafafa;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.emailQueueTableHead span {
+    font-size: 11px;
+    color: #6b7280;
+    font-weight: 500;
+}
+
+.emailQueueTableRow {
+    min-height: 62px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.emailQueueTableRow:hover {
+    background: #fafafa;
+}
+
+.emailQueueTableRow span {
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.emailQueueTableRow strong {
+    display: block;
+    font-size: 12px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.emailQueueTableRow p {
+    margin: 3px 0 0;
+    font-size: 10.5px;
+    color: #9ca3af;
+}
+
+.queueBadge {
+    width: fit-content;
+    padding: 5px 8px;
+    border-radius: 999px;
+    font-size: 10.5px !important;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.queueBadge.pending {
+    background: #fff7ed;
+    color: #c2410c;
+}
+
+.queueBadge.sending {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.queueBadge.sent,
+.queueBadge.low,
+.queueBadge.normal,
+.queueBadge.cancelled {
+    background: #f3f4f6;
+    color: #4b5563;
+}
+
+.queueBadge.failed,
+.queueBadge.high {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.emailQueueRowActions {
+    display: flex;
+    gap: 5px;
+}
+
+.emailQueueRowActions button {
+    height: 28px;
+    padding: 0 9px;
+    font-size: 11px;
+    color: #374151;
+}
+
+.emailQueueRowActions button:disabled,
+.queueModalActions button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+}
+
+.emailQueueFooter {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-top: 1px solid #e5e7eb;
+    background: #ffffff;
+}
+
+.emailQueueFooter p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.emailQueueFooter div {
+    display: flex;
+    gap: 5px;
+}
+
+.emailQueueFooter button {
+    width: 30px;
+    height: 30px;
+    padding: 0;
+}
+
+.activePage {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+/* Email modal */
+
+.queueModalOverlay,
+.confirmCancelOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(5px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.confirmCancelOverlay {
+    z-index: 10000;
+    background: rgba(15, 23, 42, 0.42);
+}
+
+.queueEmailModal {
+    width: min(980px, calc(100vw - 48px));
+    max-height: 92vh;
+    overflow-y: auto;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.18);
+    padding: 24px;
+}
+
+.queueModalHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.queueModalHeader h2 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.queueModalHeader p {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.queueModalHeader button {
+    width: 36px;
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    cursor: pointer;
+    display: grid;
+    place-items: center;
+}
+
+.queueModalBody {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    gap: 18px;
+}
+
+.queueEmailEditorPanel,
+.queueDeliveryPanel {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #ffffff;
+    padding: 18px;
+}
+
+.queueEmailMeta {
+    margin-bottom: 16px;
+}
+
+.queueEmailMeta span {
+    display: inline-flex;
+    align-items: center;
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #374151;
+    font-size: 11px;
+    margin-bottom: 10px;
+}
+
+.queueEmailMeta p {
+    margin: 0;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.queueEditorLabel {
+    display: block;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: #6b7280;
+}
+
+.queueEditorLabel input,
+.queueEditorLabel textarea {
+    width: 100%;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    font-size: 13px;
+    color: #111827;
+    outline: none;
+    background: #ffffff;
+}
+
+.queueEditorLabel input {
+    height: 42px;
+    margin-top: 6px;
+    padding: 0 12px;
+}
+
+.queueEditorLabel textarea {
+    min-height: 340px;
+    margin-top: 6px;
+    padding: 12px;
+    resize: none;
+    line-height: 1.7;
+    font-family: inherit;
+}
+
+.queueDeliveryPanel {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.queueInfoCard {
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    padding: 14px;
+}
+
+.queueInfoCard span {
+    display: block;
+    font-size: 11px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.queueInfoCard strong {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.queueModalActions {
+    margin-top: auto;
+    display: flex;
+    gap: 10px;
+}
+
+.queueModalActions button,
+.confirmCancelActions button {
+    flex: 1;
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.queueCancelBtn,
+.queueSaveBtn,
+.confirmCancelBtn {
+    background: #111827 !important;
+    color: #ffffff !important;
+    border-color: #111827 !important;
+}
+
+/* Confirm modal */
+
+.confirmCancelModal {
+    width: min(420px, calc(100vw - 48px));
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 22px;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+    padding: 22px;
+}
+
+.confirmCancelHeader h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.confirmCancelHeader p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    line-height: 1.5;
+    color: #6b7280;
+}
+
+.confirmCancelPreview {
+    margin: 18px 0;
+    border: 1px solid #e5e7eb;
+    background: #fafafa;
+    border-radius: 14px;
+    padding: 14px;
+}
+
+.confirmCancelPreview span {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 6px;
+}
+
+.confirmCancelPreview strong {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.confirmCancelActions {
+    display: flex;
+    gap: 10px;
+}
+
+@media (max-width: 1100px) {
+    .emailQueueStatsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .emailQueueFilters {
+        grid-template-columns: 1fr;
+    }
+
+    .emailQueueTopbar {
+        flex-direction: column;
+    }
+}
+
+@media (max-width: 900px) {
+    .queueModalBody {
+        grid-template-columns: 1fr;
+    }
+
+    .queueEmailModal {
+        width: 100%;
+        max-height: 95vh;
+    }
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.emailQueueMegaCard {
+    width: min(560px, 100%);
+    margin: 0 0 20px 0;
+    padding: 24px 26px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+}
+
+.emailQueueMegaHeader {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 24px;
+}
+
+.emailQueueMegaLabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 400;
+    color: #4b5563;
+}
+
+.emailQueueMegaLabel svg {
+    color: #9ca3af;
+}
+
+.emailQueueMegaMain {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.emailQueueMegaMain h2 {
+    margin: 0;
+    font-size: 38px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.05em;
+    color: #374151;
+}
+
+.emailQueueMegaIcon {
+    width: 34px;
+    height: 34px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #9ca3af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.emailQueueMegaStats {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 24px;
+}
+
+.emailQueueMegaStats div {
+    min-width: 0;
+}
+
+.emailQueueMegaStats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 400;
+    color: #6b7280;
+}
+
+.emailQueueMegaStats span svg {
+    color: #b6bec8;
+}
+
+.emailQueueMegaStats strong {
+    display: inline-block;
+    margin-right: 8px;
+    font-size: 25px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #4b5563;
+}
+
+.megaTrend {
+    display: inline-flex;
+    align-items: center;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.megaTrend.up {
+    color: #4f9f7b;
+}
+
+.megaTrend.down {
+    color: #c76b6b;
+}
+
+.emailQueueStatsGrid,
+.emailQueueStatCard,
+.emailQueueStatTop,
+.emailQueueStatIcon,
+.emailQueueStatBottom,
+.emailQueueTrend {
+    display: none;
+}
+
+
+.emailQueueMegaCard {
+    width: min(620px, 100%);
+    margin: 0 0 22px 0;
+    padding: 24px 28px 22px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.emailQueueMegaHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 20px;
+    margin-bottom: 26px;
+}
+
+.emailQueueMegaLabel {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 17px;
+    font-weight: 400;
+    color: #4b5563;
+    white-space: nowrap;
+}
+
+.emailQueueMegaLabel svg,
+.emailQueueMegaStats span svg {
+    color: #a1aab5;
+    flex-shrink: 0;
+}
+
+.emailQueueMegaMain {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.emailQueueMegaMain h2 {
+    margin: 0;
+    font-size: 40px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.06em;
+    color: #374151;
+}
+
+.emailQueueMegaIcon {
+    width: 36px;
+    height: 36px;
+    border-radius: 999px;
+    background: #f8fafc;
+    color: #9ca3af;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+}
+
+.emailQueueMegaStats {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    column-gap: 28px;
+}
+
+.emailQueueMegaStats div {
+    min-width: 0;
+}
+
+.emailQueueMegaStats span {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-bottom: 8px;
+    font-size: 16px;
+    line-height: 1.1;
+    font-weight: 400;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.emailQueueMegaStats strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 26px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.05em;
+    color: #4b5563;
+}
+
+.megaTrend {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    line-height: 1.2;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.megaTrend.up {
+    color: #4f9f7b;
+}
+
+.megaTrend.down {
+    color: #c76b6b;
+}
+
+.megaTrend.neutral {
+    color: #6b7280;
+}
+
+@media (max-width: 900px) {
+    .emailQueueMegaCard {
+        width: 100%;
+    }
+
+    .emailQueueMegaStats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        row-gap: 18px;
+    }
+}
+
+/* Queue overview + seven-day stacked chart */
+
+.emailQueueOverviewGrid {
+    display: grid;
+    grid-template-columns: minmax(0, 0.86fr) minmax(500px, 1.14fr);
+    gap: 16px;
+    align-items: stretch;
+    margin-bottom: 22px;
+}
+
+.emailQueueOverviewGrid .emailQueueMegaCard {
+    width: 100%;
+    height: 100%;
+    min-height: 332px;
+    margin: 0;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.emailQueueChartCard {
+    min-width: 0;
+    min-height: 332px;
+    padding: 22px 22px 16px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.06);
+}
+
+.emailQueueChartHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 18px;
+}
+
+.emailQueueChartEyebrow {
+    margin-bottom: 5px;
+    font-size: 13px;
+    font-weight: 500;
+    color: #374151;
+}
+
+.emailQueueChartHeadline {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.emailQueueChartHeadline>strong {
+    font-size: 30px;
+    line-height: 1;
+    font-weight: 600;
+    letter-spacing: -0.05em;
+    color: #111827;
+}
+
+.emailQueueChartTrend {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding-top: 1px;
+}
+
+.emailQueueChartTrend span {
+    font-size: 10.5px;
+    line-height: 1.2;
+    font-weight: 600;
+}
+
+.emailQueueChartTrend small {
+    font-size: 9.5px;
+    line-height: 1.2;
+    color: #9ca3af;
+}
+
+.emailQueueChartTrend.up span {
+    color: #4f9f7b;
+}
+
+.emailQueueChartTrend.down span {
+    color: #c76b6b;
+}
+
+.emailQueueChartActions {
+    display: flex;
+    gap: 7px;
+}
+
+.emailQueueChartActions button {
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.emailQueueChartActions button:hover {
+    background: #f9fafb;
+    color: #374151;
+}
+
+.emailQueueChart {
+    display: grid;
+    grid-template-columns: 31px minmax(0, 1fr);
+    gap: 10px;
+    height: 208px;
+}
+
+.emailQueueChartScale {
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 1px 0 24px;
+    text-align: right;
+}
+
+.emailQueueChartScale span {
+    font-size: 9px;
+    line-height: 1;
+    color: #9ca3af;
+}
+
+.emailQueueChartPlot {
+    position: relative;
+    min-width: 0;
+    height: 100%;
+}
+
+.emailQueueChartGrid {
+    position: absolute;
+    inset: 0 0 24px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.emailQueueChartGrid span {
+    width: 100%;
+    border-top: 1px dashed #e5e7eb;
+}
+
+.emailQueueChartBars {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 12px;
+    height: 100%;
+}
+
+.emailQueueChartColumn {
+    display: grid;
+    grid-template-rows: minmax(0, 1fr) 24px;
+    min-width: 0;
+    text-align: center;
+}
+
+.emailQueueChartTrack {
+    position: relative;
+    width: min(46px, 80%);
+    height: 100%;
+    margin: 0 auto;
+}
+
+.emailQueueForecastBar {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 9px 9px 3px 3px;
+    background: #edf1f5;
+    transition: height 220ms ease;
+}
+
+.emailQueueActualStack {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    overflow: hidden;
+    border-radius: 9px 9px 3px 3px;
+}
+
+.emailQueueChartSegment {
+    width: 100%;
+    min-height: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.24);
+    transition: height 220ms ease;
+}
+
+.emailQueueChartSegment.sent {
+    background: #2f2bd3;
+}
+
+.emailQueueChartSegment.scheduled {
+    background: #5754df;
+}
+
+.emailQueueChartSegment.failed {
+    background: #8c8bea;
+}
+
+.emailQueueChartColumn>span {
+    align-self: end;
+    font-size: 10px;
+    color: #6b7280;
+}
+
+.emailQueueChartLegend {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-wrap: wrap;
+    gap: 9px 16px;
+    margin-top: 12px;
+}
+
+.emailQueueChartLegend span {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 9.5px;
+    color: #6b7280;
+    white-space: nowrap;
+}
+
+.emailQueueChartLegend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.emailQueueChartLegend i.forecast {
+    background: #edf1f5;
+}
+
+.emailQueueChartLegend i.scheduled {
+    background: #5754df;
+}
+
+.emailQueueChartLegend i.sent {
+    background: #2f2bd3;
+}
+
+.emailQueueChartLegend i.failed {
+    background: #8c8bea;
+}
+
+@media (max-width: 1180px) {
+    .emailQueueOverviewGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .emailQueueOverviewGrid .emailQueueMegaCard,
+    .emailQueueChartCard {
+        min-height: unset;
+    }
+}
+
+@media (max-width: 700px) {
+    .emailQueuePage {
+        padding: 18px;
+    }
+
+    .emailQueueChartCard {
+        padding: 18px 14px 14px;
+        overflow-x: auto;
+    }
+
+    .emailQueueChartHeader,
+    .emailQueueChart,
+    .emailQueueChartLegend {
+        min-width: 540px;
+    }
+}
+
+.emailQueueForecastBar {
+    background: #edf1f5;
+}
+
+.emailQueueChartSegment.sent {
+    background: #2f2bd3;
+}
+
+.emailQueueChartSegment.scheduled {
+    background: #5754df;
+}
+
+.emailQueueChartSegment.failed {
+    background: #8c8bea;
+}
+
+.emailQueueChartLegend i.forecast {
+    background: #edf1f5;
+}
+
+.emailQueueChartLegend i.scheduled {
+    background: #5754df;
+}
+
+.emailQueueChartLegend i.sent {
+    background: #2f2bd3;
+}
+
+.emailQueueChartLegend i.failed {
+    background: #8c8bea;
+}
+
+/* Refined chart bars + premium tooltip */
+.emailQueueChartTrack {
+    width: min(30px, 58%);
+}
+
+.emailQueueForecastBar,
+.emailQueueActualStack {
+    border-radius: 7px 7px 3px 3px;
+}
+
+.emailQueueForecastBar {
+    background: linear-gradient(180deg,
+            rgba(238, 241, 248, 0.94) 0%,
+            rgba(230, 234, 243, 0.76) 100%);
+}
+
+.emailQueueChartSegment {
+    border-top-color: rgba(255, 255, 255, 0.12);
+}
+
+.emailQueueChartSegment.sent {
+    background: linear-gradient(180deg, #403bd8 0%, #3530cf 100%);
+}
+
+.emailQueueChartSegment.scheduled {
+    background: linear-gradient(180deg, #5d59df 0%, #504bd8 100%);
+}
+
+.emailQueueChartSegment.failed {
+    background: linear-gradient(180deg, #817fe5 0%, #706de0 100%);
+}
+
+.emailQueueChartLegend i.forecast {
+    background: #e8ebf3;
+}
+
+.emailQueueChartLegend i.sent {
+    background: #3934d2;
+}
+
+.emailQueueChartLegend i.scheduled {
+    background: #5550dc;
+}
+
+.emailQueueChartLegend i.failed {
+    background: #7774e2;
+}
+
+/*
+ * Premium chart tooltip.
+ * Supports elements using either data-tooltip or data-chart-tooltip.
+ */
+.emailQueueChartTrack[data-tooltip],
+.emailQueueChartTrack[data-chart-tooltip],
+.emailQueueChartColumn[data-tooltip],
+.emailQueueChartColumn[data-chart-tooltip] {
+    cursor: default;
+}
+
+.emailQueueChartTrack[data-tooltip]::before,
+.emailQueueChartTrack[data-chart-tooltip]::before,
+.emailQueueChartColumn[data-tooltip]::before,
+.emailQueueChartColumn[data-chart-tooltip]::before {
+    content: attr(data-tooltip);
+    position: absolute;
+    z-index: 20;
+    left: 50%;
+    bottom: calc(100% + 10px);
+    width: max-content;
+    max-width: 220px;
+    padding: 9px 11px;
+    border: 1px solid rgba(226, 232, 240, 0.92);
+    border-radius: 11px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow:
+        0 14px 34px rgba(15, 23, 42, 0.12),
+        0 2px 8px rgba(15, 23, 42, 0.06);
+    color: #111827;
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1.45;
+    letter-spacing: -0.01em;
+    text-align: left;
+    white-space: pre-line;
+    pointer-events: none;
+    opacity: 0;
+    transform: translate(-50%, 5px);
+    transition:
+        opacity 150ms ease,
+        transform 150ms ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.emailQueueChartTrack[data-chart-tooltip]::before,
+.emailQueueChartColumn[data-chart-tooltip]::before {
+    content: attr(data-chart-tooltip);
+}
+
+.emailQueueChartTrack[data-tooltip]::after,
+.emailQueueChartTrack[data-chart-tooltip]::after,
+.emailQueueChartColumn[data-tooltip]::after,
+.emailQueueChartColumn[data-chart-tooltip]::after {
+    content: "";
+    position: absolute;
+    z-index: 19;
+    left: 50%;
+    bottom: calc(100% + 5px);
+    width: 9px;
+    height: 9px;
+    border-right: 1px solid rgba(226, 232, 240, 0.92);
+    border-bottom: 1px solid rgba(226, 232, 240, 0.92);
+    background: rgba(255, 255, 255, 0.96);
+    pointer-events: none;
+    opacity: 0;
+    transform: translateX(-50%) rotate(45deg);
+    transition: opacity 150ms ease;
+}
+
+.emailQueueChartTrack[data-tooltip]:hover::before,
+.emailQueueChartTrack[data-tooltip]:hover::after,
+.emailQueueChartTrack[data-chart-tooltip]:hover::before,
+.emailQueueChartTrack[data-chart-tooltip]:hover::after,
+.emailQueueChartColumn[data-tooltip]:hover::before,
+.emailQueueChartColumn[data-tooltip]:hover::after,
+.emailQueueChartColumn[data-chart-tooltip]:hover::before,
+.emailQueueChartColumn[data-chart-tooltip]:hover::after {
+    opacity: 1;
+}
+
+.emailQueueChartTrack[data-tooltip]:hover::before,
+.emailQueueChartTrack[data-chart-tooltip]:hover::before,
+.emailQueueChartColumn[data-tooltip]:hover::before,
+.emailQueueChartColumn[data-chart-tooltip]:hover::before {
+    transform: translate(-50%, 0);
+}
+
+
+/* Final chart refinements: distinct series colours + Total Emails label */
+.emailQueueChartTrack {
+    width: min(28px, 58%);
+}
+
+.emailQueueForecastBar {
+    background: linear-gradient(180deg, #eef2f7 0%, #e3e8f1 100%);
+}
+
+.emailQueueChartSegment {
+    border-top-color: rgba(255, 255, 255, 0.1);
+}
+
+.emailQueueChartSegment.sent {
+    background: linear-gradient(180deg, #4f46e5 0%, #4338ca 100%);
+}
+
+.emailQueueChartSegment.scheduled {
+    background: linear-gradient(180deg, #38bdf8 0%, #0ea5e9 100%);
+}
+
+.emailQueueChartSegment.failed {
+    background: linear-gradient(180deg, #fb7185 0%, #e11d48 100%);
+}
+
+.emailQueueChartLegend i.forecast {
+    background: #e6ebf3;
+}
+
+.emailQueueChartLegend i.sent {
+    background: #4338ca;
+}
+
+.emailQueueChartLegend i.scheduled {
+    background: #0ea5e9;
+}
+
+.emailQueueChartLegend i.failed {
+    background: #e11d48;
+}
+
+/* Replace the first legend label without changing the component markup. */
+.emailQueueChartLegend>span:first-child {
+    font-size: 0;
+}
+
+.emailQueueChartLegend>span:first-child::after {
+    content: "Total Emails";
+    font-size: 9.5px;
+    color: #6b7280;
+}
+
+/* Premium tooltip polish. */
+.emailQueueChartTrack[data-tooltip]::before,
+.emailQueueChartTrack[data-chart-tooltip]::before,
+.emailQueueChartColumn[data-tooltip]::before,
+.emailQueueChartColumn[data-chart-tooltip]::before {
+    max-width: 240px;
+    padding: 12px 14px;
+    border-color: rgba(226, 232, 240, 0.82);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow:
+        0 18px 46px rgba(15, 23, 42, 0.13),
+        0 3px 10px rgba(15, 23, 42, 0.05);
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+
+
+
+
+.emailQueueChartSegment.sent {
+    background: #1d4ed8;
+    /* Dark blue */
+}
+
+.emailQueueChartSegment.scheduled {
+    background: #3b82f6;
+    /* Primary blue */
+}
+
+.emailQueueChartSegment.failed {
+    background: #93c5fd;
+    /* Light blue */
+}
+
+.emailQueueChartLegend i.sent {
+    background: #1d4ed8;
+}
+
+.emailQueueChartLegend i.scheduled {
+    background: #3b82f6;
+}
+
+.emailQueueChartLegend i.failed {
+    background: #93c5fd;
+}
+
+/* Final monochrome activity chart — current day highlighted, other days reveal on hover */
+.emailQueueChartCard .emailQueueChartTrack {
+    position: relative;
+    width: min(34px, 64%);
+    height: 100%;
+    margin: 0 auto;
+    cursor: pointer;
+    outline: none;
+}
+
+.emailQueueChartCard .emailQueueTotalBar,
+.emailQueueChartCard .emailQueueActualStack {
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    border-radius: 8px 8px 3px 3px;
+    transition:
+        opacity 180ms ease,
+        filter 180ms ease,
+        transform 180ms ease,
+        height 220ms ease;
+}
+
+.emailQueueChartCard .emailQueueTotalBar {
+    z-index: 1;
+    background: #dbeafe;
+    opacity: 0.32;
+}
+
+.emailQueueChartCard .emailQueueActualStack {
+    z-index: 2;
+    inset: 0;
+    display: flex;
+    flex-direction: column-reverse;
+    justify-content: flex-start;
+    overflow: hidden;
+    opacity: 0.2;
+    filter: saturate(0.85);
+    transform-origin: bottom;
+}
+
+.emailQueueChartCard .emailQueueChartSegment {
+    width: 100%;
+    min-height: 0;
+    border-top: 1px solid rgba(255, 255, 255, 0.28);
+    transition: height 220ms ease;
+}
+
+.emailQueueChartCard .emailQueueChartSegment.sent {
+    background: #1d4ed8;
+}
+
+.emailQueueChartCard .emailQueueChartSegment.failed {
+    background: #60a5fa;
+}
+
+.emailQueueChartCard .emailQueueChartSegment.scheduled {
+    background: #93c5fd;
+}
+
+.emailQueueChartCard .emailQueueChartColumn.isToday .emailQueueTotalBar,
+.emailQueueChartCard .emailQueueChartTrack:hover .emailQueueTotalBar,
+.emailQueueChartCard .emailQueueChartTrack:focus-visible .emailQueueTotalBar {
+    opacity: 1;
+}
+
+.emailQueueChartCard .emailQueueChartColumn.isToday .emailQueueActualStack,
+.emailQueueChartCard .emailQueueChartTrack:hover .emailQueueActualStack,
+.emailQueueChartCard .emailQueueChartTrack:focus-visible .emailQueueActualStack {
+    opacity: 1;
+    filter: saturate(1);
+}
+
+.emailQueueChartCard .emailQueueChartTrack:hover .emailQueueTotalBar,
+.emailQueueChartCard .emailQueueChartTrack:hover .emailQueueActualStack,
+.emailQueueChartCard .emailQueueChartTrack:focus-visible .emailQueueTotalBar,
+.emailQueueChartCard .emailQueueChartTrack:focus-visible .emailQueueActualStack {
+    transform: translateY(-2px);
+}
+
+
+.emailQueueChartTooltip {
+    position: absolute;
+    z-index: 30;
+    left: 50%;
+    bottom: calc(100% + 13px);
+    width: 210px;
+    padding: 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+    color: #111827;
+    text-align: left;
+    opacity: 0;
+    visibility: hidden;
+    pointer-events: none;
+    transform: translate(-50%, 7px);
+    transition:
+        opacity 150ms ease,
+        visibility 150ms ease,
+        transform 150ms ease;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.emailQueueChartTooltip::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    bottom: -5px;
+    width: 9px;
+    height: 9px;
+    border-right: 1px solid #e5e7eb;
+    border-bottom: 1px solid #e5e7eb;
+    background: #ffffff;
+    transform: translateX(-50%) rotate(45deg);
+}
+
+.emailQueueChartTooltip>strong {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 11px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.emailQueueChartTooltip>span {
+    display: grid;
+    grid-template-columns: 8px 1fr auto;
+    align-items: center;
+    gap: 7px;
+    min-height: 22px;
+    font-size: 10px;
+    color: #6b7280;
+}
+
+.emailQueueChartTooltip b {
+    font-size: 10px;
+    font-weight: 600;
+    color: #111827;
+}
+
+.emailQueueChartTooltip i,
+.emailQueueChartLegend i {
+    width: 8px;
+    height: 8px;
+    border-radius: 999px;
+    flex-shrink: 0;
+}
+
+.emailQueueChartTooltip i.total,
+.emailQueueChartLegend i.total {
+    background: #dbeafe;
+}
+
+.emailQueueChartTooltip i.scheduled,
+.emailQueueChartLegend i.scheduled {
+    background: #93c5fd;
+}
+
+.emailQueueChartTooltip i.failed,
+.emailQueueChartLegend i.failed {
+    background: #60a5fa;
+}
+
+.emailQueueChartTooltip i.sent,
+.emailQueueChartLegend i.sent {
+    background: #1d4ed8;
+}
+
+.emailQueueChartCard .emailQueueChartTrack:hover .emailQueueChartTooltip,
+.emailQueueChartCard .emailQueueChartTrack:focus-visible .emailQueueChartTooltip {
+    opacity: 1;
+    visibility: visible;
+    transform: translate(-50%, 0);
+}
+
+.emailQueueChartCard .emailQueueChartColumn.isToday>span {
+    color: #111827;
+    font-weight: 600;
+}
+
+.emailQueueChartCard .emailQueueChartLegend>span:first-child {
+    font-size: 9.5px;
+}
+
+.emailQueueChartCard .emailQueueChartLegend>span:first-child::after {
+    content: none;
+}
+
+.emailQueueChartCard .emailQueueForecastBar {
+    display: none;
+}
+
+
+/* Full date heading inside the chart tooltip. */
+.emailQueueChartTooltip>strong {
+    display: block;
+    margin-bottom: 9px;
+    white-space: nowrap;
+    font-size: 11px;
+    font-weight: 600;
+    color: #111827;
+}
+
+
+/* Final production refinements: toolbar, search and status sort */
+.emailQueueActions .primaryButton {
+    background: #ffffff !important;
+    color: #374151 !important;
+    border-color: #e5e7eb !important;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.emailQueueActions .primaryButton:hover {
+    background: #f9fafb !important;
+    border-color: #d1d5db !important;
+    color: #111827 !important;
+}
+
+.emailQueueFilters {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+}
+
+.emailQueueFilters>input {
+    width: 100%;
+    min-width: 0;
+}
+
+.emailQueueSortControl {
+    position: relative;
+    display: block;
+    width: 180px;
+}
+
+.emailQueueSortControl select {
+    width: 100%;
+    padding: 0 38px 0 12px;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.emailQueueSortControl>svg {
+    position: absolute;
+    top: 50%;
+    right: 12px;
+    color: #6b7280;
+    pointer-events: none;
+    transform: translateY(-50%);
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+@media (max-width: 700px) {
+    .emailQueueFilters {
+        grid-template-columns: 1fr;
+    }
+
+    .emailQueueSortControl {
+        width: 100%;
+    }
+}
+
+
+/* Email Queue table badges and white pagination */
+.queueBadge,
+.emailTypeBadge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: fit-content;
+    min-height: 24px;
+    padding: 4px 9px;
+    border: 1px solid transparent;
+    border-radius: 7px;
+    font-size: 10.5px !important;
+    line-height: 1;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+/* Status colours */
+.queueBadge.scheduled {
+    background: #eef4ff;
+    border-color: #dbe8ff;
+    color: #2563eb;
+}
+
+.queueBadge.sending {
+    background: #fff8e8;
+    border-color: #f8e8bc;
+    color: #9a6700;
+}
+
+.queueBadge.sent {
+    background: #edf8f2;
+    border-color: #d4eddf;
+    color: #237a4b;
+}
+
+.queueBadge.delivered {
+    background: #eaf8f1;
+    border-color: #cfeadb;
+    color: #16724a;
+}
+
+.queueBadge.failed {
+    background: #fff0f1;
+    border-color: #f8d8dc;
+    color: #c2414f;
+}
+
+.queueBadge.bounced {
+    background: #fff4e8;
+    border-color: #f5dfc5;
+    color: #b56216;
+}
+
+.queueBadge.complained {
+    background: #f5efff;
+    border-color: #e6d9fb;
+    color: #7651b5;
+}
+
+/* Email type colours */
+.emailTypeBadge {
+    background: #f4f6f8;
+    border-color: #e7eaee;
+    color: #58616d !important;
+}
+
+.emailType-onboarding {
+    background: #eef4ff;
+    border-color: #dbe8ff;
+    color: #3367c8 !important;
+}
+
+.emailType-expansion {
+    background: #f3efff;
+    border-color: #e4dafb;
+    color: #7352ad !important;
+}
+
+.emailType-retention {
+    background: #edf8f2;
+    border-color: #d4eddf;
+    color: #277650 !important;
+}
+
+.emailType-education {
+    background: #fff7e8;
+    border-color: #f5e5bf;
+    color: #9a6814 !important;
+}
+
+.emailType-win-back,
+.emailType-winback {
+    background: #fff0f3;
+    border-color: #f7d9e0;
+    color: #b04c63 !important;
+}
+
+.emailType-recovery {
+    background: #eaf7f8;
+    border-color: #d3eaec;
+    color: #34727a !important;
+}
+
+.emailType-follow-up {
+    background: #f0f3ff;
+    border-color: #dce3fb;
+    color: #5269a8 !important;
+}
+
+/* Keep the whole pagination control white and minimal */
+.emailQueueFooter button,
+.emailQueueFooter button:hover,
+.emailQueueFooter .activePage {
+    background: #ffffff !important;
+    color: #4b5563 !important;
+    border-color: #e5e7eb !important;
+    box-shadow: none !important;
+}
+
+.emailQueueFooter .activePage {
+    color: #111827 !important;
+    border-color: #d1d5db !important;
+    font-weight: 600;
+}
+
+.emailQueueFooter button:hover:not(:disabled) {
+    background: #f9fafb !important;
+    border-color: #d1d5db !important;
+}
+
+.emailQueueFooter button:disabled {
+    background: #ffffff !important;
+    color: #c4c9d0 !important;
+    opacity: 1;
+}
+
+/* Clickable account cell */
+.accountLink {
+    display: block;
+    min-width: 0;
+    margin: -5px -6px;
+    padding: 5px 6px;
+    border-radius: 8px;
+    color: inherit;
+    text-decoration: none;
+    transition:
+        background-color 160ms ease,
+        color 160ms ease;
+}
+
+.accountLink:hover {
+    background: #f8fafc;
+}
+
+.accountLink:focus-visible {
+    outline: 2px solid #bfdbfe;
+    outline-offset: 2px;
+}
+
+.accountLink strong,
+.accountLink p {
+    transition: color 160ms ease;
+}
+
+.accountLink:hover strong {
+    color: #2563eb;
+}
+
+/* Recipient email preview modal */
+.queueModalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.46);
+    backdrop-filter: blur(7px);
+}
+
+.queuePreviewModal {
+    width: min(920px, calc(100vw - 48px));
+    height: min(880px, calc(100vh - 48px));
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 24px;
+    background: #ffffff;
+    box-shadow: 0 28px 90px rgba(15, 23, 42, 0.24);
+}
+
+.queuePreviewHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 22px 24px 16px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.queuePreviewHeader h2 {
+    margin: 0;
+    color: #111827;
+    font-size: 18px;
+    font-weight: 600;
+    letter-spacing: -0.025em;
+}
+
+.queuePreviewHeader p {
+    margin: 5px 0 0;
+    color: #7a8494;
+    font-size: 12px;
+}
+
+.queuePreviewHeader button {
+    width: 34px;
+    height: 34px;
+    flex: 0 0 auto;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #667085;
+    cursor: pointer;
+}
+
+.queuePreviewHeader button:hover {
+    background: #f8fafc;
+    color: #111827;
+}
+
+.queuePreviewMeta {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 7px;
+    padding: 14px 24px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #ffffff;
+}
+
+.queuePreviewMeta div {
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: baseline;
+    gap: 10px;
+}
+
+.queuePreviewMeta span {
+    color: #98a2b3;
+    font-size: 11px;
+}
+
+.queuePreviewMeta strong {
+    min-width: 0;
+    overflow: hidden;
+    color: #344054;
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.queuePreviewCanvas {
+    min-height: 0;
+    flex: 1;
+    padding: 16px;
+    background: #f4f6f9;
+}
+
+.queueEmailPreviewFrame {
+    width: 100%;
+    height: 100%;
+    display: block;
+    border: 1px solid #dfe4ea;
+    border-radius: 16px;
+    background: #ffffff;
+}
+
+@media (max-width: 720px) {
+    .queueModalOverlay {
+        padding: 12px;
+    }
+
+    .queuePreviewModal {
+        width: 100%;
+        height: calc(100vh - 24px);
+        border-radius: 18px;
+    }
+
+    .queuePreviewHeader,
+    .queuePreviewMeta {
+        padding-right: 16px;
+        padding-left: 16px;
+    }
+
+    .queuePreviewCanvas {
+        padding: 10px;
+    }
+}

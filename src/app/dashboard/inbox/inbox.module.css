@@ -1,0 +1,3802 @@
+.page {
+    width: 100%;
+    min-width: 0;
+    min-height: 100vh;
+    height: 100vh;
+    overflow: hidden;
+    background: #ffffff;
+    color: #111827;
+    font-family: "Inter", sans-serif;
+}
+
+.page *,
+.page *::before,
+.page *::after {
+    box-sizing: border-box;
+}
+
+.page button,
+.page input,
+.page select,
+.page textarea {
+    font: inherit;
+}
+
+.page button,
+.page a,
+.page select {
+    -webkit-tap-highlight-color: transparent;
+}
+
+.errorBanner {
+    position: fixed;
+    z-index: 60;
+    top: 12px;
+    right: 18px;
+    width: min(420px, calc(100vw - 36px));
+    margin: 0;
+    padding: 11px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 12px;
+    background: #fff7f7;
+    color: #b42318;
+    font-size: 13px;
+    font-weight: 650;
+}
+
+.inboxShell {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+    grid-template-rows: 64px minmax(0, 1fr);
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    overflow: hidden;
+    background: #ffffff;
+}
+
+.shellHeader {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 18px;
+    padding: 0 20px 0 18px;
+    border-bottom: 1px solid #eceef2;
+    background: rgba(255, 255, 255, 0.96);
+}
+
+.shellHeaderCopy {
+    min-width: 0;
+}
+
+.shellHeaderCopy h1 {
+    margin: 0;
+    color: #151b2b;
+    font-size: 17px;
+    line-height: 1.2;
+    font-weight: 720;
+    letter-spacing: -0.025em;
+}
+
+.shellHeaderCopy p {
+    margin: 4px 0 0;
+    color: #7b8496;
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.iconButton,
+.readerToolbar button,
+.replyTools button,
+.aiPanelHeader button {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    padding: 0;
+    border: 1px solid transparent;
+    border-radius: 9px;
+    background: transparent;
+    color: #778195;
+    cursor: pointer;
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease,
+        transform 150ms ease;
+}
+
+.iconButton:hover,
+.readerToolbar button:hover,
+.replyTools button:hover,
+.aiPanelHeader button:hover {
+    border-color: #e3e7ed;
+    background: #ffffff;
+    color: #1d2638;
+}
+
+
+.readerToolbar button:disabled {
+    cursor: default;
+    opacity: 0.35;
+}
+
+.readerToolbar .starredToolbarButton {
+    color: #f4b740;
+}
+
+.readerToolbar .starredToolbarButton:hover {
+    color: #f4b740;
+}
+
+.readerToolbar button[data-tooltip]::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    z-index: 30;
+    left: calc(100% + 9px);
+    top: 50%;
+    padding: 5px 7px;
+    border-radius: 6px;
+    background: #111827;
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 650;
+    line-height: 1;
+    white-space: nowrap;
+    opacity: 0;
+    pointer-events: none;
+    transform: translate(4px, -50%);
+    transition: opacity 120ms ease, transform 120ms ease;
+}
+
+.readerToolbar button[data-tooltip]:hover::after {
+    opacity: 1;
+    transform: translate(0, -50%);
+}
+
+
+.threadPanel {
+    grid-column: 1;
+    grid-row: 2;
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    border-right: 1px solid #eceef2;
+    background: #fcfcfd;
+}
+
+.threadPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    min-height: 56px;
+    padding: 11px 12px 8px 14px;
+}
+
+.dateFilter {
+    position: relative;
+    z-index: 20;
+}
+
+.dateFilterButton {
+    display: inline-flex;
+    min-width: 156px;
+    height: 38px;
+    align-items: center;
+    gap: 8px;
+    padding: 0 11px;
+    border: 1px solid #dfe3e9;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #2d3648;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 650;
+    box-shadow: 0 1px 2px rgba(16, 24, 40, 0.03);
+    transition: border-color 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.dateFilterButton:hover {
+    border-color: #cfd5de;
+    background: #fbfcfd;
+}
+
+.dateFilterButton:focus-visible {
+    outline: 0;
+    border-color: #99cdf2;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.1);
+}
+
+.dateFilterButton>span {
+    flex: 1;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.dateFilterButton>svg:first-child {
+    color: #7d8798;
+}
+
+.dateFilterButton>svg:last-child {
+    color: #8992a2;
+    transition: transform 150ms ease;
+}
+
+.dateFilterChevronOpen {
+    transform: rotate(180deg);
+}
+
+.dateFilterMenu {
+    position: absolute;
+    z-index: 50;
+    top: calc(100% + 7px);
+    left: 0;
+    width: 190px;
+    padding: 6px;
+    border: 1px solid #e1e5eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 45px rgba(15, 23, 42, 0.14),
+        0 4px 12px rgba(15, 23, 42, 0.06);
+}
+
+.dateFilterOption,
+.dateFilterOptionActive {
+    display: flex;
+    width: 100%;
+    min-height: 36px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #4f596b;
+    cursor: pointer;
+    font-size: 12px;
+    font-weight: 570;
+    text-align: left;
+    transition: background 130ms ease, color 130ms ease;
+}
+
+.dateFilterOption:hover {
+    background: #f5f7f9;
+    color: #20293a;
+}
+
+.dateFilterOptionActive {
+    background: #f0f2f5;
+    color: #20293a;
+    font-weight: 680;
+}
+
+.dateFilterOptionActive svg {
+    flex: 0 0 auto;
+    color: #1d9bf0;
+}
+
+.threadTotal {
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 0 14px 10px;
+}
+
+.threadTotal>strong {
+    color: #929aab;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.searchBox {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-height: 38px;
+    margin: 0 12px 10px;
+    padding: 0 10px;
+    border: 1px solid #e3e7ed;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #9aa2b1;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.searchBox:focus-within {
+    border-color: #b6d9f6;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.08);
+}
+
+.searchBox input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #20293a;
+    font-size: 12px;
+}
+
+.searchBox input::placeholder {
+    color: #a7afbc;
+}
+
+.searchBox button {
+    display: inline-flex;
+    width: 22px;
+    height: 22px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #98a1b1;
+    cursor: pointer;
+}
+
+.threadList {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 0 8px 78px;
+    scrollbar-width: thin;
+    scrollbar-color: #d8dde5 transparent;
+}
+
+.threadList::-webkit-scrollbar,
+.emailDocument::-webkit-scrollbar,
+.aiPanelBody::-webkit-scrollbar {
+    width: 7px;
+}
+
+.threadList::-webkit-scrollbar-thumb,
+.emailDocument::-webkit-scrollbar-thumb,
+.aiPanelBody::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: #d8dde5;
+    background-clip: padding-box;
+}
+
+.threadRow {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    margin-bottom: 5px;
+    padding: 12px 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.threadRow:hover {
+    border-color: #e7eaf0;
+    background: #ffffff;
+}
+
+.selectedThread {
+    border-color: #d3d9e2;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.055);
+}
+
+.unreadThread .threadTopLine strong,
+.unreadThread .subject {
+    color: #121827;
+    font-weight: 760;
+}
+
+.threadAvatar,
+.messageAvatar {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e2e6ec;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #606a7c;
+    font-weight: 760;
+}
+
+.threadAvatar {
+    width: 34px;
+    height: 34px;
+    margin-top: 1px;
+    font-size: 11px;
+}
+
+.threadInformation {
+    display: block;
+    min-width: 0;
+    flex: 1;
+}
+
+.threadTopLine {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.threadTopLine strong {
+    overflow: hidden;
+    color: #3a4355;
+    font-size: 12px;
+    font-weight: 660;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.threadNameLine {
+    display: inline-flex;
+    min-width: 0;
+    align-items: center;
+    gap: 6px;
+}
+
+.threadNameLine>strong {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.threadNameLine>svg {
+    flex: 0 0 auto;
+    color: #f4b740;
+}
+
+.threadReadState {
+    flex: 0 0 auto;
+    color: #8b94a6;
+    font-size: 9px;
+    font-weight: 650;
+    line-height: 1;
+}
+
+.threadUnreadState {
+    color: #1d9bf0;
+}
+
+.threadTopLine time {
+    flex: 0 0 auto;
+    color: #9ba3b1;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.companyName,
+.subject,
+.preview {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.companyName {
+    margin-top: 2px;
+    color: #a0a8b6;
+    font-size: 9px;
+}
+
+.subject {
+    margin-top: 7px;
+    color: #495266;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.preview {
+    margin-top: 3px;
+    color: #8a93a4;
+    font-size: 10px;
+    line-height: 1.35;
+}
+
+.threadAttachments {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    margin-top: 7px;
+    overflow: hidden;
+}
+
+.threadAttachment {
+    display: inline-flex;
+    min-width: 0;
+    max-width: 126px;
+    align-items: center;
+    gap: 5px;
+    color: #737d8f;
+    font-size: 9px;
+    font-weight: 620;
+    line-height: 1.2;
+}
+
+.threadAttachment>svg {
+    flex: 0 0 auto;
+    color: #8c96a6;
+}
+
+.threadAttachment>span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.threadAttachmentCount {
+    flex: 0 0 auto;
+    color: #8791a2;
+    font-size: 9px;
+    font-weight: 700;
+    line-height: 1;
+}
+
+.threadMeta small {
+    display: inline-flex;
+    align-items: center;
+    min-height: 19px;
+    padding: 0 7px;
+    border-radius: 999px;
+    font-size: 8px;
+    font-weight: 720;
+    letter-spacing: 0.01em;
+}
+
+.status_received,
+.status_replied {
+    background: #edf5ff;
+    color: #2687d5;
+}
+
+.status_scheduled {
+    background: #fff7e8;
+    color: #b7791f;
+}
+
+.status_sent,
+.status_delivered,
+.status_opened,
+.status_clicked {
+    background: #edf8f2;
+    color: #23845d;
+}
+
+.status_failed {
+    background: #fff0f0;
+    color: #d14c4c;
+}
+
+.emptyState,
+.readerEmpty {
+    display: flex;
+    min-height: 240px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #98a1b1;
+    text-align: center;
+}
+
+.emptyState strong,
+.readerEmpty strong {
+    color: #4c5669;
+    font-size: 12px;
+}
+
+.emptyState span,
+.readerEmpty span {
+    max-width: 230px;
+    font-size: 10px;
+    line-height: 1.5;
+}
+
+.composeButton {
+    position: absolute;
+    right: 12px;
+    bottom: 12px;
+    left: 12px;
+    z-index: 5;
+    display: inline-flex;
+    min-height: 42px;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #374151;
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 720;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    transition: background 150ms ease, border-color 150ms ease;
+}
+
+.composeButton:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+}
+
+.readerPanel {
+    grid-column: 2;
+    grid-row: 2;
+    position: relative;
+    display: grid;
+    min-width: 0;
+    min-height: 0;
+    grid-template-rows: 48px minmax(0, 1fr) auto;
+    background: #ffffff;
+}
+
+.readerEmpty {
+    grid-row: 1 / -1;
+    min-height: 100%;
+}
+
+.readerToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 6px 16px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.readerToolbarLeft {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.readerToolbar button[data-tooltip]::after {
+    top: calc(100% + 7px);
+    left: 50%;
+    transform: translate(-50%, 2px);
+}
+
+.readerToolbar button[data-tooltip]:hover::after {
+    transform: translate(-50%, 0);
+}
+
+.emailDocument {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 24px clamp(24px, 4vw, 64px) 28px;
+}
+
+.emailActionBar {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-bottom: 22px;
+}
+
+.emailActionBar button {
+    display: inline-flex;
+    min-height: 32px;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 0 11px;
+    border: 1px solid #e1e5eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #606a7e;
+    font-size: 10px;
+    font-weight: 680;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+
+.emailActionBar button:hover {
+    border-color: #cfd5de;
+    background: #f8fafc;
+    color: #1f2937;
+}
+
+.emailIdentity {
+    display: grid;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 11px;
+}
+
+.messageAvatar {
+    width: 40px;
+    height: 40px;
+    font-size: 12px;
+}
+
+.emailIdentityText {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.emailIdentityText strong {
+    overflow: hidden;
+    color: #20283a;
+    font-size: 12px;
+    font-weight: 730;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailIdentityText span,
+.emailIdentity time {
+    color: #929baa;
+    font-size: 9px;
+}
+
+.emailHeading {
+    padding: 22px 0 18px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.emailHeading h2 {
+    margin: 0;
+    color: #131a2a;
+    font-size: clamp(22px, 2.2vw, 31px);
+    line-height: 1.2;
+    font-weight: 680;
+    letter-spacing: -0.035em;
+}
+
+.recipientRow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin-top: 13px;
+}
+
+.recipientLabel {
+    color: #9aa3b2;
+    font-size: 10px;
+}
+
+.recipientChip {
+    display: inline-flex;
+    min-height: 24px;
+    align-items: center;
+    padding: 0 9px;
+    border: 1px solid #e4e8ee;
+    border-radius: 999px;
+    background: #fafbfc;
+    color: #606a7c;
+    font-size: 9px;
+    font-weight: 650;
+}
+
+.emailBody {
+    padding: 26px 0 16px;
+    color: #3f485a;
+    font-size: 12px;
+    line-height: 1.8;
+}
+
+.emailBody p {
+    margin: 0 0 15px;
+    white-space: pre-wrap;
+}
+
+.emailBody h1,
+.emailBody h2,
+.emailBody h3 {
+    color: #1b2333;
+    line-height: 1.35;
+}
+
+.emailBody a {
+    color: #1d9bf0;
+}
+
+.emailBody img {
+    max-width: 100%;
+    height: auto;
+}
+
+.emailBody ul,
+.emailBody ol {
+    padding-left: 20px;
+}
+
+.emailAttachments {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(190px, 240px));
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 20px;
+    border-top: 1px solid #edf0f4;
+}
+
+.emailAttachments button {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px;
+    padding: 12px;
+    border: 1px solid #e2e6ec;
+    border-radius: 11px;
+    background: #ffffff;
+    color: #6f7889;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 150ms ease, background 150ms ease,
+        transform 150ms ease;
+}
+
+.emailAttachments button:hover {
+    border-color: #cfd5de;
+    background: #fafbfc;
+    transform: translateY(-1px);
+}
+
+.emailAttachments button>span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.emailAttachments strong {
+    overflow: hidden;
+    color: #3f485a;
+    font-size: 10px;
+    font-weight: 690;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailAttachments small {
+    color: #9aa3b2;
+    font-size: 9px;
+}
+
+.replyComposer {
+    margin: 0 16px 16px;
+    overflow: hidden;
+    border: 1px solid #dde2e9;
+    border-radius: 13px;
+    background: #ffffff;
+    box-shadow: 0 -7px 28px rgba(15, 23, 42, 0.045);
+}
+
+.replyRecipientRow {
+    display: flex;
+    min-height: 38px;
+    align-items: center;
+    gap: 7px;
+    padding: 0 12px;
+    border-bottom: 1px solid #edf0f4;
+    color: #8d96a7;
+    font-size: 10px;
+}
+
+.replyRecipientRow strong {
+    color: #505a6d;
+    font-weight: 680;
+}
+
+.replyComposer textarea {
+    display: block;
+    width: 100%;
+    min-height: 92px;
+    resize: none;
+    border: 0;
+    outline: 0;
+    padding: 14px;
+    background: #ffffff;
+    color: #2c3546;
+    font-size: 11px;
+    line-height: 1.6;
+}
+
+.replyComposer textarea::placeholder {
+    color: #a7afbc;
+}
+
+.replyToolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px;
+    border-top: 1px solid #edf0f4;
+}
+
+.replyTools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.sendButton,
+.generateReplyButton,
+.useReplyButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 1px solid #111827;
+    border-radius: 8px;
+    background: #111827;
+    color: #ffffff;
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 150ms ease, opacity 150ms ease, transform 150ms ease;
+}
+
+.sendButton {
+    min-height: 34px;
+    padding: 0 12px;
+    font-size: 10px;
+}
+
+.sendButton:hover,
+.generateReplyButton:hover,
+.useReplyButton:hover {
+    background: #202a3b;
+    transform: translateY(-1px);
+}
+
+.sendButton:disabled,
+.generateReplyButton:disabled {
+    cursor: default;
+    opacity: 0.38;
+    transform: none;
+}
+
+.hiddenFileInput {
+    display: none;
+}
+
+
+.aiPanel {
+    position: absolute;
+    z-index: 20;
+    right: 18px;
+    bottom: 18px;
+    display: flex;
+    width: min(390px, calc(100% - 36px));
+    max-height: calc(100% - 36px);
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #dfe4eb;
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 22px 70px rgba(15, 23, 42, 0.18);
+}
+
+.aiPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 14px;
+    padding: 13px 14px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.aiPanelHeader>div {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 10px;
+}
+
+.aiPanelHeader>div>span {
+    display: inline-flex;
+    width: 34px;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 9px;
+    background: #edf5ff;
+    color: #1d9bf0;
+}
+
+.aiPanelHeader>div>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.aiPanelHeader strong {
+    color: #20283a;
+    font-size: 12px;
+    font-weight: 730;
+}
+
+.aiPanelHeader small {
+    color: #929baa;
+    font-size: 9px;
+}
+
+.aiPanelBody {
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px;
+}
+
+.aiContext {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    padding: 11px 12px;
+    border: 1px solid #e5e9ef;
+    border-radius: 10px;
+    background: #fafbfc;
+}
+
+.aiContext span,
+.aiContext small {
+    color: #8e97a7;
+    font-size: 9px;
+}
+
+.aiContext strong {
+    color: #30394b;
+    font-size: 11px;
+}
+
+.aiPrompt {
+    display: block;
+    margin-top: 14px;
+}
+
+.aiPrompt>span {
+    display: block;
+    margin-bottom: 7px;
+    color: #596376;
+    font-size: 10px;
+    font-weight: 690;
+}
+
+.aiPrompt textarea {
+    width: 100%;
+    min-height: 118px;
+    resize: vertical;
+    border: 1px solid #dfe4eb;
+    border-radius: 10px;
+    outline: 0;
+    padding: 11px;
+    background: #ffffff;
+    color: #30394b;
+    font-size: 10px;
+    line-height: 1.55;
+    transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+
+.aiPrompt textarea:focus {
+    border-color: #b6d9f6;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.08);
+}
+
+.generateReplyButton {
+    width: 100%;
+    min-height: 39px;
+    margin-top: 10px;
+    font-size: 11px;
+}
+
+.aiError {
+    margin-top: 10px;
+    padding: 9px 10px;
+    border: 1px solid #fecaca;
+    border-radius: 8px;
+    background: #fff7f7;
+    color: #b42318;
+    font-size: 9px;
+    line-height: 1.5;
+}
+
+.aiGeneratedReply {
+    margin-top: 12px;
+    padding: 12px;
+    border: 1px solid #dbe7f2;
+    border-radius: 10px;
+    background: #f8fbfe;
+}
+
+.aiGeneratedReply>div {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.aiGeneratedReply strong {
+    color: #293346;
+    font-size: 10px;
+}
+
+.aiGeneratedReply>div button {
+    border: 0;
+    background: transparent;
+    color: #7d8798;
+    font-size: 9px;
+    cursor: pointer;
+}
+
+.aiGeneratedReply p {
+    margin: 10px 0 12px;
+    color: #4f5a6d;
+    font-size: 10px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.useReplyButton {
+    min-height: 34px;
+    padding: 0 11px;
+    font-size: 10px;
+}
+
+.spinning {
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 1180px) {
+    .inboxShell {
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    }
+
+    .emailDocument {
+        padding-right: 30px;
+        padding-left: 30px;
+    }
+}
+
+@media (max-width: 900px) {
+    .inboxShell {
+        grid-template-columns: minmax(270px, 310px) minmax(0, 1fr);
+    }
+
+    .shellHeaderCopy p {
+        display: none;
+    }
+
+    .emailIdentity {
+        grid-template-columns: 36px minmax(0, 1fr);
+    }
+
+    .emailIdentity time {
+        grid-column: 2;
+    }
+
+    .emailActionBar button {
+        width: 32px;
+        padding: 0;
+        font-size: 0;
+    }
+}
+
+@media (max-width: 760px) {
+    .page {
+        min-height: 100dvh;
+        height: 100dvh;
+    }
+
+    .inboxShell {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 58px minmax(0, 1fr);
+        min-height: 620px;
+    }
+
+    .shellHeader {
+        padding-right: 10px;
+        padding-left: 12px;
+    }
+
+    .shellHeaderCopy p {
+        display: none;
+    }
+
+    .threadPanel {
+        grid-column: 1;
+        grid-row: 2;
+        border-right: 0;
+    }
+
+    .readerPanel {
+        position: fixed;
+        z-index: 40;
+        inset: 58px 0 0;
+        display: none;
+    }
+
+    .threadPanel:has(+ .readerPanel .emailDocument) {
+        display: none;
+    }
+
+    .readerPanel:has(.emailDocument) {
+        display: grid;
+    }
+
+    .readerToolbar::before {
+        content: "Mail";
+        color: #3f485a;
+        font-size: 11px;
+        font-weight: 700;
+    }
+
+    .readerToolbarLeft {
+        margin-left: auto;
+    }
+
+    .emailDocument {
+        padding: 20px 18px 24px;
+    }
+
+    .replyComposer {
+        margin: 0 10px 10px;
+    }
+}
+
+
+/* =========================================================
+   EMAIL QUEUE TYPOGRAPHY ALIGNMENT
+   Keeps the inbox layout and behaviour unchanged while using
+   the same Inter scale, weights and colours as Email Queue.
+   ========================================================= */
+
+.page {
+    font-family: "Inter", sans-serif;
+    color: #111827;
+}
+
+.page button,
+.page input,
+.page select,
+.page textarea,
+.page a {
+    font-family: "Inter", sans-serif;
+}
+
+.shellHeaderCopy h1 {
+    color: #111827;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+}
+
+.shellHeaderCopy p {
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.45;
+    font-weight: 400;
+}
+
+.dateFilterButton,
+.dateFilterOption,
+.dateFilterOptionActive,
+.searchBox input,
+.composeButton,
+.emailActionBar button,
+.sendButton,
+.generateReplyButton,
+.useReplyButton {
+    font-size: 12px;
+}
+
+.dateFilterButton,
+.dateFilterOptionActive,
+.composeButton,
+.sendButton,
+.generateReplyButton,
+.useReplyButton {
+    font-weight: 500;
+}
+
+.dateFilterOption {
+    font-weight: 400;
+}
+
+.threadTotal>strong {
+    color: #6b7280;
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.threadTopLine strong {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.unreadThread .threadTopLine strong,
+.unreadThread .subject {
+    color: #111827;
+    font-weight: 600;
+}
+
+.threadReadState {
+    color: #6b7280;
+    font-size: 10.5px;
+    font-weight: 500;
+}
+
+.threadUnreadState {
+    color: #1d9bf0;
+}
+
+.threadTopLine time {
+    color: #9ca3af;
+    font-size: 10.5px;
+    font-weight: 400;
+}
+
+.companyName {
+    color: #9ca3af;
+    font-size: 10.5px;
+    font-weight: 400;
+}
+
+.subject {
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.preview {
+    color: #6b7280;
+    font-size: 10.5px;
+    line-height: 1.45;
+    font-weight: 400;
+}
+
+.threadMeta small {
+    font-size: 10.5px;
+    font-weight: 500;
+    letter-spacing: 0;
+}
+
+.emptyState strong,
+.readerEmpty strong {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.emptyState span,
+.readerEmpty span {
+    color: #6b7280;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.emailIdentityText strong {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.emailIdentityText span,
+.emailIdentity time {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.emailHeading h2 {
+    color: #111827;
+    font-size: clamp(22px, 2.2vw, 30px);
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+
+.recipientLabel,
+.recipientChip {
+    font-size: 11px;
+}
+
+.recipientChip {
+    color: #374151;
+    font-weight: 500;
+}
+
+.emailBody {
+    padding: 22px 0 10px;
+    color: #333a48;
+    font-size: 13px;
+    line-height: 1.62;
+    font-weight: 400;
+}
+
+.emailBody h1,
+.emailBody h2,
+.emailBody h3 {
+    color: #111827;
+    font-weight: 500;
+}
+
+.emailAttachments strong {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.emailAttachments small {
+    color: #6b7280;
+    font-size: 10.5px;
+}
+
+.replyRecipientRow {
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.replyRecipientRow strong {
+    color: #374151;
+    font-weight: 500;
+}
+
+.replyComposer textarea {
+    color: #111827;
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.aiPanelHeader strong {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.aiPanelHeader small,
+.aiContext span,
+.aiContext small,
+.aiGeneratedReply>div button,
+.aiError {
+    font-size: 10.5px;
+}
+
+.aiContext strong,
+.aiPrompt>span,
+.aiPrompt textarea,
+.aiGeneratedReply strong,
+.aiGeneratedReply p {
+    font-size: 12px;
+}
+
+.aiContext strong,
+.aiPrompt>span,
+.aiGeneratedReply strong {
+    color: #111827;
+    font-weight: 500;
+}
+
+.aiPrompt textarea,
+.aiGeneratedReply p {
+    color: #374151;
+    font-weight: 400;
+}
+
+
+/* Minimal message heading */
+.emailHeading {
+    padding: 0 0 18px;
+    border-bottom: 1px solid #eceff3;
+}
+
+.emailHeading h2 {
+    margin: 10px 0 0;
+    color: #111827;
+    font-size: clamp(15px, 1.25vw, 18px);
+    line-height: 1.35;
+    font-weight: 600;
+    letter-spacing: -0.015em;
+}
+
+.emailIdentity {
+    display: grid;
+    grid-template-columns: 34px minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 10px;
+}
+
+.messageAvatar {
+    width: 34px;
+    height: 34px;
+    font-size: 10.5px;
+}
+
+.emailIdentityText {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.senderLine {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.senderLine strong {
+    flex: 0 0 auto;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.senderLine span,
+.recipientRow,
+.emailIdentity time {
+    color: #6b7280;
+    font-size: 11px;
+    font-weight: 400;
+}
+
+.senderLine span {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailIdentity time {
+    align-self: start;
+    padding-top: 2px;
+    white-space: nowrap;
+}
+
+.recipientRow {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    margin: 0;
+}
+
+.recipientLabel {
+    color: #9ca3af;
+    font-size: inherit;
+}
+
+/* Functional reply toolbar */
+.replyAttachment {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    margin: 0 12px 8px;
+    padding: 8px 10px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #fafafa;
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.replyAttachment span {
+    min-width: 0;
+    flex: 1;
+    overflow: hidden;
+    color: #374151;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replyAttachment button {
+    display: inline-flex;
+    width: 24px;
+    height: 24px;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #9ca3af;
+    cursor: pointer;
+}
+
+.replyAttachment button:hover {
+    background: #f3f4f6;
+    color: #374151;
+}
+
+.replyOptions {
+    position: relative;
+}
+
+.replyOptionsMenu {
+    position: absolute;
+    z-index: 30;
+    bottom: calc(100% + 7px);
+    left: 0;
+    width: 150px;
+    padding: 5px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+}
+
+.replyOptionsMenu button {
+    display: flex;
+    width: 100%;
+    height: 32px;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 0 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 400;
+    white-space: nowrap;
+}
+
+.replyOptionsMenu button:hover {
+    background: #f9fafb;
+}
+
+.replyOptionsMenu button:disabled {
+    cursor: default;
+    opacity: 0.45;
+}
+
+/* Attachment preview and expanded reply options */
+.replyAttachment {
+    justify-content: space-between;
+}
+
+.replyAttachmentPreviewButton {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 8px;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: #6b7280;
+    text-align: left;
+    cursor: pointer;
+}
+
+.replyAttachmentPreviewButton>span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.replyAttachmentPreviewButton strong,
+.replyAttachmentPreviewButton small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replyAttachmentPreviewButton strong {
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.replyAttachmentPreviewButton small {
+    color: #9ca3af;
+    font-size: 9px;
+    font-weight: 400;
+}
+
+.replyAttachmentRemoveButton {
+    flex: 0 0 auto;
+}
+
+.replyOptionsMenu {
+    width: 178px;
+}
+
+.attachmentPreviewOverlay {
+    position: fixed;
+    z-index: 1000;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+    background: rgba(15, 23, 42, 0.38);
+    backdrop-filter: blur(5px);
+}
+
+.attachmentPreviewModal {
+    display: flex;
+    width: min(820px, calc(100vw - 48px));
+    max-height: min(760px, calc(100vh - 48px));
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #ffffff;
+    box-shadow: 0 24px 80px rgba(15, 23, 42, 0.2);
+}
+
+.attachmentPreviewModal>header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding: 14px 16px;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.attachmentPreviewModal>header>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.attachmentPreviewModal>header strong {
+    overflow: hidden;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachmentPreviewModal>header span {
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+.attachmentPreviewModal>header button {
+    display: inline-flex;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #6b7280;
+    cursor: pointer;
+}
+
+.attachmentPreviewModal>header button:hover {
+    background: #f9fafb;
+    color: #111827;
+}
+
+.attachmentPreviewBody {
+    min-height: 320px;
+    flex: 1;
+    overflow: auto;
+    padding: 16px;
+    background: #f9fafb;
+}
+
+.attachmentPreviewBody img,
+.attachmentPreviewBody iframe {
+    display: block;
+    width: 100%;
+    height: min(620px, calc(100vh - 150px));
+    border: 0;
+    border-radius: 12px;
+    background: #ffffff;
+    object-fit: contain;
+}
+
+.attachmentPreviewFallback {
+    display: flex;
+    min-height: 320px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.attachmentPreviewFallback strong {
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.attachmentPreviewFallback span {
+    max-width: 320px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.attachmentPreviewFallback a {
+    display: inline-flex;
+    min-height: 34px;
+    align-items: center;
+    justify-content: center;
+    margin-top: 4px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 11px;
+    text-decoration: none;
+}
+
+
+/* Account email and reply attachment refinement */
+.recipientEmail {
+    min-width: 0;
+    overflow: hidden;
+    color: #9ca3af;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replyRecipientEmail {
+    min-width: 0;
+    overflow: hidden;
+    color: #9ca3af;
+    font-size: 11px;
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailAttachments {
+    grid-template-columns: repeat(auto-fit, minmax(230px, 290px));
+    gap: 12px;
+    margin-top: 14px;
+    padding-top: 18px;
+    padding-bottom: 6px;
+}
+
+.emailAttachments button {
+    min-height: 64px;
+    padding: 13px 15px;
+    border-radius: 10px;
+}
+
+.replyComposer {
+    margin-top: 0;
+}
+
+.replyAttachment {
+    margin: 0 12px 10px;
+    padding: 10px 11px;
+    border-radius: 10px;
+    background: #fafafa;
+}
+
+.replyAttachmentPreviewButton {
+    min-height: 34px;
+}
+
+.replyAttachmentPreviewButton>svg {
+    flex: 0 0 auto;
+}
+
+.replyRecipientRow {
+    min-width: 0;
+}
+
+.replyRecipientRow strong {
+    flex: 0 0 auto;
+}
+
+@media (max-width: 760px) {
+
+    .recipientEmail,
+    .replyRecipientEmail {
+        display: none;
+    }
+}
+
+/* =========================================================
+   AI EMAIL SUMMARY
+   ========================================================= */
+
+.emailHeading {
+    position: relative;
+}
+
+.emailHeadingTop {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.emailHeadingTop h2 {
+    min-width: 0;
+    flex: 1;
+}
+
+.summaryButton {
+    display: inline-flex;
+    flex: 0 0 auto;
+    min-height: 36px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 14px;
+    border: 0;
+    border-radius: 10px;
+    background: linear-gradient(110deg, #2f80ed 0%, #5768e8 48%, #b64bc4 100%);
+    color: #ffffff;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    white-space: nowrap;
+    box-shadow: 0 5px 14px rgba(84, 87, 219, 0.22);
+    transition: transform 150ms ease, box-shadow 150ms ease, filter 150ms ease;
+}
+
+.summaryButton svg {
+    flex: 0 0 auto;
+    stroke-width: 2;
+}
+
+.summaryButton:hover:not(:disabled) {
+    filter: brightness(1.04);
+    transform: translateY(-1px);
+    box-shadow: 0 8px 18px rgba(84, 87, 219, 0.28);
+}
+
+.summaryButton:active:not(:disabled) {
+    transform: translateY(0);
+    box-shadow: 0 4px 10px rgba(84, 87, 219, 0.2);
+}
+
+.summaryButton:focus-visible {
+    outline: 0;
+    box-shadow:
+        0 0 0 3px rgba(255, 255, 255, 0.95),
+        0 0 0 5px rgba(87, 104, 232, 0.3),
+        0 5px 14px rgba(84, 87, 219, 0.22);
+}
+
+.summaryButton:disabled {
+    cursor: default;
+    opacity: 0.62;
+    transform: none;
+}
+
+.summaryPanel {
+    position: relative;
+    z-index: 2;
+    width: min(430px, calc(100% - 48px));
+    margin: 14px 0 2px auto;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow:
+        0 12px 34px rgba(15, 23, 42, 0.09),
+        0 2px 7px rgba(15, 23, 42, 0.04);
+}
+
+.summaryPanelHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.summaryTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: #374151;
+}
+
+.summaryTitle svg {
+    color: #6b7280;
+}
+
+.summaryTitle span {
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.summaryTitle small {
+    display: inline-flex;
+    min-height: 18px;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: #6b7280;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.summaryPanelHeader button,
+.summaryError button {
+    flex: 0 0 auto;
+    min-height: 28px;
+    padding: 0 9px;
+    border: 1px solid #e5e7eb;
+    border-radius: 8px;
+    background: #ffffff;
+    color: #6b7280;
+    font-size: 10.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.summaryPanelHeader button:hover,
+.summaryError button:hover {
+    background: #f9fafb;
+    color: #111827;
+}
+
+.summaryText {
+    margin: 12px 0 0;
+    color: #374151;
+    font-size: 12px;
+    line-height: 1.65;
+}
+
+.summaryAction {
+    margin-top: 12px;
+    padding-top: 11px;
+    border-top: 1px solid #f0f1f3;
+}
+
+.summaryAction span {
+    display: block;
+    margin-bottom: 4px;
+    color: #9ca3af;
+    font-size: 10px;
+    font-weight: 500;
+}
+
+.summaryAction p {
+    margin: 0;
+    color: #4b5563;
+    font-size: 11px;
+    line-height: 1.55;
+}
+
+.summaryFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-top: 12px;
+    padding-top: 10px;
+    border-top: 1px solid #f0f1f3;
+    color: #9ca3af;
+    font-size: 9.5px;
+}
+
+.summaryFooter span:last-child {
+    text-align: right;
+}
+
+.summaryLoading,
+.summaryError {
+    display: flex;
+    min-height: 40px;
+    align-items: center;
+    gap: 9px;
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.summaryError {
+    justify-content: space-between;
+    color: #b42318;
+}
+
+@media (max-width: 760px) {
+    .emailHeadingTop {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .summaryButton {
+        width: fit-content;
+    }
+
+    .summaryPanel {
+        width: 100%;
+        margin: 12px 0 2px;
+        box-shadow: 0 8px 24px rgba(15, 23, 42, 0.08);
+    }
+
+    .summaryFooter {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .summaryFooter span:last-child {
+        text-align: left;
+    }
+}
+
+
+
+
+
+.generateReplyButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+
+    width: 100%;
+    height: 42px;
+
+    border: 0;
+    border-radius: 12px;
+
+    background: linear-gradient(135deg,
+            #3b82f6 0%,
+            #6366f1 55%,
+            #a855f7 100%);
+
+    color: #ffffff;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+
+    cursor: pointer;
+
+    transition:
+        transform .18s ease,
+        box-shadow .18s ease,
+        opacity .18s ease;
+
+    box-shadow:
+        0 8px 18px rgba(99, 102, 241, .18),
+        inset 0 1px 0 rgba(255, 255, 255, .15);
+}
+
+.generateReplyButton:hover:not(:disabled) {
+    transform: translateY(-1px);
+
+    box-shadow:
+        0 12px 24px rgba(99, 102, 241, .24),
+        inset 0 1px 0 rgba(255, 255, 255, .18);
+}
+
+.generateReplyButton:active:not(:disabled) {
+    transform: translateY(0);
+}
+
+.generateReplyButton:disabled {
+    opacity: .55;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+/* Rich reply composer */
+.replyComposer {
+    overflow: visible;
+    margin: 0 16px 16px;
+    border-color: #dfe4eb;
+    border-radius: 14px;
+    box-shadow: none;
+}
+
+.replyRecipientRow {
+    min-height: 40px;
+    padding: 0 14px;
+}
+
+.replySubjectRow {
+    display: grid;
+    grid-template-columns: 82px minmax(0, 1fr);
+    min-height: 42px;
+    align-items: center;
+    border-bottom: 1px solid #edf0f4;
+    padding: 0 14px;
+}
+
+.replySubjectRow>span {
+    color: #525d70;
+    font-size: 11px;
+    font-weight: 680;
+}
+
+.replySubjectRow input {
+    width: 100%;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #2c3546;
+    font-size: 11px;
+}
+
+.replySubjectRow input::placeholder {
+    color: #a6aebb;
+}
+
+.replyComposer textarea {
+    min-height: 150px;
+    padding: 20px 14px;
+    font-size: 12px;
+    line-height: 1.7;
+}
+
+.replyToolbar {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 8px 10px 10px;
+    border-top: 1px solid #edf0f4;
+}
+
+.replyToolbarGroup,
+.replyToolbarActions,
+.replyTools {
+    display: flex;
+    align-items: center;
+}
+
+.replyToolbarGroup {
+    min-width: 0;
+    gap: 1px;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.replyToolbarGroup::-webkit-scrollbar {
+    display: none;
+}
+
+.replyToolbarActions {
+    flex: 0 0 auto;
+    gap: 8px;
+}
+
+.replyToolbar button,
+.replyTools button {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #7d8798;
+    cursor: pointer;
+}
+
+.replyToolbar button:hover,
+.replyTools button:hover {
+    background: #f5f7f9;
+    color: #263043;
+}
+
+.replyToolbarDivider {
+    width: 1px;
+    height: 18px;
+    margin: 0 5px;
+    background: #e5e8ed;
+}
+
+.replyToolbar .sendButton {
+    width: auto;
+    min-width: 106px;
+    height: 34px;
+    padding: 0 13px;
+    border: 1px solid #1d9bf0;
+    border-radius: 8px;
+    background: #1d9bf0;
+    color: #ffffff;
+}
+
+.replyToolbar .sendButton:hover {
+    background: #168bd8;
+    color: #ffffff;
+}
+
+.replyToolbar .sendButton:disabled {
+    border-color: #9ecfee;
+    background: #9ecfee;
+    color: #ffffff;
+    opacity: 0.72;
+}
+
+.replyOptionsMenu {
+    bottom: calc(100% + 9px);
+    left: 0;
+    width: 232px;
+    padding: 7px;
+    border-color: #dfe4eb;
+    border-radius: 12px;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.16);
+}
+
+.replyOptionsMenu button {
+    min-height: 38px;
+    height: auto;
+    gap: 10px;
+    padding: 8px 10px;
+    border-radius: 8px;
+    color: #394456;
+    font-size: 11px;
+    font-weight: 560;
+}
+
+.replyOptionsMenu button>svg {
+    flex: 0 0 auto;
+    color: #788395;
+}
+
+.replyOptionsMenu button>span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.replyOptionsMenu button>span strong {
+    color: #394456;
+    font-size: 11px;
+    font-weight: 620;
+}
+
+.replyOptionsMenu button>span small {
+    color: #9aa3b2;
+    font-size: 9px;
+    font-weight: 500;
+}
+
+.replyOptionsMenu .replyClearOption {
+    color: #c94a4a;
+}
+
+.replyOptionsMenu .replyClearOption>svg {
+    color: #d15b5b;
+}
+
+.replyAttachment {
+    margin: 0 14px 10px;
+}
+
+@media (max-width: 900px) {
+    .replyToolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .replyToolbarActions {
+        justify-content: space-between;
+    }
+}
+
+
+/* Reply composer fixes */
+.replyComposer {
+    position: relative;
+    z-index: 4;
+    overflow: visible;
+}
+
+.replyEditor {
+    min-height: 150px;
+    max-height: 260px;
+    overflow-y: auto;
+    padding: 20px 14px;
+    outline: 0;
+    color: #2c3546;
+    font-size: 12px;
+    line-height: 1.7;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.replyEditor:empty::before {
+    content: attr(data-placeholder);
+    color: #a7afbc;
+    pointer-events: none;
+}
+
+.replyEditor p {
+    margin: 0 0 12px;
+}
+
+.replyEditor a {
+    color: #1d9bf0;
+}
+
+.replyToolbar {
+    position: relative;
+    z-index: 7;
+    min-height: 52px;
+}
+
+.replyToolbarGroup {
+    flex: 1 1 auto;
+    max-width: calc(100% - 210px);
+}
+
+.replyToolbarActions {
+    position: relative;
+    z-index: 8;
+    margin-left: auto;
+}
+
+.replyOptions {
+    position: relative;
+    z-index: 20;
+}
+
+.replyOptionsMenu {
+    position: absolute;
+    z-index: 100;
+    right: 0;
+    bottom: calc(100% + 10px);
+    left: auto;
+    width: 236px;
+    max-height: 320px;
+    overflow-y: auto;
+    padding: 7px;
+    border: 1px solid #dfe4eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+}
+
+.replyOptionsMenu button {
+    display: flex;
+    width: 100%;
+    min-height: 38px;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+    padding: 8px 10px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #394456;
+    text-align: left;
+    white-space: normal;
+}
+
+.replyOptionsMenu button:hover {
+    background: #f5f7f9;
+}
+
+.replyOptionsMenu button:disabled {
+    opacity: 0.4;
+}
+
+.replyOptionsMenu .replyClearOption {
+    margin-top: 4px;
+    border-top: 1px solid #edf0f4;
+    border-radius: 0 0 8px 8px;
+    padding-top: 10px;
+}
+
+.replyToolbar .sendButton {
+    flex: 0 0 auto;
+    min-width: 108px;
+}
+
+@media (max-width: 1100px) {
+    .replyToolbar {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .replyToolbarGroup {
+        max-width: 100%;
+    }
+
+    .replyToolbarActions {
+        width: 100%;
+        justify-content: space-between;
+    }
+
+    .replyOptionsMenu {
+        right: auto;
+        left: 0;
+    }
+}
+
+/* Email Builder CTA and footer inside the reply editor */
+.replyEditor [data-cobrai-reply-cta="true"] {
+    display: block;
+    width: 100%;
+    margin: 18px 0;
+}
+
+.replyEditor [data-cobrai-reply-cta="true"] a {
+    cursor: text;
+}
+
+.replyEditor [data-cobrai-reply-footer="true"] {
+    display: block;
+    width: 100%;
+    margin-top: 10px;
+}
+
+.replyEditor [data-cobrai-reply-footer="true"] a {
+    color: inherit;
+    cursor: text;
+}
+
+.replyEditor [data-cobrai-reply-footer="true"] div {
+    max-width: 100%;
+}
+
+
+/* Email Builder CTA picker and footer — matches the customer ID page */
+.replyCtaPickerWrap {
+    position: relative;
+}
+
+.replyMenuActive {
+    background: #f3f6f9 !important;
+    color: #1f2937 !important;
+}
+
+.replyCtaChevron {
+    margin-left: auto;
+}
+
+.replyCtaPicker {
+    position: absolute;
+    z-index: 130;
+    right: calc(100% + 8px);
+    bottom: -6px;
+    width: 250px;
+    overflow: hidden;
+    border: 1px solid #dfe4eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+}
+
+.replyCtaPickerHeader {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    padding: 11px 12px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.replyCtaPickerHeader strong {
+    color: #263043;
+    font-size: 11px;
+    font-weight: 650;
+}
+
+.replyCtaPickerHeader small {
+    color: #929baa;
+    font-size: 9px;
+}
+
+.replyCtaPickerList {
+    max-height: 230px;
+    overflow-y: auto;
+    padding: 6px;
+}
+
+.replyCtaPickerList>button {
+    display: grid !important;
+    width: 100% !important;
+    min-height: 44px !important;
+    grid-template-columns: 14px minmax(0, 1fr) auto;
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 7px 8px !important;
+    text-align: left !important;
+}
+
+.replyCtaColour {
+    width: 12px;
+    height: 12px;
+    border: 1px solid;
+    border-radius: 4px;
+}
+
+.replyCtaPickerCopy {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.replyCtaPickerCopy strong,
+.replyCtaPickerCopy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replyCtaPickerCopy strong {
+    color: #30394b;
+    font-size: 10px;
+    font-weight: 620;
+}
+
+.replyCtaPickerCopy small {
+    color: #929baa;
+    font-size: 9px;
+}
+
+.replyCtaDefault {
+    display: inline-flex;
+    min-height: 18px;
+    align-items: center;
+    padding: 0 6px;
+    border-radius: 999px;
+    background: #edf5ff;
+    color: #1d83ce;
+    font-size: 8px;
+    font-weight: 700;
+}
+
+.replyManageCtas {
+    display: flex;
+    min-height: 37px;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 0 12px;
+    border-top: 1px solid #edf0f4;
+    color: #536074;
+    font-size: 10px;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.replyManageCtas:hover {
+    background: #f8fafc;
+    color: #1f2937;
+}
+
+.replyFooterCheck {
+    margin-left: auto;
+    color: #1d9bf0 !important;
+}
+
+.replyEditor :global(.profileInboxDraggableCta) {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin: 20px 0;
+    padding: 4px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    text-align: var(--cta-alignment, center);
+    transition: border-color 140ms ease, background 140ms ease;
+}
+
+.replyEditor :global(.profileInboxDraggableCta[data-cta-alignment="left"]) {
+    text-align: left;
+}
+
+.replyEditor :global(.profileInboxDraggableCta[data-cta-alignment="center"]) {
+    text-align: center;
+}
+
+.replyEditor :global(.profileInboxDraggableCta[data-cta-alignment="right"]) {
+    text-align: right;
+}
+
+.replyEditor :global(.profileInboxDraggableCta:hover),
+.replyEditor :global(.profileInboxDraggableCta.isSelected) {
+    border-color: #bfdbfe;
+    background: #f8fbff;
+}
+
+.replyEditor :global(.profileInboxCtaContent) {
+    pointer-events: none;
+}
+
+.replyEditor :global(.profileInboxCtaToolbar) {
+    position: absolute;
+    z-index: 8;
+    right: 6px;
+    bottom: calc(100% + 6px);
+    display: none;
+    align-items: center;
+    gap: 2px;
+    padding: 4px;
+    border: 1px solid #dfe4eb;
+    border-radius: 9px;
+    background: #ffffff;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.15);
+}
+
+.replyEditor :global(.profileInboxDraggableCta:hover .profileInboxCtaToolbar),
+.replyEditor :global(.profileInboxDraggableCta.isSelected .profileInboxCtaToolbar) {
+    display: flex;
+}
+
+.replyEditor :global(.profileInboxCtaToolbar button) {
+    min-width: 28px;
+    height: 26px;
+    padding: 0 7px;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #667085;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.replyEditor :global(.profileInboxCtaToolbar button:hover) {
+    background: #f3f5f7;
+    color: #20293a;
+}
+
+.replyEditor :global(.profileInboxCtaToolbar button.isDanger) {
+    color: #c64b4b;
+}
+
+.replyEditor :global(.profileInboxReplyFooter) {
+    position: relative;
+    display: block;
+    width: 100%;
+    margin-top: 24px;
+    padding: 0 4px 4px;
+    font-family: Inter, Arial, sans-serif;
+    line-height: 1.65;
+}
+
+.replyEditor :global(.profileInboxFooterDivider) {
+    height: 1px;
+    margin: 28px 0 22px;
+    background: var(--reply-footer-divider, #e5e7eb);
+}
+
+.replyEditor :global(.profileInboxFooterCompany),
+.replyEditor :global(.profileInboxFooterCopyright) {
+    margin-bottom: 6px;
+}
+
+.replyEditor :global(.profileInboxFooterLinks) {
+    display: block;
+}
+
+.replyEditor :global(.profileInboxFooterLinks a) {
+    color: inherit;
+    text-decoration: none;
+}
+
+.replyEditor :global(.profileInboxFooterSeparator) {
+    padding: 0 6px;
+}
+
+.replyEditor :global(.profileInboxFooterRemove) {
+    display: none;
+    min-height: 26px;
+    margin: 10px auto 0;
+    padding: 0 9px;
+    border: 1px solid #e5e7eb;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #b44747;
+    font-size: 9px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.replyEditor :global(.profileInboxReplyFooter:hover .profileInboxFooterRemove) {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+@media (max-width: 760px) {
+    .replyCtaPicker {
+        right: auto;
+        left: 0;
+        width: min(250px, calc(100vw - 44px));
+    }
+}
+
+
+/* CTA/footer interaction fix */
+.replyOptionsMenu {
+    overflow: visible;
+}
+
+.replyCtaPickerWrap {
+    position: relative;
+    overflow: visible;
+}
+
+.replyCtaPicker {
+    pointer-events: auto;
+}
+
+.replyCtaPicker button,
+.replyManageCtas {
+    pointer-events: auto;
+}
+
+/* =========================================================
+   COMPACT REPLY LAYOUT
+   Keeps the original email visible when CTA/footer content is added.
+   Only the editable reply content scrolls.
+   ========================================================= */
+.readerPanel {
+    grid-template-rows: 48px minmax(0, 1fr) minmax(190px, 29vh);
+    overflow: hidden;
+}
+
+.emailDocument {
+    min-height: 0;
+    overflow-y: auto;
+    padding-top: 18px;
+    padding-bottom: 18px;
+}
+
+.replyComposer {
+    display: grid;
+    grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+    min-height: 0;
+    height: 100%;
+    max-height: none;
+    margin: 0 16px 14px;
+    overflow: visible;
+}
+
+.replyRecipientRow,
+.replySubjectRow,
+.replyAttachment,
+.replyToolbar {
+    flex-shrink: 0;
+}
+
+.replyRecipientRow {
+    min-height: 34px;
+}
+
+.replySubjectRow {
+    min-height: 36px;
+}
+
+.replyEditor {
+    min-height: 0;
+    max-height: none;
+    height: 100%;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    padding: 12px 14px;
+    scrollbar-width: thin;
+    scrollbar-color: #d8dde5 transparent;
+}
+
+.replyEditor::-webkit-scrollbar {
+    width: 7px;
+}
+
+.replyEditor::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: #d8dde5;
+    background-clip: padding-box;
+}
+
+.replyEditor :global(.profileInboxDraggableCta) {
+    margin: 14px 0;
+}
+
+.replyEditor :global(.profileInboxReplyFooter) {
+    margin-top: 16px;
+}
+
+.replyEditor :global(.profileInboxFooterDivider) {
+    margin: 18px 0 14px;
+}
+
+.replyToolbar {
+    min-height: 44px;
+    padding-top: 6px;
+    padding-bottom: 6px;
+    background: #ffffff;
+}
+
+@media (max-height: 820px) and (min-width: 761px) {
+    .readerPanel {
+        grid-template-rows: 44px minmax(0, 1fr) minmax(170px, 27vh);
+    }
+
+    .emailDocument {
+        padding-top: 14px;
+        padding-bottom: 14px;
+    }
+
+    .replyComposer {
+        margin-bottom: 10px;
+    }
+
+    .replyRecipientRow {
+        min-height: 31px;
+    }
+
+    .replySubjectRow {
+        min-height: 33px;
+    }
+
+    .replyEditor {
+        padding-top: 9px;
+        padding-bottom: 9px;
+    }
+
+    .replyToolbar {
+        min-height: 40px;
+        padding-top: 4px;
+        padding-bottom: 4px;
+    }
+}
+
+@media (max-width: 760px) {
+    .readerPanel {
+        grid-template-rows: 48px minmax(0, 1fr) minmax(180px, 34vh);
+    }
+
+    .replyComposer {
+        margin: 0 10px 10px;
+    }
+}
+
+/* =========================================================
+   FULLY VISIBLE REPLY COMPOSER FIX
+   Prevents the subject/editor/action/formatting rows from being clipped
+   on shorter laptop screens.
+   ========================================================= */
+.readerPanel {
+    grid-template-rows: 48px minmax(0, 1fr) clamp(270px, 36vh, 350px);
+    overflow: hidden;
+}
+
+.replyComposer {
+    min-height: 0;
+    height: calc(100% - 14px);
+    margin: 0 clamp(24px, 4vw, 64px) 14px;
+    overflow: hidden;
+    border-radius: 10px;
+}
+
+.replyEditor {
+    min-height: 96px;
+    overflow-y: auto;
+}
+
+.replyToolbar {
+    position: relative;
+    z-index: 2;
+    flex-wrap: nowrap;
+    min-height: 46px;
+    overflow: visible;
+}
+
+@media (max-height: 820px) and (min-width: 761px) {
+    .readerPanel {
+        grid-template-rows: 44px minmax(0, 1fr) clamp(250px, 39vh, 320px);
+    }
+
+    .replyComposer {
+        height: calc(100% - 8px);
+        margin: 0 12px 8px;
+    }
+
+    .replyRecipientRow {
+        min-height: 32px;
+    }
+
+    .replySubjectRow {
+        min-height: 34px;
+    }
+
+    .replyEditor {
+        min-height: 76px;
+        padding: 10px 13px;
+    }
+
+    .replyToolbar {
+        min-height: 44px;
+        padding: 5px 8px;
+    }
+}
+
+@media (max-height: 680px) and (min-width: 761px) {
+    .readerPanel {
+        grid-template-rows: 42px minmax(0, 1fr) 245px;
+    }
+
+    .emailDocument {
+        padding-top: 10px;
+        padding-bottom: 10px;
+    }
+}
+
+/* =========================================================
+   DESKTOP EMAIL + INLINE REPLY LAYOUT
+   Keeps the message and reply composer in one vertical reading flow.
+   ========================================================= */
+@media (min-width: 1101px) {
+    .inboxShell {
+        grid-template-columns: minmax(225px, 255px) minmax(0, 1fr);
+    }
+
+    .readerPanel {
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: 48px minmax(0, 1fr) clamp(270px, 36vh, 350px);
+        overflow: hidden;
+    }
+
+    .readerToolbar {
+        grid-column: 1;
+        grid-row: 1;
+    }
+
+    .emailDocument {
+        grid-column: 1;
+        grid-row: 2;
+        min-width: 0;
+        min-height: 0;
+        overflow-y: auto;
+        padding: 22px clamp(32px, 4vw, 64px) 24px;
+    }
+
+    .replyComposer {
+        grid-column: 1;
+        grid-row: 3;
+        display: grid;
+        grid-template-rows: auto auto minmax(0, 1fr) auto auto;
+        min-width: 0;
+        min-height: 0;
+        width: auto;
+        height: calc(100% - 14px);
+        max-height: none;
+        margin: 0 clamp(32px, 4vw, 64px) 14px;
+        overflow: hidden;
+        align-self: stretch;
+        border-left: 1px solid #dfe4eb;
+        box-shadow: none;
+    }
+
+    .replyRecipientRow,
+    .replySubjectRow,
+    .replyAttachment,
+    .replyToolbar {
+        flex: 0 0 auto;
+    }
+
+    .replyEditor {
+        min-width: 0;
+        min-height: 96px;
+        max-height: none;
+        height: 100%;
+        overflow-x: hidden;
+        overflow-y: auto;
+        padding: 14px 16px;
+    }
+
+    .replyToolbar {
+        position: relative;
+        z-index: 3;
+        flex-wrap: nowrap;
+        min-height: 46px;
+        background: #ffffff;
+    }
+
+    .replyToolbarGroup {
+        min-width: 0;
+        flex: 1 1 auto;
+    }
+
+    .replyToolbarActions {
+        flex: 0 0 auto;
+    }
+
+    .readerEmpty {
+        grid-column: 1;
+        grid-row: 1 / -1;
+    }
+
+    .aiPanel {
+        right: 18px;
+        bottom: 18px;
+        width: min(390px, calc(100% - 36px));
+    }
+}
+
+@media (min-width: 1101px) and (max-width: 1320px) {
+    .inboxShell {
+        grid-template-columns: minmax(210px, 235px) minmax(0, 1fr);
+    }
+
+    .emailDocument {
+        padding-right: 28px;
+        padding-left: 28px;
+    }
+
+    .replyComposer {
+        margin-right: 28px;
+        margin-left: 28px;
+    }
+}
+
+
+/* =========================================================
+   COMPACT DESKTOP THREAD LIST
+   Gives more horizontal room to the selected email and reply panel.
+   ========================================================= */
+@media (min-width: 1101px) {
+    .threadPanelHeader {
+        padding-right: 9px;
+        padding-left: 10px;
+    }
+
+    .dateFilterButton {
+        min-width: 0;
+        width: 100%;
+    }
+
+    .dateFilter {
+        min-width: 0;
+        flex: 1;
+    }
+
+    .searchBox {
+        margin-right: 8px;
+        margin-left: 8px;
+    }
+
+    .threadTotal {
+        padding-right: 10px;
+        padding-left: 10px;
+    }
+
+    .threadList {
+        padding-right: 6px;
+        padding-left: 6px;
+    }
+
+    .threadRow {
+        gap: 8px;
+        padding-right: 8px;
+        padding-left: 8px;
+    }
+
+    .threadAvatar {
+        width: 31px;
+        height: 31px;
+    }
+
+    .composeButton {
+        right: 8px;
+        left: 8px;
+    }
+}
+
+/* =========================================================
+   COMPACT CTA / FOOTER SPACING
+   Keeps inserted reply content grouped together instead of leaving
+   a large empty area between the CTA and email footer.
+   ========================================================= */
+@media (min-width: 1101px) {
+    .replyEditor {
+        display: block;
+        align-content: initial;
+        padding-top: 16px;
+        padding-bottom: 16px;
+    }
+
+    .replyEditor :global(.profileInboxDraggableCta) {
+        margin-top: 12px;
+        margin-bottom: 10px;
+    }
+
+    .replyEditor :global(.profileInboxReplyFooter) {
+        margin-top: 8px;
+        padding-bottom: 0;
+    }
+
+    .replyEditor :global(.profileInboxFooterDivider) {
+        margin-top: 10px;
+        margin-bottom: 12px;
+    }
+
+    .replyEditor :global(.profileInboxFooterCompany),
+    .replyEditor :global(.profileInboxFooterCopyright) {
+        margin-bottom: 4px;
+    }
+}
+
+/* =========================================================
+   TRUE COMPACT INSERTED CTA + FOOTER FIX
+   Overrides inherited email-builder sizing so inserted blocks
+   use only the height their actual content needs.
+   ========================================================= */
+.replyEditor :global(.profileInboxDraggableCta) {
+    position: relative !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 10px 0 8px !important;
+    padding: 6px !important;
+    overflow: visible !important;
+    flex: 0 0 auto !important;
+}
+
+.replyEditor :global(.profileInboxCtaContent) {
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 8px 4px !important;
+    overflow: visible !important;
+}
+
+.replyEditor :global(.profileInboxCtaContent > a) {
+    min-height: 0 !important;
+    margin: 0 !important;
+}
+
+.replyEditor :global(.profileInboxReplyFooter) {
+    position: static !important;
+    display: block !important;
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+    margin: 6px 0 0 !important;
+    padding: 0 4px !important;
+    overflow: visible !important;
+    flex: 0 0 auto !important;
+}
+
+.replyEditor :global(.profileInboxFooterDivider) {
+    height: 1px !important;
+    min-height: 1px !important;
+    margin: 10px 0 12px !important;
+}
+
+.replyEditor :global(.profileInboxFooterCompany),
+.replyEditor :global(.profileInboxFooterCopyright),
+.replyEditor :global(.profileInboxFooterLinks) {
+    height: auto !important;
+    min-height: 0 !important;
+    margin-top: 0 !important;
+}
+
+@media (min-width: 1101px) {
+    .replyEditor {
+        display: block !important;
+        align-content: normal !important;
+    }
+}
+
+
+/* =========================================================
+   FINAL CTA HEIGHT OVERRIDE
+   The inserted CTA must hug the button instead of stretching into
+   a tall builder-style canvas inside the inbox reply composer.
+   ========================================================= */
+.replyEditor :global(.profileInboxDraggableCta),
+.replyEditor :global(.profileInboxCtaContent) {
+    height: fit-content !important;
+    min-height: 0 !important;
+    max-height: max-content !important;
+}
+
+.replyEditor :global(.profileInboxDraggableCta) {
+    display: block !important;
+    align-self: auto !important;
+    flex-grow: 0 !important;
+    flex-shrink: 0 !important;
+    grid-row: auto !important;
+    padding: 5px !important;
+    margin: 10px 0 8px !important;
+}
+
+.replyEditor :global(.profileInboxCtaContent) {
+    display: block !important;
+    padding: 8px 4px !important;
+    margin: 0 !important;
+}
+
+.replyEditor :global(.profileInboxCtaContent > a) {
+    display: inline-flex !important;
+    height: auto !important;
+    min-height: 0 !important;
+    max-height: none !important;
+}
+
+.replyEditor :global(.profileInboxReplyFooter) {
+    margin-top: 8px !important;
+}
+
+
+/* Saved Email picker inside the reply options menu */
+.replySavedEmailPickerWrap {
+    position: relative;
+    overflow: visible;
+}
+
+.replySavedEmailPicker {
+    position: absolute;
+    z-index: 140;
+    right: calc(100% + 8px);
+    bottom: -54px;
+    width: 286px;
+    overflow: hidden;
+    border: 1px solid #dfe4eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.18);
+}
+
+.replySavedEmailSearch {
+    display: flex;
+    min-height: 36px;
+    align-items: center;
+    gap: 7px;
+    margin: 7px;
+    padding: 0 9px;
+    border: 1px solid #e3e7ed;
+    border-radius: 8px;
+    color: #98a1b1;
+}
+
+.replySavedEmailSearch:focus-within {
+    border-color: #b6d9f6;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.08);
+}
+
+.replySavedEmailSearch input {
+    min-width: 0;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #263043;
+    font-size: 10px;
+}
+
+.replySavedEmailSearch input::placeholder {
+    color: #a4acb9;
+}
+
+.replySavedEmailList {
+    max-height: 238px;
+    overflow-y: auto;
+    padding: 0 6px 6px;
+}
+
+.replySavedEmailList>button {
+    display: grid !important;
+    width: 100% !important;
+    min-height: 48px !important;
+    grid-template-columns: 16px minmax(0, 1fr);
+    align-items: center !important;
+    gap: 9px !important;
+    padding: 8px !important;
+    text-align: left !important;
+}
+
+.replySavedEmailList>button>svg {
+    color: #7d8798;
+}
+
+.replySavedEmailList>button>span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 2px;
+}
+
+.replySavedEmailList>button strong,
+.replySavedEmailList>button small {
+    display: block;
+    width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.replySavedEmailList>button strong {
+    color: #30394b;
+    font-size: 10px;
+    font-weight: 620;
+}
+
+.replySavedEmailList>button small {
+    color: #929baa;
+    font-size: 9px;
+    font-weight: 500;
+}
+
+.replySavedEmailState {
+    display: flex;
+    min-height: 84px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 14px;
+    color: #8b95a6;
+    font-size: 10px;
+    line-height: 1.45;
+    text-align: center;
+}
+
+.replyEditor [data-cobrai-saved-email] {
+    max-width: 100%;
+}
+
+.replyEditor [data-cobrai-saved-email] h3,
+.replyEditor [data-cobrai-saved-email] p {
+    max-width: 100%;
+}
+
+@media (max-width: 760px) {
+    .replySavedEmailPicker {
+        right: auto;
+        left: 0;
+        width: min(286px, calc(100vw - 44px));
+    }
+}
+
+/* =========================================================
+   RECEIVED-ONLY REPLY + TOP ACTIONS
+   Reply composer is shown only in the Received inbox.
+   Compose and AI Summary are moved into the top bars.
+   ========================================================= */
+.shellHeader {
+    justify-content: space-between;
+}
+
+.composeTopButton {
+    display: inline-flex;
+    min-height: 36px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 13px;
+    border: 1px solid #dfe4eb;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #374151;
+    text-decoration: none;
+    font-size: 11px;
+    font-weight: 680;
+    line-height: 1;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+    transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+
+.composeTopButton:hover {
+    border-color: #cfd5de;
+    background: #f8fafc;
+    color: #1f2937;
+}
+
+.readerToolbar>.summaryButton {
+    width: auto;
+    height: 36px;
+    min-height: 36px;
+    padding: 0 13px;
+    border: 0;
+}
+
+.readerPanelWithoutReply {
+    grid-template-rows: 48px minmax(0, 1fr) !important;
+}
+
+@media (min-width: 1101px) {
+    .readerPanelWithoutReply {
+        grid-template-columns: minmax(0, 1fr) !important;
+        grid-template-rows: 48px minmax(0, 1fr) !important;
+    }
+
+    .readerPanelWithoutReply .readerToolbar,
+    .readerPanelWithoutReply .emailDocument {
+        grid-column: 1 !important;
+    }
+}
+
+@media (max-width: 760px) {
+    .shellHeader {
+        gap: 10px;
+    }
+
+    .composeTopButton {
+        min-height: 34px;
+        padding: 0 10px;
+    }
+
+    .composeTopButton svg {
+        width: 14px;
+        height: 14px;
+    }
+}
+
+
+/* =========================================================
+   COMPOSE ACCOUNT PICKER + RECEIVED-ONLY AI SUMMARY
+   Opens a blank, editable email in the existing right panel.
+   ========================================================= */
+.composeTopButton {
+    appearance: none;
+    cursor: pointer;
+}
+
+.readerToolbar>.summaryButton {
+    height: 30px;
+    min-height: 30px;
+    padding: 0 10px;
+    border: 0;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #4f8cff, #7b61ff);
+    color: #ffffff;
+    font-size: 10px;
+    font-weight: 680;
+    box-shadow: 0 5px 14px rgba(79, 140, 255, 0.18);
+}
+
+.readerToolbar>.summaryButton svg {
+    width: 12px;
+    height: 12px;
+}
+
+.readerToolbar>.summaryButton:hover:not(:disabled) {
+    background: linear-gradient(90deg, #3f7ff5, #6e55f5);
+    color: #ffffff;
+    box-shadow: 0 7px 18px rgba(79, 140, 255, 0.24);
+    transform: translateY(-1px);
+}
+
+.composeComposer {
+    position: relative;
+}
+
+.composeRecipientPicker {
+    position: relative;
+    z-index: 18;
+    flex: 0 0 auto;
+    border-bottom: 1px solid #edf0f4;
+    background: #ffffff;
+}
+
+.composeRecipientSearch {
+    display: flex;
+    min-height: 48px;
+    align-items: center;
+    gap: 9px;
+    padding: 7px 12px;
+    color: #8d96a7;
+}
+
+.composeRecipientSearch>svg {
+    flex: 0 0 auto;
+}
+
+.composeRecipientSearch input {
+    min-width: 0;
+    height: 34px;
+    flex: 1;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: #263043;
+    font-size: 11px;
+}
+
+.composeRecipientSearch input::placeholder {
+    color: #a0a8b6;
+}
+
+.composeRecipientChip {
+    display: flex;
+    min-width: 0;
+    max-width: 100%;
+    flex: 1;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 6px 8px 6px 10px;
+    border: 1px solid #dfe5ec;
+    border-radius: 9px;
+    background: #f8fafc;
+    color: #30394b;
+    cursor: pointer;
+    text-align: left;
+}
+
+.composeRecipientChip>span {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.composeRecipientChip strong,
+.composeRecipientChip small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.composeRecipientChip strong {
+    font-size: 10px;
+    font-weight: 700;
+}
+
+.composeRecipientChip small {
+    color: #8791a2;
+    font-size: 9px;
+}
+
+.composeAccountMenu {
+    position: absolute;
+    z-index: 80;
+    top: calc(100% + 6px);
+    right: 8px;
+    left: 8px;
+    overflow: hidden;
+    border: 1px solid #dfe4eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 50px rgba(15, 23, 42, 0.16);
+}
+
+.composeAccountMenuHeader {
+    display: flex;
+    min-height: 36px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 11px;
+    border-bottom: 1px solid #edf0f4;
+    color: #667085;
+    font-size: 9px;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.composeAccountMenuHeader small {
+    display: inline-flex;
+    min-width: 21px;
+    height: 21px;
+    align-items: center;
+    justify-content: center;
+    border-radius: 7px;
+    background: #f2f4f7;
+    color: #667085;
+    font-size: 9px;
+}
+
+.composeAccountList {
+    max-height: 280px;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.composeAccountList>button {
+    display: flex;
+    width: 100%;
+    min-width: 0;
+    align-items: center;
+    gap: 9px;
+    padding: 8px;
+    border: 0;
+    border-radius: 9px;
+    background: transparent;
+    color: inherit;
+    cursor: pointer;
+    text-align: left;
+}
+
+.composeAccountList>button:hover {
+    background: #f5f7fa;
+}
+
+.composeAccountAvatar {
+    display: inline-flex;
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid #e1e6ed;
+    border-radius: 50%;
+    background: #ffffff;
+    color: #687386;
+    font-size: 9px;
+    font-weight: 760;
+}
+
+.composeAccountCopy {
+    display: flex;
+    min-width: 0;
+    flex: 1;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.composeAccountCopy strong,
+.composeAccountCopy small {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.composeAccountCopy strong {
+    color: #30394b;
+    font-size: 10px;
+    font-weight: 680;
+}
+
+.composeAccountCopy small {
+    color: #8c95a5;
+    font-size: 9px;
+}
+
+.composeAccountEmpty {
+    display: flex;
+    min-height: 76px;
+    align-items: center;
+    justify-content: center;
+    color: #98a1af;
+    font-size: 10px;
+}
+
+@media (max-width: 760px) {
+    .composeAccountMenu {
+        position: fixed;
+        top: 126px;
+        right: 14px;
+        left: 14px;
+    }
+}
+
+
+
+

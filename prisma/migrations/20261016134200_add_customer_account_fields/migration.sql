@@ -1,0 +1,17 @@
+ALTER TABLE "Customer"
+ADD COLUMN "mrr" DOUBLE PRECISION NOT NULL DEFAULT 0,
+ADD COLUMN "syncedMrr" DOUBLE PRECISION,
+ADD COLUMN "plan" TEXT,
+ADD COLUMN "renewalDate" TIMESTAMP(3),
+ADD COLUMN "notes" TEXT,
+ADD COLUMN "manualName" TEXT,
+ADD COLUMN "manualEmail" TEXT,
+ADD COLUMN "manualCompany" TEXT,
+ADD COLUMN "manualMrr" DOUBLE PRECISION,
+ADD COLUMN "manualPlan" TEXT,
+ADD COLUMN "manualStatus" TEXT,
+ADD COLUMN "manualRenewalDate" TIMESTAMP(3),
+ADD COLUMN "manualNotes" TEXT,
+ADD COLUMN "source" TEXT NOT NULL DEFAULT 'unknown',
+ADD COLUMN "externalId" TEXT,
+ADD COLUMN "archivedAt" TIMESTAMP(3);

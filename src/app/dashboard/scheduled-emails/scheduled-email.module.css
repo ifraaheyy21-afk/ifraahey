@@ -1,0 +1,1926 @@
+/* scheduled-email.module.css */
+.page {
+    width: 100%;
+    min-height: 100vh;
+    padding: 28px;
+    background: #ffffff;
+    color: #111827;
+    font-family: "Inter", sans-serif;
+}
+
+.header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    gap: 20px;
+    margin-bottom: 22px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+
+.header p {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.actions {
+    display: flex;
+    gap: 10px;
+}
+
+.actions button,
+.rowActions button {
+    height: 36px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 10px;
+    padding: 0 13px;
+    font-size: 12px;
+    color: #374151;
+    cursor: pointer;
+}
+
+.primaryBtn {
+    background: #ffffff !important;
+    color: #111010 !important;
+    border-color: #e8e8e8 !important;
+}
+
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+    margin-bottom: 18px;
+}
+
+.statCard {
+    min-height: 92px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    border-radius: 16px;
+    padding: 16px;
+}
+
+.statCard span {
+    display: block;
+    font-size: 12px;
+    color: #6b7280;
+    margin-bottom: 8px;
+}
+
+.statCard strong {
+    display: block;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+    color: #111827;
+}
+
+.statCard p {
+    margin: 6px 0 0;
+    font-size: 12px;
+    color: #9ca3af;
+}
+
+.tableCard {
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #ffffff;
+    overflow: hidden;
+}
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px;
+    border-bottom: 1px solid #eef2f7;
+    background: #ffffff;
+}
+
+.toolbar input,
+.toolbar select {
+    height: 42px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    padding: 0 14px;
+    font-size: 13px;
+    color: #374151;
+    outline: none;
+}
+
+.toolbar input {
+    width: 260px;
+}
+
+.toolbar input::placeholder {
+    color: #9ca3af;
+}
+
+.toolbar select {
+    min-width: 145px;
+    padding-right: 40px;
+    font-weight: 500;
+    cursor: pointer;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' fill='none' viewBox='0 0 24 24'%3E%3Cpath stroke='%2394A3B8' stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='m6 9 6 6 6-6'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+}
+
+.tableWrap {
+    width: 100%;
+    overflow-x: hidden;
+}
+
+.tableWrap table {
+    width: 100%;
+    table-layout: fixed;
+    border-collapse: collapse;
+}
+
+.tableWrap th,
+.tableWrap td {
+    padding: 11px 9px;
+    vertical-align: middle;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tableWrap th {
+    text-align: left;
+    background: #fafafa;
+    border-bottom: 1px solid #e5e7eb;
+    font-size: 10.5px;
+    font-weight: 500;
+    color: #6b7280;
+}
+
+.tableWrap td {
+    border-bottom: 1px solid #f1f5f9;
+    font-size: 11.5px;
+    color: #374151;
+}
+
+.tableWrap tr:last-child td {
+    border-bottom: none;
+}
+
+.tableWrap th:nth-child(1),
+.tableWrap td:nth-child(1) {
+    width: 19%;
+}
+
+.tableWrap th:nth-child(2),
+.tableWrap td:nth-child(2) {
+    width: 24%;
+}
+
+.tableWrap th:nth-child(3),
+.tableWrap td:nth-child(3) {
+    width: 9%;
+}
+
+.tableWrap th:nth-child(4),
+.tableWrap td:nth-child(4) {
+    width: 8%;
+}
+
+.tableWrap th:nth-child(5),
+.tableWrap td:nth-child(5) {
+    width: 8%;
+}
+
+.tableWrap th:nth-child(6),
+.tableWrap td:nth-child(6) {
+    width: 20%;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.tableWrap th:nth-child(7),
+.tableWrap td:nth-child(7) {
+    width: 7%;
+}
+
+.tableWrap th:nth-child(8),
+.tableWrap td:nth-child(8) {
+    width: 5%;
+    text-align: right;
+    overflow: visible;
+    text-overflow: clip;
+}
+
+.accountCell {
+    display: flex;
+    align-items: center;
+    min-width: 0;
+}
+
+.accountCell>div {
+    min-width: 0;
+    width: 100%;
+}
+
+.accountCell strong {
+    display: block;
+    font-size: 11.5px;
+    font-weight: 500;
+    color: #111827;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.accountCell span {
+    display: block;
+    margin-top: 2px;
+    font-size: 10.5px;
+    color: #9ca3af;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    max-width: 100%;
+    border-radius: 999px;
+    padding: 4px 7px;
+    font-size: 10.5px;
+    font-weight: 500;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.scheduled {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.queued {
+    background: #fff7ed;
+    color: #ea580c;
+}
+
+.paused {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.sent {
+    background: #ecfdf5;
+    color: #059669;
+}
+
+.failed {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.high {
+    background: #fef2f2;
+    color: #dc2626;
+}
+
+.normal {
+    background: #eff6ff;
+    color: #2563eb;
+}
+
+.low {
+    background: #f3f4f6;
+    color: #6b7280;
+}
+
+.rowActions {
+    display: flex;
+    gap: 6px;
+    justify-content: flex-end;
+}
+
+.rowActions button,
+.viewEmailBtn {
+    height: 28px;
+    padding: 0 8px;
+    border-radius: 9px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #374151;
+    font-size: 10.5px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.emptyState {
+    min-height: 220px;
+    display: grid;
+    place-items: center;
+    gap: 8px;
+    color: #6b7280;
+    font-size: 13px;
+}
+
+.errorBox {
+    margin-bottom: 16px;
+    border: 1px solid #fecaca;
+    background: #fef2f2;
+    color: #991b1b;
+    border-radius: 12px;
+    padding: 12px 14px;
+    font-size: 13px;
+}
+
+.modalOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 50;
+    background: rgba(15, 23, 42, 0.32);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 22px;
+}
+
+.wideEmailModal {
+    width: min(1120px, calc(100vw - 44px));
+    max-height: calc(100vh - 44px);
+    overflow: hidden;
+    border-radius: 24px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 16px;
+    flex-shrink: 0;
+}
+
+.modalHeader h2 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.modalHeader p {
+    margin: 5px 0 0;
+    font-size: 13px;
+    color: #6b7280;
+}
+
+.modalHeader button {
+    width: 34px;
+    height: 34px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.modalTwoColumn {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(340px, 0.52fr);
+    gap: 18px;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+.schedulePanel {
+    min-height: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #ffffff;
+    padding: 16px;
+    overflow-y: auto;
+}
+
+.realEmailPreview {
+    min-height: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #f8fafc;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.previewHeader {
+    flex-shrink: 0;
+    margin-bottom: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.previewHeader span {
+    font-size: 12px;
+    font-weight: 500;
+    color: #64748b;
+}
+
+.emailPreviewFrame {
+    width: 100%;
+    height: 640px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    display: block;
+}
+
+.calendarBox {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 16px;
+    margin-bottom: 14px;
+    background: #ffffff;
+}
+
+.calendarTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 18px;
+}
+
+.calendarTop h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.calendarTop button {
+    width: 34px;
+    height: 34px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #64748b;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.calendarWeek,
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+}
+
+.calendarWeek {
+    margin-bottom: 8px;
+}
+
+.calendarWeek span {
+    text-align: center;
+    font-size: 12px;
+    color: #94a3b8;
+}
+
+.calendarGrid span,
+.calendarGrid button {
+    width: 40px;
+    height: 40px;
+    border-radius: 999px;
+}
+
+.calendarGrid button {
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-size: 13px;
+    cursor: pointer;
+}
+
+.calendarGrid button:hover {
+    background: #e8f5fe;
+    color: #1d9bf0;
+}
+
+.selectedCalendarDay {
+    background: #1d9bf0 !important;
+    color: #ffffff !important;
+}
+
+.timeField {
+    display: grid;
+    gap: 8px;
+    margin-bottom: 14px;
+    font-size: 12px;
+    color: #64748b;
+}
+
+.timeField input {
+    height: 42px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 0 14px;
+    font-size: 13px;
+    color: #111827;
+    outline: none;
+}
+
+.quickScheduleButtons {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.quickScheduleButtons button {
+    height: 38px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #0f1013;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 10px;
+}
+
+.modalActions button {
+    height: 38px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    padding: 0 14px;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.sendNowBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: #374151 !important;
+    background: #ffffff !important;
+    border: 1px solid #e5e7eb !important;
+}
+
+.rescheduleBtn {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    height: 38px;
+    border-radius: 10px;
+    padding: 0 14px;
+    background: #1d9bf0 !important;
+    color: #ffffff !important;
+    border: 1px solid #1d9bf0 !important;
+    font-size: 12px;
+    cursor: pointer;
+    white-space: nowrap;
+}
+
+.rescheduleBtn:hover {
+    background: #1a8cd8 !important;
+    border-color: #1a8cd8 !important;
+}
+
+@media (max-width: 1200px) {
+    .statsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .tableWrap {
+        overflow-x: auto;
+    }
+
+    .tableWrap table {
+        min-width: 980px;
+    }
+
+    .modalTwoColumn {
+        grid-template-columns: 1fr;
+        overflow-y: auto;
+    }
+
+    .emailPreviewFrame {
+        height: 620px;
+    }
+
+    .schedulePanel {
+        overflow: visible;
+    }
+}
+
+@media (max-width: 900px) {
+    .wideEmailModal {
+        max-height: 92vh;
+        overflow-y: auto;
+    }
+
+    .modalTwoColumn {
+        overflow: visible;
+    }
+}
+
+@media (max-width: 700px) {
+    .page {
+        padding: 20px;
+    }
+
+    .header {
+        flex-direction: column;
+    }
+
+    .actions {
+        width: 100%;
+        flex-wrap: wrap;
+    }
+
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .toolbar {
+        flex-direction: column;
+    }
+
+    .toolbar input,
+    .toolbar select {
+        width: 100%;
+    }
+
+    .modalOverlay {
+        padding: 12px;
+    }
+
+    .wideEmailModal {
+        width: 100%;
+        padding: 16px;
+        border-radius: 20px;
+    }
+
+    .emailPreviewFrame {
+        height: 540px;
+    }
+
+    .modalActions {
+        flex-direction: column;
+    }
+
+    .modalActions button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+
+.wideEmailModal {
+    width: min(1180px, calc(100vw - 44px));
+    max-height: calc(100vh - 44px);
+    overflow: hidden;
+    border-radius: 24px;
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    box-shadow: 0 24px 70px rgba(15, 23, 42, 0.2);
+    padding: 22px;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalTwoColumn {
+    min-height: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 340px;
+    gap: 16px;
+    align-items: stretch;
+    overflow: hidden;
+}
+
+.schedulePanel {
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #ffffff;
+    padding: 14px;
+    overflow: hidden;
+}
+
+.realEmailPreview {
+    min-width: 0;
+    min-height: 0;
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    background: #ffffff;
+    padding: 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+}
+
+.emailPreviewFrame {
+    width: 100%;
+    height: 630px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    display: block;
+}
+
+.calendarBox {
+    border: 1px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 14px;
+    margin-bottom: 12px;
+    background: #ffffff;
+}
+
+.calendarTop {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 14px;
+}
+
+.calendarTop h3 {
+    margin: 0;
+    font-size: 17px;
+    font-weight: 500;
+    color: #111827;
+}
+
+.calendarTop button {
+    width: 32px;
+    height: 32px;
+    border-radius: 10px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #64748b;
+    display: grid;
+    place-items: center;
+    cursor: pointer;
+}
+
+.calendarWeek,
+.calendarGrid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+    gap: 6px;
+}
+
+.calendarWeek {
+    margin-bottom: 6px;
+}
+
+.calendarWeek span {
+    text-align: center;
+    font-size: 11px;
+    color: #94a3b8;
+}
+
+.calendarGrid span,
+.calendarGrid button {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    max-height: 34px;
+    border-radius: 999px;
+}
+
+.calendarGrid button {
+    border: none;
+    background: transparent;
+    color: #475569;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.timeField input {
+    height: 40px;
+    border-radius: 12px;
+    border: 1px solid #e5e7eb;
+    padding: 0 14px;
+    font-size: 13px;
+    color: #111827;
+    outline: none;
+}
+
+.quickScheduleButtons {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 8px;
+    margin-bottom: 18px;
+}
+
+.quickScheduleButtons button {
+    height: 36px;
+    border-radius: 999px;
+    border: 1px solid #e5e7eb;
+    background: #ffffff;
+    color: #0f1013;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.modalActions {
+    display: flex;
+    justify-content: flex-end;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+
+.emailPreviewFrame {
+    width: 100%;
+    height: 630px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #f4f6f8;
+    display: block;
+}
+
+/* =========================================================
+   SCHEDULED EMAIL WORKSPACE
+   Keeps the existing page, filters, KPIs and modal unchanged.
+   ========================================================= */
+
+.emailWorkspace {
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    background: #ffffff;
+}
+
+.emailLayout {
+    display: grid;
+    grid-template-columns: minmax(300px, 360px) minmax(0, 1fr);
+    min-height: 610px;
+}
+
+.emailListPanel {
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    border-right: 1px solid #e5e7eb;
+    background: #fcfcfd;
+}
+
+.emailListHeading {
+    display: flex;
+    min-height: 58px;
+    align-items: center;
+    justify-content: space-between;
+    padding: 12px 14px;
+    border-bottom: 1px solid #eef2f7;
+    background: #ffffff;
+}
+
+.emailListHeading>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.emailListHeading strong {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.emailListHeading span {
+    color: #9ca3af;
+    font-size: 11px;
+}
+
+.emailList {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 8px;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+}
+
+.emailList::-webkit-scrollbar {
+    width: 7px;
+}
+
+.emailList::-webkit-scrollbar-thumb {
+    border: 2px solid transparent;
+    border-radius: 999px;
+    background: #d1d5db;
+    background-clip: padding-box;
+}
+
+.emailListItem {
+    display: flex;
+    width: 100%;
+    gap: 10px;
+    margin: 0 0 6px;
+    padding: 12px 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    color: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        border-color 150ms ease,
+        background 150ms ease,
+        box-shadow 150ms ease;
+}
+
+.emailListItem:hover {
+    border-color: #e5e7eb;
+    background: #ffffff;
+}
+
+.emailListItemActive {
+    border-color: #d9dee7;
+    background: #ffffff;
+    box-shadow: 0 5px 16px rgba(15, 23, 42, 0.05);
+}
+
+.accountAvatar,
+.detailAvatar {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: #f1f3f5;
+    color: #5f6878;
+    font-weight: 500;
+}
+
+.accountAvatar {
+    width: 34px;
+    height: 34px;
+    font-size: 10.5px;
+}
+
+.emailListItemContent {
+    display: block;
+    min-width: 0;
+    flex: 1;
+}
+
+.emailListItemTop {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.emailListItemTop strong {
+    overflow: hidden;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailListItemTop time {
+    flex: 0 0 auto;
+    color: #9ca3af;
+    font-size: 9.5px;
+}
+
+.emailListItemEmail,
+.emailListItemSubject {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailListItemEmail {
+    margin-top: 2px;
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailListItemSubject {
+    margin-top: 7px;
+    color: #374151;
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.emailListItemMeta {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 8px;
+}
+
+.emailDetailPanel {
+    position: relative;
+    display: flex;
+    min-width: 0;
+    min-height: 0;
+    flex-direction: column;
+    background: #ffffff;
+}
+
+.detailEmptyState {
+    display: flex;
+    min-height: 610px;
+    align-items: center;
+    justify-content: center;
+    flex-direction: column;
+    gap: 8px;
+    color: #9ca3af;
+    text-align: center;
+}
+
+.detailEmptyState strong {
+    color: #374151;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.detailEmptyState span {
+    max-width: 260px;
+    font-size: 11px;
+    line-height: 1.5;
+}
+
+.emailDetailHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 16px 20px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.emailDetailTitle {
+    display: flex;
+    min-width: 0;
+    align-items: center;
+    gap: 11px;
+}
+
+.detailAvatar {
+    width: 40px;
+    height: 40px;
+    font-size: 11px;
+}
+
+.emailDetailTitle>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.emailDetailTitle span {
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailDetailTitle strong {
+    overflow: hidden;
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailDetailTitle small {
+    overflow: hidden;
+    color: #6b7280;
+    font-size: 10.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailDetailHeaderRight {
+    display: flex;
+    flex: 0 0 auto;
+    align-items: center;
+    gap: 8px;
+}
+
+.emailDetailHeaderRight button,
+.emailDetailFooter button {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.emailDetailHeaderRight button:hover,
+.emailDetailFooter button:hover {
+    background: #f9fafb;
+}
+
+.scheduleInfoGrid {
+    display: grid;
+    grid-template-columns: 1.5fr 0.75fr 0.75fr 0.75fr;
+    gap: 10px;
+    padding: 14px 20px;
+    border-bottom: 1px solid #eef2f7;
+    background: #fafafa;
+}
+
+.scheduleInfoGrid>div {
+    min-width: 0;
+    padding: 11px 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.scheduleInfoGrid span {
+    display: block;
+    margin-bottom: 5px;
+    color: #9ca3af;
+    font-size: 9.5px;
+}
+
+.scheduleInfoGrid strong {
+    display: block;
+    overflow: hidden;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.emailMessage {
+    min-height: 0;
+    flex: 1;
+    overflow-y: auto;
+    padding: 24px clamp(22px, 4vw, 54px) 30px;
+    scrollbar-width: thin;
+    scrollbar-color: #d1d5db transparent;
+}
+
+.emailMessageHeader {
+    padding-bottom: 17px;
+    border-bottom: 1px solid #eef2f7;
+}
+
+.emailMessageHeader span {
+    display: block;
+    margin-bottom: 7px;
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailMessageHeader h2 {
+    margin: 0;
+    color: #111827;
+    font-size: clamp(22px, 2.2vw, 30px);
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.035em;
+}
+
+.emailRecipientLine {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 14px 0 0;
+    color: #6b7280;
+    font-size: 10.5px;
+}
+
+.emailRecipientLine>span {
+    color: #9ca3af;
+}
+
+.emailRecipientLine strong {
+    color: #374151;
+    font-weight: 500;
+}
+
+.emailRecipientLine small {
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailMessageBody {
+    max-width: 780px;
+    padding-top: 24px;
+    color: #374151;
+    font-size: 12.5px;
+    line-height: 1.75;
+}
+
+.emailMessageBody p {
+    margin: 0 0 14px;
+    white-space: pre-wrap;
+}
+
+.emailDetailFooter {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 18px;
+    padding: 12px 16px;
+    border-top: 1px solid #eef2f7;
+    background: #ffffff;
+}
+
+.emailDetailFooter>div {
+    display: flex;
+    min-width: 0;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.emailDetailFooter span {
+    color: #9ca3af;
+    font-size: 9.5px;
+}
+
+.emailDetailFooter strong {
+    overflow: hidden;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.spinning {
+    animation: scheduledSpin 0.8s linear infinite;
+}
+
+@keyframes scheduledSpin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 1100px) {
+    .emailLayout {
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    }
+
+    .scheduleInfoGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 820px) {
+    .emailLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .emailListPanel {
+        max-height: 410px;
+        border-right: 0;
+        border-bottom: 1px solid #e5e7eb;
+    }
+
+    .emailDetailHeader {
+        align-items: flex-start;
+        flex-direction: column;
+    }
+
+    .emailDetailHeaderRight {
+        width: 100%;
+        justify-content: space-between;
+    }
+}
+
+@media (max-width: 560px) {
+    .scheduleInfoGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .emailMessage {
+        padding-right: 18px;
+        padding-left: 18px;
+    }
+
+    .emailDetailFooter {
+        align-items: stretch;
+        flex-direction: column;
+    }
+
+    .emailDetailFooter button {
+        width: 100%;
+    }
+}
+
+/* =========================================================
+   INBOX VISUAL ALIGNMENT
+   Matches the Scheduled Emails workspace to the Inbox page
+   without changing data, filters, KPIs, actions or modal logic.
+   ========================================================= */
+
+.page {
+    min-width: 0;
+    min-height: 100vh;
+    padding: 24px;
+    background: #ffffff;
+    color: #111827;
+    font-family: "Inter", sans-serif;
+}
+
+.page *,
+.page *::before,
+.page *::after {
+    box-sizing: border-box;
+}
+
+.page button,
+.page input,
+.page select {
+    font: inherit;
+}
+
+.header {
+    align-items: center;
+    margin-bottom: 18px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #eceef2;
+}
+
+.header h1 {
+    color: #111827;
+    font-size: 24px;
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.03em;
+}
+
+.header p {
+    margin-top: 6px;
+    color: #6b7280;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.actions {
+    gap: 8px;
+}
+
+.actions button {
+    display: inline-flex;
+    height: 34px;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.actions button:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+}
+
+.primaryBtn {
+    background: #ffffff !important;
+    color: #374151 !important;
+    border-color: #e5e7eb !important;
+}
+
+.statsGrid {
+    gap: 10px;
+    margin-bottom: 16px;
+}
+
+.statCard {
+    min-height: 86px;
+    padding: 14px;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.03);
+}
+
+.statCard span {
+    margin-bottom: 8px;
+    color: #6b7280;
+    font-size: 12px;
+}
+
+.statCard strong {
+    color: #111827;
+    font-size: 20px;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+
+.statCard p {
+    margin-top: 5px;
+    color: #9ca3af;
+    font-size: 10.5px;
+}
+
+.emailWorkspace {
+    overflow: hidden;
+    border: 1px solid #eceef2;
+    border-radius: 0;
+    background: #ffffff;
+}
+
+.toolbar {
+    display: grid;
+    grid-template-columns: minmax(220px, 1fr) 150px 150px 150px;
+    gap: 8px;
+    padding: 12px;
+    border-bottom: 1px solid #eceef2;
+    background: #ffffff;
+}
+
+.toolbar input,
+.toolbar select {
+    width: 100%;
+    height: 38px;
+    border: 1px solid #e3e7ed;
+    border-radius: 10px;
+    background-color: #ffffff;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 400;
+    outline: none;
+}
+
+.toolbar input {
+    padding: 0 11px;
+}
+
+.toolbar select {
+    min-width: 0;
+    padding: 0 36px 0 11px;
+    font-weight: 500;
+}
+
+.toolbar input:focus,
+.toolbar select:focus {
+    border-color: #b6d9f6;
+    box-shadow: 0 0 0 3px rgba(29, 155, 240, 0.08);
+}
+
+.emailLayout {
+    grid-template-columns: minmax(300px, 350px) minmax(0, 1fr);
+    min-height: 610px;
+    background: #ffffff;
+}
+
+.emailListPanel {
+    border-right: 1px solid #eceef2;
+    background: #fcfcfd;
+}
+
+.emailListHeading {
+    min-height: 48px;
+    padding: 8px 14px;
+    border-bottom: 1px solid #edf0f4;
+    background: #ffffff;
+}
+
+.emailListHeading strong {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.emailListHeading span {
+    color: #9ca3af;
+    font-size: 10.5px;
+}
+
+.emailList {
+    padding: 8px 8px 12px;
+    scrollbar-color: #d8dde5 transparent;
+}
+
+.emailListItem {
+    gap: 10px;
+    margin-bottom: 5px;
+    padding: 12px 10px;
+    border: 1px solid transparent;
+    border-radius: 12px;
+    background: transparent;
+    box-shadow: none;
+}
+
+.emailListItem:hover {
+    border-color: #e7eaf0;
+    background: #ffffff;
+}
+
+.emailListItemActive {
+    border-color: #d3d9e2;
+    background: #ffffff;
+    box-shadow: 0 6px 18px rgba(15, 23, 42, 0.055);
+}
+
+.accountAvatar,
+.detailAvatar {
+    background: linear-gradient(135deg, #f0d7e8, #d8e7fb);
+    color: #5d4b6c;
+}
+
+.accountAvatar {
+    width: 34px;
+    height: 34px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.emailListItemTop strong {
+    color: #111827;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.emailListItemTop time {
+    color: #9ba3b1;
+    font-size: 10.5px;
+    font-weight: 400;
+}
+
+.emailListItemEmail {
+    margin-top: 2px;
+    color: #9ca3af;
+    font-size: 10.5px;
+}
+
+.emailListItemSubject {
+    margin-top: 7px;
+    color: #374151;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.emailListItemMeta {
+    margin-top: 7px;
+}
+
+.pill {
+    min-height: 19px;
+    padding: 0 7px;
+    font-size: 9px;
+    font-weight: 600;
+}
+
+.emailDetailPanel {
+    background: #ffffff;
+}
+
+.emailDetailHeader {
+    min-height: 48px;
+    padding: 6px 16px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.detailAvatar {
+    width: 38px;
+    height: 38px;
+    font-size: 11px;
+}
+
+.emailDetailTitle>div {
+    gap: 2px;
+}
+
+.emailDetailTitle span {
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailDetailTitle strong {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.emailDetailTitle small {
+    color: #6b7280;
+    font-size: 10.5px;
+}
+
+.emailDetailHeaderRight {
+    gap: 4px;
+}
+
+.emailDetailHeaderRight button,
+.emailDetailFooter button {
+    height: 34px;
+    padding: 0 12px;
+    border: 1px solid #e5e7eb;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.emailDetailHeaderRight button:hover,
+.emailDetailFooter button:hover {
+    border-color: #d1d5db;
+    background: #f9fafb;
+}
+
+.scheduleInfoGrid {
+    grid-template-columns: 1.5fr 0.75fr 0.75fr 0.75fr;
+    gap: 8px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #edf0f4;
+    background: #fafafa;
+}
+
+.scheduleInfoGrid>div {
+    padding: 10px 11px;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.scheduleInfoGrid span {
+    margin-bottom: 5px;
+    color: #9ca3af;
+    font-size: 9.5px;
+}
+
+.scheduleInfoGrid strong {
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.emailMessage {
+    padding: 24px clamp(24px, 4vw, 64px) 28px;
+    scrollbar-color: #d8dde5 transparent;
+}
+
+.emailMessageHeader {
+    padding-bottom: 18px;
+    border-bottom: 1px solid #edf0f4;
+}
+
+.emailMessageHeader span {
+    margin-bottom: 7px;
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailMessageHeader h2 {
+    color: #111827;
+    font-size: clamp(22px, 2.2vw, 30px);
+    line-height: 1.2;
+    font-weight: 500;
+    letter-spacing: -0.04em;
+}
+
+.emailRecipientLine {
+    gap: 6px;
+    padding-top: 13px;
+    color: #6b7280;
+    font-size: 11px;
+}
+
+.emailRecipientLine strong {
+    color: #374151;
+    font-weight: 500;
+}
+
+.emailRecipientLine small {
+    color: #9ca3af;
+    font-size: 10.5px;
+}
+
+.emailMessageBody {
+    max-width: 780px;
+    padding-top: 26px;
+    color: #374151;
+    font-size: 13px;
+    line-height: 1.7;
+}
+
+.emailDetailFooter {
+    min-height: 54px;
+    padding: 10px 16px;
+    border-top: 1px solid #edf0f4;
+    background: #ffffff;
+}
+
+.emailDetailFooter span {
+    color: #9ca3af;
+    font-size: 10px;
+}
+
+.emailDetailFooter strong {
+    color: #374151;
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.errorBox {
+    border-radius: 10px;
+    font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+    .toolbar {
+        grid-template-columns: 1fr 1fr;
+    }
+
+    .emailLayout {
+        grid-template-columns: minmax(280px, 320px) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 820px) {
+    .page {
+        padding: 18px;
+    }
+
+    .header {
+        align-items: flex-start;
+    }
+
+    .toolbar {
+        grid-template-columns: 1fr;
+    }
+
+    .emailLayout {
+        grid-template-columns: 1fr;
+    }
+
+    .emailListPanel {
+        border-right: 0;
+        border-bottom: 1px solid #eceef2;
+    }
+}
+
+/* =========================================================
+   KPI STRIP — unified segmented layout
+   ========================================================= */
+.statsGrid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0;
+    margin-bottom: 16px;
+    overflow: hidden;
+    border: 1px solid #e5e7eb;
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+}
+
+.statCard {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    grid-template-areas:
+        "value label"
+        "trend trend";
+    align-content: center;
+    column-gap: 8px;
+    row-gap: 5px;
+    min-width: 0;
+    min-height: 76px;
+    padding: 13px 20px;
+    border: 0;
+    border-radius: 0;
+    background: #ffffff;
+    box-shadow: none;
+}
+
+.statCard+.statCard {
+    border-left: 1px solid #eceef2;
+}
+
+.statCard strong {
+    grid-area: value;
+    align-self: baseline;
+    margin: 0;
+    color: #111827;
+    font-size: 22px;
+    line-height: 1;
+    font-weight: 500;
+    letter-spacing: -0.045em;
+    white-space: nowrap;
+}
+
+.statCard span {
+    grid-area: label;
+    align-self: baseline;
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: #4b5563;
+    font-size: 12px;
+    line-height: 1.15;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.statCard p {
+    grid-area: trend;
+    margin: 0;
+    overflow: hidden;
+    color: #8b94a6;
+    font-size: 10.5px;
+    line-height: 1.25;
+    font-weight: 400;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+    .statsGrid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .statCard:nth-child(3) {
+        border-left: 0;
+    }
+
+    .statCard:nth-child(n + 3) {
+        border-top: 1px solid #eceef2;
+    }
+}
+
+@media (max-width: 620px) {
+    .statsGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .statCard+.statCard,
+    .statCard:nth-child(3) {
+        border-left: 0;
+        border-top: 1px solid #eceef2;
+    }
+}
+
+
+/* Dynamic KPI comparisons */
+.statTrend {
+    display: inline-flex !important;
+    align-items: center;
+    gap: 4px;
+    margin: 5px 0 0 !important;
+    font-size: 10.5px !important;
+    line-height: 1.25;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
+.statTrend svg {
+    flex: 0 0 auto;
+    stroke-width: 2;
+}
+
+.positive {
+    color: #15803d !important;
+}
+
+.negative {
+    color: #dc2626 !important;
+}
+
+.neutral {
+    color: #9ca3af !important;
+}

@@ -1,0 +1,2899 @@
+.page {
+
+    min-height: 100vh;
+
+    padding: 22px 24px 28px;
+
+    background: #ffffff;
+
+    color: #111827;
+
+}
+
+.pageHeader {
+
+    margin-bottom: 20px;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    justify-content: space-between;
+
+    gap: 18px;
+
+}
+
+.breadcrumb {
+
+    margin-bottom: 20px;
+
+    color: #6b7280;
+
+    font-size: 12px;
+
+}
+
+.pageHeader h1 {
+
+    margin: 0;
+
+    color: #111827;
+
+    font-size: 24px;
+
+    font-weight: 600;
+
+    letter-spacing: -0.03em;
+
+}
+
+.pageHeader p {
+
+    margin: 5px 0 0;
+
+    color: #7c8490;
+
+    font-size: 12px;
+
+}
+
+.createButton {
+
+    min-height: 38px;
+
+    padding: 0 15px;
+
+    border-radius: 9px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #0f172a;
+
+    color: #ffffff;
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+    text-decoration: none;
+
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.12);
+
+}
+
+.createButton:hover {
+
+    background: #111827;
+
+}
+
+/* ===== KPI + CHART: TWO SEPARATE COMPACT CARDS ===== */
+
+.overviewGrid {
+
+    margin-bottom: 18px;
+
+    display: grid;
+
+    grid-template-columns: minmax(290px, 0.72fr) minmax(0, 1.28fr);
+
+    gap: 12px;
+
+    align-items: stretch;
+
+}
+
+.kpiCard,
+
+.chartCard {
+
+    min-width: 0;
+
+    height: 326px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 14px;
+
+    overflow: hidden;
+
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+
+}
+
+.kpiCard {
+
+    padding: 12px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    background: #ffffff;
+
+}
+
+.chartCard {
+
+    padding: 14px 17px 10px;
+
+    background: #ffffff;
+
+}
+
+.performanceHeader {
+
+    display: flex;
+
+    align-items: flex-start;
+
+    justify-content: space-between;
+
+    gap: 14px;
+
+}
+
+.performanceEyebrow {
+
+    color: #344054;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+}
+
+.performanceValueRow {
+
+    margin-top: 7px;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 12px;
+
+}
+
+.performanceValueRow>strong {
+
+    color: #111827;
+
+    font-size: 29px;
+
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: -0.045em;
+
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+.chartValueRow {
+
+    margin-top: 5px;
+
+    display: flex;
+
+    align-items: flex-end;
+
+    gap: 11px;
+
+}
+
+.chartValueRow>strong {
+
+    color: #111827;
+
+    font-size: 25px;
+
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: -0.04em;
+
+}
+
+.performanceChange {
+
+    padding-bottom: 1px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 1px;
+
+}
+
+.performanceChange span,
+
+.chartSuccess {
+
+    color: #39845a;
+
+    font-size: 9px;
+
+    font-weight: 600;
+
+}
+
+.performanceChange small {
+
+    color: #667085;
+
+    font-size: 8.5px;
+
+    font-weight: 500;
+
+}
+
+.chartTitleRow {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+}
+
+.performanceMeta {
+
+    margin-top: 4px;
+
+    color: #7d8997;
+
+    font-size: 8.5px;
+
+    font-weight: 500;
+
+}
+
+.periodControl {
+
+    height: 30px;
+
+    border: 1px solid rgba(203, 213, 225, 0.92);
+
+    border-radius: 8px;
+
+    display: inline-flex;
+
+    overflow: hidden;
+
+    background: rgba(255, 255, 255, 0.72);
+
+    backdrop-filter: blur(6px);
+
+}
+
+.periodControl button {
+
+    min-width: 51px;
+
+    padding: 0 11px;
+
+    border: 0;
+
+    border-left: 1px solid rgba(203, 213, 225, 0.86);
+
+    background: transparent;
+
+    color: #667085;
+
+    font: inherit;
+
+    font-size: 9px;
+
+    font-weight: 500;
+
+    cursor: pointer;
+
+}
+
+.periodControl button:first-child {
+
+    border-left: 0;
+
+}
+
+.periodControl button:hover {
+
+    background: rgba(255, 255, 255, 0.78);
+
+    color: #111827;
+
+}
+
+.periodButtonActive {
+
+    background: rgba(255, 255, 255, 0.96) !important;
+
+    color: #111827 !important;
+
+    font-weight: 600 !important;
+
+}
+
+.kpiStatsGrid {
+
+    flex: 1;
+
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    border: 1px solid #e8ebef;
+
+    border-radius: 11px;
+
+    overflow: hidden;
+
+    background: #ffffff;
+
+}
+
+.kpiStat {
+
+    min-width: 0;
+
+    padding: 14px 14px 12px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    background: #ffffff;
+
+}
+
+.kpiStat:nth-child(odd) {
+
+    border-right: 1px solid #e8ebef;
+
+}
+
+.kpiStat:nth-child(-n + 2) {
+
+    border-bottom: 1px solid #e8ebef;
+
+}
+
+.kpiStatTop {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 10px;
+
+}
+
+.kpiStatTop>span:first-child {
+
+    color: #667085;
+
+    font-size: 8.5px;
+
+    font-weight: 600;
+
+    text-transform: uppercase;
+
+    letter-spacing: 0.045em;
+
+}
+
+.kpiIcon {
+
+    width: 27px;
+
+    height: 27px;
+
+    flex: 0 0 27px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 8px;
+
+    display: grid;
+
+    place-items: center;
+
+    background: #ffffff;
+
+    color: #7c8797;
+
+}
+
+.kpiStat>strong {
+
+    margin-top: 6px;
+
+    color: #111827;
+
+    font-size: 18px;
+
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: -0.025em;
+
+}
+
+.kpiStat>small {
+
+    margin-top: 7px;
+
+    font-size: 8.5px;
+
+    line-height: 1.25;
+
+    font-weight: 500;
+
+}
+
+.statPositive {
+
+    color: #39845a;
+
+}
+
+.statNegative {
+
+    color: #b45f5f;
+
+}
+
+.chartCanvas {
+
+    position: relative;
+
+    width: 100%;
+
+    margin-top: 5px;
+
+}
+
+.chartSvg {
+
+    width: 100%;
+
+    height: 218px;
+
+    display: block;
+
+    overflow: visible;
+
+    touch-action: none;
+
+}
+
+.chartGridLine {
+
+    stroke: rgba(100, 116, 139, 0.25);
+
+    stroke-width: 1;
+
+    stroke-dasharray: 3 4;
+
+    vector-effect: non-scaling-stroke;
+
+}
+
+.chartVerticalGrid {
+
+    stroke: rgba(100, 116, 139, 0.15);
+
+    stroke-width: 1;
+
+    stroke-dasharray: 3 4;
+
+    vector-effect: non-scaling-stroke;
+
+}
+
+.chartYAxisText {
+
+    fill: #667085;
+
+    font-size: 10px;
+
+    font-weight: 500;
+
+    user-select: none;
+
+}
+
+.chartXAxisText {
+
+    fill: #475467;
+
+    font-size: 10px;
+
+    font-weight: 500;
+
+    user-select: none;
+
+}
+
+.chartXAxisTextDense {
+
+    fill: #667085;
+
+    font-size: 8px;
+
+    font-weight: 500;
+
+    user-select: none;
+
+}
+
+.chartArea {
+
+    pointer-events: none;
+
+}
+
+.chartLine {
+
+    fill: none;
+
+    stroke: #557f9f;
+
+    stroke-width: 2;
+
+    stroke-linecap: round;
+
+    stroke-linejoin: round;
+
+    vector-effect: non-scaling-stroke;
+
+}
+
+.chartHoverLine {
+
+    stroke: #7890a5;
+
+    stroke-width: 1;
+
+    stroke-dasharray: 4 4;
+
+    vector-effect: non-scaling-stroke;
+
+}
+
+.chartPointOuter {
+
+    fill: #ffffff;
+
+    stroke: #557f9f;
+
+    stroke-width: 2;
+
+    vector-effect: non-scaling-stroke;
+
+}
+
+.chartPointInner {
+
+    fill: #557f9f;
+
+}
+
+.chartTooltip {
+
+    position: absolute;
+
+    top: 54px;
+
+    z-index: 10;
+
+    width: 148px;
+
+    padding: 9px 10px;
+
+    border: 1px solid rgba(203, 213, 225, 0.9);
+
+    border-radius: 8px;
+
+    transform: translateX(-50%);
+
+    background: rgba(255, 255, 255, 0.97);
+
+    box-shadow:
+
+        0 10px 24px rgba(15, 23, 42, 0.08),
+
+        0 2px 6px rgba(15, 23, 42, 0.04);
+
+    pointer-events: none;
+
+}
+
+.tooltipDate {
+
+    display: block;
+
+    margin-bottom: 5px;
+
+    color: #667085;
+
+    font-size: 8.5px;
+
+    font-weight: 500;
+
+}
+
+.tooltipLabel {
+
+    display: block;
+
+    margin-bottom: 4px;
+
+    color: #667085;
+
+    font-size: 8.5px;
+
+    font-weight: 500;
+
+}
+
+.tooltipValueRow {
+
+    display: flex;
+
+    align-items: center;
+
+}
+
+.tooltipValueRow strong {
+
+    color: #111827;
+
+    font-size: 18px;
+
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: -0.025em;
+
+}
+
+.tooltipSub {
+
+    display: block;
+
+    margin-top: 5px;
+
+    color: #39845a;
+
+    font-size: 8.5px;
+
+    font-weight: 500;
+
+}
+
+/* ===== TABLE ===== */
+
+.tableSection {
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 14px;
+
+    background: #ffffff;
+
+    overflow: visible;
+
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.02);
+
+}
+
+.tableTopline {
+
+    min-height: 48px;
+
+    padding: 0 14px;
+
+    border-bottom: 1px solid #edf0f3;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+}
+
+.tableTopline h2 {
+
+    margin: 0;
+
+    color: #252a31;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+}
+
+.tableTopline span {
+
+    color: #9ca3af;
+
+    font-size: 10px;
+
+}
+
+.toolbar {
+
+    min-height: 54px;
+
+    padding: 8px 14px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    border-bottom: 1px solid #edf0f3;
+
+}
+
+.searchBox {
+
+    width: 330px;
+
+    height: 35px;
+
+    padding: 0 11px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 8px;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    color: #9ca3af;
+
+}
+
+.searchBox input {
+
+    width: 100%;
+
+    border: 0;
+
+    outline: 0;
+
+    background: transparent;
+
+    color: #111827;
+
+    font: inherit;
+
+    font-size: 11px;
+
+}
+
+.searchBox input::placeholder {
+
+    color: #9ca3af;
+
+}
+
+.filterWrap {
+
+    position: relative;
+
+}
+
+.filterButton {
+
+    height: 34px;
+
+    padding: 0 10px;
+
+    border: 0;
+
+    border-radius: 8px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    background: transparent;
+
+    color: #6b7280;
+
+    font: inherit;
+
+    font-size: 11px;
+
+    cursor: pointer;
+
+}
+
+.filterButton:hover {
+
+    background: #f8fafc;
+
+    color: #111827;
+
+}
+
+.filterMenu {
+
+    position: absolute;
+
+    top: calc(100% + 5px);
+
+    left: 0;
+
+    z-index: 40;
+
+    width: 145px;
+
+    padding: 5px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    box-shadow: 0 16px 34px rgba(15, 23, 42, 0.12);
+
+}
+
+.filterMenu button {
+
+    width: 100%;
+
+    min-height: 32px;
+
+    padding: 0 9px;
+
+    border: 0;
+
+    border-radius: 7px;
+
+    background: transparent;
+
+    color: #4b5563;
+
+    font: inherit;
+
+    font-size: 11px;
+
+    text-align: left;
+
+    cursor: pointer;
+
+}
+
+.filterMenu button:hover {
+
+    background: #f3f4f6;
+
+}
+
+.tableWrap {
+
+    width: 100%;
+
+    overflow-x: auto;
+
+}
+
+.table {
+
+    width: 100%;
+
+    min-width: 980px;
+
+    border-collapse: collapse;
+
+    table-layout: fixed;
+
+}
+
+.table th,
+
+.table td {
+
+    padding: 0 14px;
+
+    text-align: left;
+
+    vertical-align: middle;
+
+    box-sizing: border-box;
+
+}
+
+.table th {
+
+    height: 42px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+
+    font-weight: 500;
+
+}
+
+.table td {
+
+    height: 60px;
+
+    border-top: 1px solid #edf0f3;
+
+    color: #374151;
+
+    font-size: 10px;
+
+}
+
+.table tbody tr:hover {
+
+    background: #fbfcfd;
+
+}
+
+.colName {
+
+    width: 31%;
+
+}
+
+.colTrigger {
+
+    width: 13%;
+
+}
+
+.colRuns {
+
+    width: 10%;
+
+}
+
+.colSuccess {
+
+    width: 10%;
+
+}
+
+.colLastRun {
+
+    width: 13%;
+
+}
+
+.colStatus {
+
+    width: 9%;
+
+}
+
+.colAction {
+
+    width: 14%;
+
+}
+
+.workflowCell {
+
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 9px;
+
+    color: inherit;
+
+    text-decoration: none;
+
+}
+
+.workflowCopy {
+
+    min-width: 0;
+
+}
+
+.workflowCopy strong,
+
+.workflowCopy small {
+
+    display: block;
+
+    max-width: 100%;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+}
+
+.workflowCopy strong {
+
+    color: #242932;
+
+    font-size: 10.5px;
+
+    font-weight: 600;
+
+}
+
+.workflowCopy small {
+
+    margin-top: 2px;
+
+    color: #8b95a5;
+
+    font-size: 9px;
+
+    font-weight: 400;
+
+}
+
+.triggerCell {
+
+    color: #6b7280 !important;
+
+}
+
+.triggerBadge {
+
+    width: fit-content;
+
+    min-height: 24px;
+
+    padding: 0 8px;
+
+    border-radius: 6px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 9px;
+
+    font-weight: 500;
+
+    white-space: nowrap;
+
+}
+
+.triggerBlue {
+
+    background: #eff6ff;
+
+    color: #2563eb;
+
+}
+
+.triggerPurple {
+
+    background: #f3f0ff;
+
+    color: #6d4aff;
+
+}
+
+.triggerAmber {
+
+    background: #fff7ed;
+
+    color: #c2410c;
+
+}
+
+.triggerGreen {
+
+    background: #ecfdf5;
+
+    color: #27844c;
+
+}
+
+.triggerPink {
+
+    background: #fdf2f8;
+
+    color: #be185d;
+
+}
+
+.triggerTeal {
+
+    background: #f0fdfa;
+
+    color: #0f766e;
+
+}
+
+.triggerNeutral {
+
+    background: #f3f4f6;
+
+    color: #667085;
+
+}
+
+.successRate {
+
+    color: #16a34a;
+
+    font-weight: 600;
+
+}
+
+.zeroRate {
+
+    color: #ef4444;
+
+    font-weight: 500;
+
+}
+
+.lastRun {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    color: #6b7280;
+
+}
+
+.lastRun svg {
+
+    color: #94a3b8;
+
+}
+
+.statusPill {
+
+    width: fit-content;
+
+    min-height: 23px;
+
+    padding: 0 7px;
+
+    border-radius: 6px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    font-size: 9px;
+
+    font-weight: 500;
+
+}
+
+.statusActive {
+
+    background: #eaf8ee;
+
+    color: #27844c;
+
+}
+
+.statusInactive {
+
+    background: #f1f3f5;
+
+    color: #667085;
+
+}
+
+.statusDraft {
+
+    background: #fff8e8;
+
+    color: #8a6a21;
+
+}
+
+.actionColumn {
+
+    text-align: right !important;
+
+}
+
+.actionsCell {
+
+    position: relative;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 10px;
+
+}
+
+.textAction {
+
+    color: #2563eb;
+
+    font-size: 10px;
+
+    text-decoration: none;
+
+}
+
+.textAction:hover {
+
+    color: #1d4ed8;
+
+}
+
+.iconAction,
+
+.moreButton {
+
+    width: 27px;
+
+    height: 27px;
+
+    padding: 0;
+
+    border: 0;
+
+    border-radius: 7px;
+
+    display: grid;
+
+    place-items: center;
+
+    background: transparent;
+
+    color: #8b95a5;
+
+    cursor: pointer;
+
+}
+
+.iconAction:hover,
+
+.moreButton:hover {
+
+    background: #f3f4f6;
+
+    color: #4b5563;
+
+}
+
+.moreWrap {
+
+    position: relative;
+
+}
+
+.rowMenu {
+
+    position: absolute;
+
+    top: 33px;
+
+    right: 0;
+
+    z-index: 50;
+
+    width: 132px;
+
+    padding: 5px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 9px;
+
+    background: #ffffff;
+
+    box-shadow: 0 16px 35px rgba(15, 23, 42, 0.12);
+
+}
+
+.rowMenu a,
+
+.rowMenu button {
+
+    width: 100%;
+
+    min-height: 31px;
+
+    padding: 0 9px;
+
+    border: 0;
+
+    border-radius: 7px;
+
+    display: flex;
+
+    align-items: center;
+
+    background: transparent;
+
+    color: #4b5563;
+
+    font: inherit;
+
+    font-size: 10px;
+
+    text-align: left;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+}
+
+.rowMenu a:hover,
+
+.rowMenu button:hover {
+
+    background: #f8fafc;
+
+    color: #111827;
+
+}
+
+.tableFooter {
+
+    min-height: 58px;
+
+    padding: 10px 14px;
+
+    border-top: 1px solid #e8ebef;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: space-between;
+
+    gap: 16px;
+
+    color: #6b7280;
+
+    font-size: 10px;
+
+}
+
+.pagination {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 4px;
+
+}
+
+.pagination button {
+
+    min-width: 29px;
+
+    height: 29px;
+
+    padding: 0 7px;
+
+    border: 1px solid transparent;
+
+    border-radius: 7px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background: #ffffff;
+
+    color: #4b5563;
+
+    font: inherit;
+
+    font-size: 10px;
+
+    cursor: pointer;
+
+}
+
+.pagination button:hover:not(:disabled) {
+
+    background: #f8fafc;
+
+}
+
+.pagination button:disabled {
+
+    opacity: 0.35;
+
+    cursor: not-allowed;
+
+}
+
+.pageButtonActive {
+
+    border-color: #93c5fd !important;
+
+    background: #ffffff !important;
+
+    color: #2563eb !important;
+
+    font-weight: 600;
+
+}
+
+.paginationArrow {
+
+    padding: 0 !important;
+
+    border-color: #e5e7eb !important;
+
+}
+
+.pageSize {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+}
+
+.pageSize button {
+
+    height: 31px;
+
+    padding: 0 9px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 8px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 7px;
+
+    background: #ffffff;
+
+    color: #4b5563;
+
+    font: inherit;
+
+    font-size: 10px;
+
+}
+
+@media (max-width: 980px) {
+
+    .overviewGrid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+    .kpiCard,
+
+    .chartCard {
+
+        height: auto;
+
+    }
+
+    .kpiCard {
+
+        min-height: 300px;
+
+    }
+
+    .chartSvg {
+
+        height: 245px;
+
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .page {
+
+        padding: 18px 14px;
+
+    }
+
+    .pageHeader {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+    }
+
+    .createButton {
+
+        width: 100%;
+
+    }
+
+    .overviewGrid {
+
+        gap: 10px;
+
+    }
+
+    .kpiCard,
+
+    .chartCard {
+
+        border-radius: 12px;
+
+    }
+
+    .kpiStatsGrid {
+
+        grid-template-columns: 1fr;
+
+    }
+
+    .kpiStat:nth-child(odd) {
+
+        border-right: 0;
+
+    }
+
+    .kpiStat:nth-child(-n + 3) {
+
+        border-bottom: 1px solid #e8ebef;
+
+    }
+
+    .performanceHeader {
+
+        flex-direction: column;
+
+    }
+
+    .periodControl {
+
+        width: 100%;
+
+    }
+
+    .periodControl button {
+
+        flex: 1;
+
+    }
+
+    .chartCanvas {
+
+        overflow-x: auto;
+
+        overflow-y: visible;
+
+    }
+
+    .chartSvg {
+
+        min-width: 720px;
+
+        height: 235px;
+
+    }
+
+    .tableFooter {
+
+        align-items: flex-start;
+
+        flex-direction: column;
+
+    }
+
+}
+
+/* =========================================================
+
+   TYPOGRAPHY ALIGNMENT — MATCH EMAIL QUEUE
+
+   Typography only. Layout, chart, colours and behavior stay unchanged.
+
+   \\\\========================================================= */
+
+.page {
+
+    font-family: "Inter", sans-serif;
+
+}
+
+/* Page header */
+
+.pageHeader h1 {
+
+    font-size: 24px;
+
+    font-weight: 500;
+
+    letter-spacing: -0.03em;
+
+}
+
+.pageHeader p {
+
+    margin-top: 6px;
+
+    font-size: 13px;
+
+    color: #6b7280;
+
+}
+
+.breadcrumb {
+
+    font-size: 12px;
+
+    font-weight: 400;
+
+}
+
+.createButton {
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+}
+
+/* KPI + performance cards */
+
+.performanceEyebrow {
+
+    font-size: 13px;
+
+    font-weight: 500;
+
+    color: #374151;
+
+}
+
+.performanceValueRow>strong {
+
+    font-size: 30px;
+
+    font-weight: 600;
+
+    letter-spacing: -0.05em;
+
+}
+
+.chartValueRow>strong {
+
+    font-size: 30px;
+
+    font-weight: 600;
+
+    letter-spacing: -0.05em;
+
+}
+
+.performanceChange span,
+
+.chartSuccess {
+
+    font-size: 10.5px;
+
+    font-weight: 600;
+
+}
+
+.performanceChange small {
+
+    font-size: 9.5px;
+
+    font-weight: 400;
+
+    color: #9ca3af;
+
+}
+
+.performanceMeta {
+
+    font-size: 9.5px;
+
+    font-weight: 400;
+
+    color: #9ca3af;
+
+}
+
+.periodControl button {
+
+    font-size: 10.5px;
+
+    font-weight: 500;
+
+}
+
+.kpiStatTop>span:first-child {
+
+    font-size: 11px;
+
+    font-weight: 500;
+
+    text-transform: none;
+
+    letter-spacing: 0;
+
+    color: #6b7280;
+
+}
+
+.kpiStat>strong {
+
+    font-size: 20px;
+
+    font-weight: 500;
+
+    letter-spacing: -0.04em;
+
+}
+
+.kpiStat>small {
+
+    font-size: 10.5px;
+
+    font-weight: 500;
+
+    line-height: 1.25;
+
+}
+
+/* Chart typography */
+
+.chartYAxisText,
+
+.chartXAxisText {
+
+    font-size: 10px;
+
+    font-weight: 500;
+
+}
+
+.chartXAxisTextDense {
+
+    font-size: 9px;
+
+    font-weight: 500;
+
+}
+
+.tooltipDate,
+
+.tooltipLabel,
+
+.tooltipSub {
+
+    font-size: 10.5px;
+
+    font-weight: 500;
+
+}
+
+.tooltipValueRow strong {
+
+    font-size: 18px;
+
+    font-weight: 500;
+
+}
+
+/* Table header / toolbar */
+
+.tableTopline h2 {
+
+    font-size: 13px;
+
+    font-weight: 500;
+
+}
+
+.tableTopline span {
+
+    font-size: 11px;
+
+}
+
+.searchBox input,
+
+.filterButton,
+
+.filterMenu button {
+
+    font-size: 12px;
+
+    font-weight: 400;
+
+}
+
+/* Table */
+
+.table th {
+
+    font-size: 11px;
+
+    font-weight: 500;
+
+    color: #6b7280;
+
+}
+
+.table td {
+
+    font-size: 12px;
+
+    font-weight: 400;
+
+    color: #6b7280;
+
+}
+
+.workflowCopy strong {
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+    color: #111827;
+
+}
+
+.workflowCopy small {
+
+    font-size: 10.5px;
+
+    font-weight: 400;
+
+    color: #9ca3af;
+
+}
+
+.triggerBadge,
+
+.statusPill {
+
+    font-size: 10.5px;
+
+    font-weight: 500;
+
+}
+
+.successRate {
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+}
+
+.zeroRate {
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+}
+
+.lastRun {
+
+    font-size: 12px;
+
+}
+
+.textAction {
+
+    font-size: 11px;
+
+}
+
+.rowMenu a,
+
+.rowMenu button {
+
+    font-size: 11px;
+
+}
+
+/* Footer / pagination */
+
+.tableFooter {
+
+    font-size: 12px;
+
+}
+
+.pagination button,
+
+.pageSize button {
+
+    font-size: 11px;
+
+    font-weight: 400;
+
+}
+
+.pageButtonActive {
+
+    font-weight: 500;
+
+}
+
+/* ===== AUTOMATION RUNS BAR CHART — MATCH EMAIL QUEUE ===== */
+
+.chartCanvas {
+
+    position: relative;
+
+    width: 100%;
+
+    margin-top: 5px;
+
+}
+
+.barChart {
+
+    display: grid;
+
+    grid-template-columns: 31px minmax(0, 1fr);
+
+    gap: 10px;
+
+    height: 208px;
+
+}
+
+.barChartScale {
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: space-between;
+
+    padding: 1px 0 24px;
+
+    text-align: right;
+
+}
+
+.barChartScale span {
+
+    font-size: 9px;
+
+    line-height: 1;
+
+    color: #9ca3af;
+
+    font-weight: 500;
+
+    font-variant-numeric: tabular-nums;
+
+    user-select: none;
+
+}
+
+.barChartPlot {
+
+    position: relative;
+
+    min-width: 0;
+
+    height: 100%;
+
+}
+
+.barChartGrid {
+
+    position: absolute;
+
+    inset: 0 0 24px;
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: space-between;
+
+    pointer-events: none;
+
+}
+
+.barChartGrid span {
+
+    width: 100%;
+
+    border-top: 1px dashed #e5e7eb;
+
+}
+
+.barChartBars {
+
+    position: relative;
+
+    z-index: 1;
+
+    display: grid;
+
+    grid-template-columns: repeat(7, minmax(0, 1fr));
+
+    gap: 12px;
+
+    height: 100%;
+
+}
+
+.barChartBarsTwelveMonths {
+
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+
+    gap: 7px;
+
+}
+
+.barChartColumn {
+
+    display: grid;
+
+    grid-template-rows: minmax(0, 1fr) 24px;
+
+    min-width: 0;
+
+    text-align: center;
+
+}
+
+.barChartTrack {
+
+    position: relative;
+
+    width: min(46px, 80%);
+
+    height: 100%;
+
+    margin: 0 auto;
+
+    outline: none;
+
+    cursor: pointer;
+
+}
+
+.barChartBarsTwelveMonths .barChartTrack {
+
+    width: min(30px, 82%);
+
+}
+
+.barChartTotal,
+
+.barChartActualStack {
+
+    position: absolute;
+
+    right: 0;
+
+    bottom: 0;
+
+    left: 0;
+
+    border-radius: 8px 8px 3px 3px;
+
+    transition:
+
+        opacity 180ms ease,
+
+        filter 180ms ease,
+
+        transform 180ms ease;
+
+}
+
+.barChartTotal {
+
+    z-index: 1;
+
+    background: #dbeafe;
+
+    opacity: 0.38;
+
+}
+
+.barChartActualStack {
+
+    z-index: 2;
+
+    inset: 0;
+
+    display: flex;
+
+    flex-direction: column-reverse;
+
+    justify-content: flex-start;
+
+    overflow: hidden;
+
+    opacity: 0.82;
+
+    filter: saturate(0.92);
+
+}
+
+.barChartSegment {
+
+    width: 100%;
+
+    min-height: 0;
+
+    border-top: 1px solid rgba(255, 255, 255, 0.16);
+
+    transition: height 220ms ease;
+
+}
+
+.barChartSuccessful {
+
+    background: #1d4ed8;
+
+}
+
+.barChartUnsuccessful {
+
+    background: #60a5fa;
+
+}
+
+.barChartColumnCurrent .barChartTotal,
+
+.barChartTrack:hover .barChartTotal,
+
+.barChartTrack:focus-visible .barChartTotal {
+
+    opacity: 1;
+
+}
+
+.barChartColumnCurrent .barChartActualStack,
+
+.barChartTrack:hover .barChartActualStack,
+
+.barChartTrack:focus-visible .barChartActualStack {
+
+    opacity: 1;
+
+    filter: saturate(1);
+
+}
+
+.barChartTrack:hover .barChartTotal,
+
+.barChartTrack:hover .barChartActualStack,
+
+.barChartTrack:focus-visible .barChartTotal,
+
+.barChartTrack:focus-visible .barChartActualStack {
+
+    transform: translateY(-2px);
+
+}
+
+.barChartColumn>span {
+
+    align-self: end;
+
+    font-size: 10px;
+
+    color: #6b7280;
+
+    white-space: nowrap;
+
+    user-select: none;
+
+}
+
+.barChartColumnCurrent>span {
+
+    color: #111827;
+
+    font-weight: 600;
+
+}
+
+.barChartBarsTwelveMonths .barChartColumn>span {
+
+    font-size: 9px;
+
+}
+
+.barChartTooltip {
+
+    position: absolute;
+
+    z-index: 30;
+
+    left: 50%;
+
+    bottom: calc(100% + 13px);
+
+    width: 210px;
+
+    padding: 12px;
+
+    border: 1px solid #e5e7eb;
+
+    border-radius: 12px;
+
+    background: rgba(255, 255, 255, 0.98);
+
+    box-shadow: 0 18px 48px rgba(15, 23, 42, 0.14);
+
+    transform: translateX(-50%);
+
+    pointer-events: none;
+
+}
+
+.barChartTooltip::after {
+
+    content: "";
+
+    position: absolute;
+
+    left: 50%;
+
+    bottom: -5px;
+
+    width: 9px;
+
+    height: 9px;
+
+    border-right: 1px solid #e5e7eb;
+
+    border-bottom: 1px solid #e5e7eb;
+
+    background: #ffffff;
+
+    transform: translateX(-50%) rotate(45deg);
+
+}
+
+.barChartTooltip>strong {
+
+    display: block;
+
+    margin-bottom: 9px;
+
+    white-space: nowrap;
+
+    font-size: 11px;
+
+    font-weight: 600;
+
+    color: #111827;
+
+}
+
+.barChartTooltip>span {
+
+    display: grid;
+
+    grid-template-columns: 8px 1fr auto;
+
+    align-items: center;
+
+    gap: 7px;
+
+    min-height: 22px;
+
+    font-size: 10px;
+
+    color: #6b7280;
+
+}
+
+.barChartTooltip b {
+
+    font-size: 10px;
+
+    font-weight: 600;
+
+    color: #111827;
+
+    font-variant-numeric: tabular-nums;
+
+}
+
+.barChartTooltip i,
+
+.barChartLegend i {
+
+    width: 8px;
+
+    height: 8px;
+
+    border-radius: 999px;
+
+    flex-shrink: 0;
+
+}
+
+.legendTotal {
+
+    background: #dbeafe;
+
+}
+
+.legendSuccessful {
+
+    background: #1d4ed8;
+
+}
+
+.legendUnsuccessful {
+
+    background: #60a5fa;
+
+}
+
+.legendRate {
+
+    background: #93c5fd;
+
+}
+
+.barChartLegend {
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    flex-wrap: wrap;
+
+    gap: 9px 16px;
+
+    margin-top: 12px;
+
+}
+
+.barChartLegend span {
+
+    display: inline-flex;
+
+    align-items: center;
+
+    gap: 6px;
+
+    font-size: 9.5px;
+
+    color: #6b7280;
+
+    white-space: nowrap;
+
+}
+
+@media (max-width: 900px) {
+
+    .chartCard {
+
+        overflow-x: auto;
+
+    }
+
+    .performanceHeader,
+
+    .barChart,
+
+    .barChartLegend {
+
+        min-width: 540px;
+
+    }
+
+}
+
+/* =========================================================
+
+   PRODUCTION POLISH — KPI STRENGTH + CLEAR INTERACTION STATES
+
+   Existing layout, data flow and workflow logic stay unchanged.
+
+   \========================================================= */
+
+.createButton,
+
+.periodControl button,
+
+.filterButton,
+
+.filterMenu button,
+
+.textAction,
+
+.iconAction,
+
+.moreButton,
+
+.pagination button,
+
+.pageSize button,
+
+.searchBox,
+
+.table tbody tr,
+
+.kpiStat,
+
+.barChartTrack::before {
+
+    transition:
+
+        background-color 160ms ease,
+
+        border-color 160ms ease,
+
+        color 160ms ease,
+
+        box-shadow 160ms ease,
+
+        transform 160ms ease,
+
+        opacity 160ms ease;
+
+}
+
+.createButton:hover {
+
+    background: #1e293b;
+
+    box-shadow: 0 5px 14px rgba(15, 23, 42, 0.16);
+
+    transform: translateY(-1px);
+
+}
+
+.createButton:focus-visible,
+
+.periodControl button:focus-visible,
+
+.filterButton:focus-visible,
+
+.filterMenu button:focus-visible,
+
+.textAction:focus-visible,
+
+.iconAction:focus-visible,
+
+.moreButton:focus-visible,
+
+.pagination button:focus-visible,
+
+.pageSize button:focus-visible,
+
+.barChartTrack:focus-visible {
+
+    outline: 2px solid #bfdbfe;
+
+    outline-offset: 2px;
+
+}
+
+/* KPI cards: stronger hierarchy without changing the data or card structure. */
+
+.kpiCard {
+
+    padding: 14px;
+
+}
+
+.kpiStatsGrid {
+
+    border-color: #dfe4ea;
+
+    box-shadow: 0 1px 2px rgba(15, 23, 42, 0.025);
+
+}
+
+.kpiStat {
+
+    padding: 18px 18px 16px;
+
+}
+
+.kpiStat:hover {
+
+    background: #fbfcfe;
+
+}
+
+.kpiStatTop>span:first-child {
+
+    color: #4b5563;
+
+    font-size: 12px;
+
+    font-weight: 500;
+
+}
+
+.kpiIcon {
+
+    width: 32px;
+
+    height: 32px;
+
+    flex-basis: 32px;
+
+    border-color: #dfe4ea;
+
+    border-radius: 9px;
+
+    background: #f8fafc;
+
+    color: #667085;
+
+}
+
+.kpiIcon svg {
+
+    width: 16px;
+
+    height: 16px;
+
+}
+
+.kpiStat>strong {
+
+    margin-top: 10px;
+
+    color: #0f172a;
+
+    font-size: 28px;
+
+    line-height: 1;
+
+    font-weight: 600;
+
+    letter-spacing: -0.045em;
+
+    font-variant-numeric: tabular-nums;
+
+}
+
+.kpiStat>small {
+
+    margin-top: 9px;
+
+    font-size: 10.5px;
+
+    line-height: 1.3;
+
+}
+
+.chartValueRow>strong {
+
+    font-size: 32px;
+
+}
+
+/* Keep chart hover/tooltip fully visible and obvious. */
+
+.chartCard {
+
+    overflow: visible;
+
+}
+
+.barChartTrack::before {
+
+    content: "";
+
+    position: absolute;
+
+    z-index: 0;
+
+    inset: -6px -5px 0;
+
+    border-radius: 9px;
+
+    background: transparent;
+
+    pointer-events: none;
+
+}
+
+.barChartTrack:hover::before,
+
+.barChartTrack:focus-visible::before {
+
+    background: #f8fafc;
+
+    box-shadow: inset 0 0 0 1px #eef2f7;
+
+}
+
+.barChartTrack:hover .barChartTotal,
+
+.barChartTrack:hover .barChartActualStack,
+
+.barChartTrack:focus-visible .barChartTotal,
+
+.barChartTrack:focus-visible .barChartActualStack {
+
+    filter: saturate(1.08) brightness(0.98);
+
+}
+
+.barChartTooltip {
+
+    z-index: 100;
+
+    border-color: #d7dde5;
+
+    background: #ffffff;
+
+    box-shadow:
+
+        0 20px 50px rgba(15, 23, 42, 0.18),
+
+        0 3px 10px rgba(15, 23, 42, 0.06);
+
+}
+
+.periodControl button:hover {
+
+    background: #f1f5f9;
+
+    color: #0f172a;
+
+}
+
+.periodButtonActive {
+
+    background: #f1f5f9 !important;
+
+    color: #0f172a !important;
+
+    box-shadow: inset 0 0 0 1px rgba(203, 213, 225, 0.45);
+
+}
+
+/* Search and filters: visible hover, focus and selected state. */
+
+.searchBox:hover {
+
+    border-color: #cbd5e1;
+
+    background: #fbfdff;
+
+}
+
+.searchBox:focus-within {
+
+    border-color: #93c5fd;
+
+    background: #ffffff;
+
+    box-shadow: 0 0 0 3px rgba(147, 197, 253, 0.18);
+
+    color: #64748b;
+
+}
+
+.filterButton:hover {
+
+    background: #f1f5f9;
+
+    color: #111827;
+
+}
+
+.filterButtonActive {
+
+    background: #f1f5f9;
+
+    color: #111827;
+
+    font-weight: 500;
+
+}
+
+.filterMenu button:hover {
+
+    background: #eef2f7;
+
+    color: #111827;
+
+}
+
+.filterOptionActive {
+
+    background: #f1f5f9 !important;
+
+    color: #111827 !important;
+
+    font-weight: 500 !important;
+
+}
+
+/* Table row and action hovers are deliberately clearer than before. */
+
+.table tbody tr:hover {
+
+    background: #f7f9fc;
+
+    box-shadow: inset 3px 0 0 #dbeafe;
+
+}
+
+.table tbody tr:hover .workflowCopy strong {
+
+    color: #0f172a;
+
+}
+
+.textAction {
+
+    padding: 5px 6px;
+
+    border-radius: 6px;
+
+}
+
+.textAction:hover {
+
+    background: #eff6ff;
+
+    color: #1d4ed8;
+
+}
+
+.iconAction:hover,
+
+.moreButton:hover {
+
+    background: #e9eef5;
+
+    color: #334155;
+
+}
+
+.rowMenu a:hover,
+
+.rowMenu button:hover {
+
+    background: #eef2f7;
+
+    color: #111827;
+
+}
+
+.pagination button:hover:not(:disabled),
+
+.pageSize button:hover {
+
+    border-color: #dbe1e8;
+
+    background: #f3f6f9;
+
+    color: #111827;
+
+}
+
+@media (max-width: 900px) {
+
+    .chartCard {
+
+        overflow-x: auto;
+
+        overflow-y: visible;
+
+    }
+
+}
+
+@media (max-width: 700px) {
+
+    .kpiStat {
+
+        padding: 16px;
+
+    }
+
+    .kpiStat>strong {
+
+        font-size: 26px;
+
+    }
+
+}
