@@ -19,6 +19,7 @@ import {
     OpenClawError,
 
 } from "../../../../lib/openclaw/client";
+import { limitAiRequest } from "../../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -810,7 +811,9 @@ export async function POST(request: Request) {
 
     try {
 
-        await getWorkspaceFromRequest(request);
+        const { workspaceId } = await getWorkspaceFromRequest(request);
+        const limited = await limitAiRequest(workspaceId);
+        if (limited) return limited;
 
         const body: unknown = await request.json().catch(() => ({}));
 

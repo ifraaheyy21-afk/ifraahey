@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { googleOAuthClient } from "../../../../../lib/google";
 import { prisma } from "../../../../../lib/prisma";
 import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
+import { sealToken } from "../../../../../lib/integrationEncryption";
 
 export const runtime = "nodejs";
 
@@ -60,8 +61,8 @@ export async function GET(req: NextRequest) {
             },
             update: {
                 status: "connected",
-                accessToken: tokens.access_token,
-                refreshToken: tokens.refresh_token || existing?.refreshToken || null,
+                accessToken: sealToken(tokens.access_token),
+                refreshToken: sealToken(tokens.refresh_token) ?? existing?.refreshToken ?? null,
                 tokenType: tokens.token_type || "Bearer",
                 scope: tokens.scope || null,
                 issuedAt: new Date(),
@@ -73,8 +74,8 @@ export async function GET(req: NextRequest) {
                 workspaceId,
                 provider: "google_calendar",
                 status: "connected",
-                accessToken: tokens.access_token,
-                refreshToken: tokens.refresh_token || null,
+                accessToken: sealToken(tokens.access_token),
+                refreshToken: sealToken(tokens.refresh_token),
                 tokenType: tokens.token_type || "Bearer",
                 scope: tokens.scope || null,
                 issuedAt: new Date(),

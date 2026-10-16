@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
             },
             data: {
                 status: "disconnected",
-                accessToken: "",
+                accessToken: null,
                 refreshToken: null,
                 expiresAt: null,
                 syncStatus: "disconnected",

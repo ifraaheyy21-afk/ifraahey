@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
 import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
+import { sealToken } from "../../../../../lib/integrationEncryption";
 
 export const runtime = "nodejs";
 
@@ -97,8 +98,8 @@ export async function GET(req: Request) {
         },
         update: {
             status: "connected",
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
+            accessToken: sealToken(tokens.access_token),
+            refreshToken: sealToken(tokens.refresh_token),
             instanceUrl: tokens.instance_url,
             tokenType: tokens.token_type,
             scope: tokens.scope,
@@ -112,8 +113,8 @@ export async function GET(req: Request) {
             workspaceId,
             provider: "salesforce",
             status: "connected",
-            accessToken: tokens.access_token,
-            refreshToken: tokens.refresh_token,
+            accessToken: sealToken(tokens.access_token),
+            refreshToken: sealToken(tokens.refresh_token),
             instanceUrl: tokens.instance_url,
             tokenType: tokens.token_type,
             scope: tokens.scope,

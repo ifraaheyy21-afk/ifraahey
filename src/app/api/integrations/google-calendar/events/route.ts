@@ -3,6 +3,7 @@ import { google } from "googleapis";
 import { prisma } from "../../../../../lib/prisma";
 import { createGoogleOAuthClient } from "../../../../../lib/google";
 import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
+import { openToken, sealToken } from "../../../../../lib/integrationEncryption";
 
 export const runtime = "nodejs";
 
@@ -31,8 +32,22 @@ export async function GET(req: NextRequest) {
 
         const googleOAuthClient = createGoogleOAuthClient();
         googleOAuthClient.setCredentials({
-            access_token: integration.accessToken,
-            refresh_token: integration.refreshToken || undefined,
+            access_token: openToken(integration.accessToken),
+            refresh_token: openToken(integration.refreshToken) ?? undefined,
+        });
+
+        // Google refreshes expired access tokens automatically; store the new
+        // one (encrypted) so the next request does not refresh again.
+        googleOAuthClient.on("tokens", (tokens) => {
+            if (!tokens.access_token) return;
+            void prisma.workspaceIntegration.updateMany({
+                where: { workspaceId, provider: "google_calendar", status: "connected" },
+                data: {
+                    accessToken: sealToken(tokens.access_token),
+                    ...(tokens.refresh_token ? { refreshToken: sealToken(tokens.refresh_token) } : {}),
+                    expiresAt: tokens.expiry_date ? new Date(tokens.expiry_date) : null,
+                },
+            }).catch((error) => console.error("Failed to store refreshed Google token:", error));
         });
 
         const calendar = google.calendar({

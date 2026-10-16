@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
 import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
+import { sealToken } from "../../../../../lib/integrationEncryption";
 
 export const runtime = "nodejs";
 
@@ -104,13 +105,13 @@ export async function GET(req: Request) {
             },
             update: {
                 status: "connected",
-                accessToken: data.access_token,
+                accessToken: sealToken(data.access_token),
                 tokenType: data.token_type || "bot",
                 scope: data.scope || null,
                 externalOrgId: data.team?.id || null,
                 externalUserId: data.authed_user?.id || data.bot_user_id || null,
 
-                webhookUrl: data.incoming_webhook?.url || null,
+                webhookUrl: sealToken(data.incoming_webhook?.url),
                 webhookChannel: data.incoming_webhook?.channel || null,
                 webhookChannelId: data.incoming_webhook?.channel_id || null,
 
@@ -122,13 +123,13 @@ export async function GET(req: Request) {
                 workspaceId,
                 provider: "slack",
                 status: "connected",
-                accessToken: data.access_token,
+                accessToken: sealToken(data.access_token),
                 tokenType: data.token_type || "bot",
                 scope: data.scope || null,
                 externalOrgId: data.team?.id || null,
                 externalUserId: data.authed_user?.id || data.bot_user_id || null,
 
-                webhookUrl: data.incoming_webhook?.url || null,
+                webhookUrl: sealToken(data.incoming_webhook?.url),
                 webhookChannel: data.incoming_webhook?.channel || null,
                 webhookChannelId: data.incoming_webhook?.channel_id || null,
 

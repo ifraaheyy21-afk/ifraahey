@@ -4,6 +4,7 @@ import { prisma } from "../../../../lib/prisma";
 import { openai } from "../../../../lib/openai";
 import { buildEmailStyleAnalysisPrompt } from "../../../../lib/emailStylePrompt";
 import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
+import { limitAiRequest } from "../../../../lib/rateLimit";
 
 type AnalysedProfile = {
     logoStyle?: string;
@@ -44,6 +45,8 @@ function toJsonObject(value: AnalysedProfile): Prisma.InputJsonObject {
 export async function POST(req: Request) {
     const auth = await requireWorkspace(req);
     if (auth instanceof NextResponse) return auth;
+    const limited = await limitAiRequest(auth.workspaceId);
+    if (limited) return limited;
 
     try {
         const { workspaceId } = auth;

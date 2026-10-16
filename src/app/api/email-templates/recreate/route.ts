@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
+import { limitAiRequest } from "../../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -43,6 +44,8 @@ function safeJsonParse(text: string): RecreatedEmailTemplate {
 export async function POST(req: Request) {
     const auth = await requireWorkspace(req);
     if (auth instanceof NextResponse) return auth;
+    const limited = await limitAiRequest(auth.workspaceId);
+    if (limited) return limited;
 
     try {
         const body = await req.json();

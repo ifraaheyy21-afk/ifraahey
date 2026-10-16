@@ -1,6 +1,7 @@
 import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
+import { limitAiRequest } from "../../../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -82,6 +83,8 @@ function serialiseMessage(value: unknown) {
 export async function POST(request: Request) {
     const auth = await requireWorkspace(request);
     if (auth instanceof NextResponse) return auth;
+    const limited = await limitAiRequest(auth.workspaceId);
+    if (limited) return limited;
 
     try {
         if (!process.env.OPENAI_API_KEY) {

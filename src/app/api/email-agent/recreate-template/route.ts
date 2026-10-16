@@ -3,6 +3,7 @@ import OpenAI from "openai";
 import fs from "fs/promises";
 import path from "path";
 import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
+import { limitAiRequest } from "../../../../lib/rateLimit";
 
 export const runtime = "nodejs";
 
@@ -103,6 +104,8 @@ function normalizeTemplate(template: any) {
 export async function POST(req: Request) {
     const auth = await requireWorkspace(req);
     if (auth instanceof NextResponse) return auth;
+    const limited = await limitAiRequest(auth.workspaceId);
+    if (limited) return limited;
 
     try {
         if (!process.env.OPENAI_API_KEY) {

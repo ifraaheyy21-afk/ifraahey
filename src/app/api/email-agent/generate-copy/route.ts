@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { openai } from "../../../../lib/openai";
 import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
+import { limitAiRequest } from "../../../../lib/rateLimit";
 
 function safeJsonParse(text: string) {
     try {
@@ -13,6 +14,8 @@ function safeJsonParse(text: string) {
 export async function POST(req: Request) {
     const auth = await requireWorkspace(req);
     if (auth instanceof NextResponse) return auth;
+    const limited = await limitAiRequest(auth.workspaceId);
+    if (limited) return limited;
 
     try {
         const body = await req.json();

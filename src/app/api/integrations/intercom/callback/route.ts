@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
 import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
+import { sealToken } from "../../../../../lib/integrationEncryption";
 
 export const runtime = "nodejs";
 
@@ -59,8 +60,8 @@ export async function GET(req: Request) {
             },
             update: {
                 status: "connected",
-                accessToken: tokenData.access_token,
-                refreshToken: tokenData.refresh_token || null,
+                accessToken: sealToken(tokenData.access_token),
+                refreshToken: sealToken(tokenData.refresh_token),
                 tokenType: tokenData.token_type || "bearer",
                 scope: Array.isArray(tokenData.scope)
                     ? tokenData.scope.join(" ")
@@ -78,8 +79,8 @@ export async function GET(req: Request) {
                 workspaceId,
                 provider: "intercom",
                 status: "connected",
-                accessToken: tokenData.access_token,
-                refreshToken: tokenData.refresh_token || null,
+                accessToken: sealToken(tokenData.access_token),
+                refreshToken: sealToken(tokenData.refresh_token),
                 tokenType: tokenData.token_type || "bearer",
                 scope: Array.isArray(tokenData.scope)
                     ? tokenData.scope.join(" ")

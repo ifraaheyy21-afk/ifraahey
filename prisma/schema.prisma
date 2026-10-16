@@ -504,3 +504,10 @@ model OAuthRefreshToken {
   @@index([familyId])
   @@index([expiresAt])
 }
+// Fixed-window request counters shared by every server instance
+// (see src/lib/rateLimit.ts). One row per limited key.
+model RateLimitBucket {
+  key     String   @id
+  count   Int
+  resetAt DateTime
+}

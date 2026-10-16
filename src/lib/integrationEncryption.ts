@@ -84,3 +84,22 @@ export function decryptIntegrationSecret(payload: string): string {
 
     return decrypted.toString("utf8");
 }
+export function isEncryptedIntegrationSecret(value: string) {
+    const parts = value.split(".");
+    return parts.length === 4 && parts[0] === "v1" && parts.every(Boolean);
+}
+
+/** Encrypt an OAuth token (or similar credential) for storage. Empty -> null. */
+export function sealToken(value: string | null | undefined): string | null {
+    return value ? encryptIntegrationSecret(value) : null;
+}
+
+/**
+ * Read a stored token. Rows saved before tokens were encrypted hold
+ * plaintext; those are returned unchanged so existing connections keep
+ * working until they are re-encrypted (scripts/encrypt-integration-tokens.ts).
+ */
+export function openToken(value: string | null | undefined): string | null {
+    if (!value) return null;
+    return isEncryptedIntegrationSecret(value) ? decryptIntegrationSecret(value) : value;
+}

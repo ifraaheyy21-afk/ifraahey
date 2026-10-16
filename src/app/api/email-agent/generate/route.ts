@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 import fs from "fs/promises";
 import path from "path";
 import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
+import { limitAiRequest } from "../../../../lib/rateLimit";
 
 function safeJsonParse(text: string) {
     const cleaned = text
@@ -90,6 +91,8 @@ async function getImageUrlForOpenAI(sampleImageUrl?: string) {
 export async function POST(req: Request) {
     const auth = await requireWorkspace(req);
     if (auth instanceof NextResponse) return auth;
+    const limited = await limitAiRequest(auth.workspaceId);
+    if (limited) return limited;
 
     const body = await req.json();
 
