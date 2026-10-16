@@ -11,6 +11,7 @@ import type {
     WorkflowDefinition,
     WorkflowNode,
 } from "./types";
+import { triggerIssues } from "./triggers";
 
 const VALID_NODE_TYPES = new Set<NodeType>([
     "trigger",
@@ -263,13 +264,8 @@ function validateNodeBasics(
         }
     }
 
-    if (
-        node.type === "trigger" &&
-        !hasText(node.config.condition)
-    ) {
-        issues.push(
-            `${name} needs a trigger condition.`,
-        );
+    if (node.type === "trigger") {
+        issues.push(...triggerIssues(node, name));
     }
 
     if (node.type === "delay") {

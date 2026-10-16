@@ -19,6 +19,7 @@ const scopeLabels: Record<string, string> = {
     "emails:read": "View generated and scheduled emails",
     "emails:write": "Create and schedule emails",
     "events:read": "View email activity and tracking events",
+    "events:write": "Send events that start your automations",
 };
 
 function OAuthAuthorizeContent() {

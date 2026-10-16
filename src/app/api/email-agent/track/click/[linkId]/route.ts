@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../../lib/prisma";
+import { emitAutomationEvent } from "../../../../../../lib/automation/enrollment";
 
 export const runtime = "nodejs";
 
@@ -45,6 +46,20 @@ export async function GET(
                     },
                 }),
             ]);
+
+            if (!scheduledEmail.clickedAt) {
+                await emitAutomationEvent({
+                    workspaceId: scheduledEmail.workspaceId,
+                    customerId: scheduledEmail.customerId,
+                    event: { type: "email_clicked" },
+                    eventKey: scheduledEmail.id,
+                    data: {
+                        scheduledEmailId: scheduledEmail.id,
+                        subject: scheduledEmail.subject,
+                        url: trackedLink.originalUrl,
+                    },
+                });
+            }
         }
 
         return NextResponse.redirect(trackedLink.originalUrl);

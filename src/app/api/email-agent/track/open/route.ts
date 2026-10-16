@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { emitAutomationEvent } from "../../../../../lib/automation/enrollment";
 
 const transparentPixel = Buffer.from(
     "R0lGODlhAQABAPAAAP///wAAACH5BAAAAAAALAAAAAABAAEAAAICRAEAOw==",
@@ -42,6 +43,16 @@ export async function GET(req: Request) {
                     },
                 }),
             ]);
+
+            if (!scheduledEmail.openedAt) {
+                await emitAutomationEvent({
+                    workspaceId: scheduledEmail.workspaceId,
+                    customerId: scheduledEmail.customerId,
+                    event: { type: "email_opened" },
+                    eventKey: scheduledEmail.id,
+                    data: { scheduledEmailId: scheduledEmail.id, subject: scheduledEmail.subject },
+                });
+            }
         }
     } catch (error) {
         console.error("Open tracking error:", error);

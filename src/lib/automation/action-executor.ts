@@ -8,6 +8,7 @@ import type {
     ExecutionContext,
     WorkflowNode,
 } from "./types";
+import { emitAutomationEvent } from "./enrollment";
 
 function cleanText(value: unknown) {
     return typeof value === "string" ? value.trim() : "";
@@ -79,6 +80,16 @@ async function executeAddContactTag({
                 name: true,
                 createdAt: true,
             },
+        });
+
+        // Lets another workflow start from "Tag added". Keyed by the tag row,
+        // so a retried step that reuses the tag does not re-trigger.
+        await emitAutomationEvent({
+            workspaceId,
+            customerId,
+            event: { type: "tag_added", tag: tag.name },
+            eventKey: tag.id,
+            data: { tag: tag.name },
         });
 
         return {

@@ -1,8 +1,12 @@
 {
     "crons": [
         {
+            "path": "/api/internal/automation-worker",
+            "schedule": "* * * * *"
+        },
+        {
             "path": "/api/email-agent/cron/send-scheduled",
-            "schedule": "*/5 * * * *"
+            "schedule": "* * * * *"
         },
         {
             "path": "/api/email-agent/cron/retry-failed",

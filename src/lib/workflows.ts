@@ -58,7 +58,7 @@ export type NodeDefinition = {
 };
 export const WORKFLOW_STORAGE_KEY = "cobri-workflows-demo-v1";
 export const NODE_LIBRARY: NodeDefinition[] = [
-    // TRIGGERS
+    // TRIGGERS (config.triggerType decides what starts the workflow)
     {
         id: "trigger-contact-added",
         type: "trigger",
@@ -66,37 +66,87 @@ export const NODE_LIBRARY: NodeDefinition[] = [
         description: "Start when a new contact is added.",
         defaults: {
             title: "New contact added",
-            config: { condition: "New contact added" },
+            config: { condition: "New contact added", triggerType: "customer_created" },
         },
     },
     {
-        id: "trigger-email-received",
+        id: "trigger-tag-added",
         type: "trigger",
-        title: "Email received",
-        description: "Start when a new email is received.",
+        title: "Tag added",
+        description: "Start when a contact gets a specific tag.",
         defaults: {
-            title: "Email received",
-            config: { condition: "Email received" },
+            title: "Tag added",
+            config: { condition: "Tag added", triggerType: "tag_added", triggerTag: "" },
+        },
+    },
+    {
+        id: "trigger-email-opened",
+        type: "trigger",
+        title: "Email opened",
+        description: "Start when a contact opens any email you send.",
+        defaults: {
+            title: "Email opened",
+            config: { condition: "Email opened", triggerType: "email_opened" },
+        },
+    },
+    {
+        id: "trigger-email-clicked",
+        type: "trigger",
+        title: "Email link clicked",
+        description: "Start when a contact clicks a link in any email you send.",
+        defaults: {
+            title: "Email link clicked",
+            config: { condition: "Email clicked", triggerType: "email_clicked" },
         },
     },
     {
         id: "trigger-reply-received",
         type: "trigger",
         title: "Reply received",
-        description: "Start when a customer replies.",
+        description: "Start when a customer replies to an email.",
         defaults: {
             title: "Reply received",
-            config: { condition: "Reply received" },
+            config: { condition: "Reply received", triggerType: "email_replied" },
+        },
+    },
+    {
+        id: "trigger-email-bounced",
+        type: "trigger",
+        title: "Email bounced",
+        description: "Start when an email to a contact bounces.",
+        defaults: {
+            title: "Email bounced",
+            config: { condition: "Email bounced", triggerType: "email_bounced" },
+        },
+    },
+    {
+        id: "trigger-renewal-upcoming",
+        type: "trigger",
+        title: "Renewal coming up",
+        description: "Start a set number of days before a contact's renewal date.",
+        defaults: {
+            title: "Renewal coming up",
+            config: { condition: "Renewal coming up", triggerType: "renewal_upcoming", triggerDaysBefore: 14 },
         },
     },
     {
         id: "trigger-payment-failed",
         type: "trigger",
         title: "Payment failed",
-        description: "Start when a subscription payment fails.",
+        description: "Start when a payment_failed event is sent for a contact.",
         defaults: {
             title: "Payment failed",
-            config: { condition: "Payment failed" },
+            config: { condition: "Payment failed", triggerType: "custom_event", triggerEventName: "payment_failed" },
+        },
+    },
+    {
+        id: "trigger-custom-event",
+        type: "trigger",
+        title: "Custom event",
+        description: "Start when your app or Zapier sends a named event.",
+        defaults: {
+            title: "Custom event",
+            config: { condition: "Custom event", triggerType: "custom_event", triggerEventName: "" },
         },
     },
     // FLOW & LOGIC
@@ -265,7 +315,7 @@ export function createNode(
             return {
                 ...base,
                 title: "New contact added",
-                config: { condition: "New contact added" },
+                config: { condition: "New contact added", triggerType: "customer_created" },
             };
         }
         if (type === "email") {

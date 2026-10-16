@@ -4327,6 +4327,21 @@ export default function WorkflowBuilderPage() {
     }
 
     const triggerDefinitions = NODE_LIBRARY.filter((item) => item.type === "trigger");
+    // Match on the structured trigger first; older workflows only have a label.
+    const selectedTriggerDefinition =
+        selectedNode?.type === "trigger"
+            ? triggerDefinitions.find((item) => {
+                const defaults = item.defaults?.config ?? {};
+                const config = selectedNode.config;
+                if (config.triggerType) {
+                    if (defaults.triggerType !== config.triggerType) return false;
+                    return config.triggerType !== "custom_event" ||
+                        !defaults.triggerEventName ||
+                        defaults.triggerEventName === config.triggerEventName;
+                }
+                return defaults.condition === config.condition;
+            }) ?? null
+            : null;
     const actionDefinitions = NODE_LIBRARY.filter((item) => item.type === "action" && getAutomationActionCapability(item.defaults?.config?.actionType ?? item.title));
     const starterActive = showCanvasStart && workflow.nodes.length === 0;
 
@@ -6009,39 +6024,98 @@ export default function WorkflowBuilderPage() {
                                                         <label className={styles.field}>
                                                             <span>Trigger rule</span>
                                                             <select
-                                                                value={selectedNode.config.condition ?? ""}
+                                                                value={selectedTriggerDefinition?.id ?? "__current__"}
                                                                 onChange={(event) => {
                                                                     const definition = triggerDefinitions.find(
-                                                                        (item) =>
-                                                                            (item.defaults?.config?.condition ?? item.title) ===
-                                                                            event.target.value,
+                                                                        (item) => item.id === event.target.value,
                                                                     );
+                                                                    if (!definition) return;
 
                                                                     updateSelectedNode({
                                                                         title:
-                                                                            definition?.defaults?.title ??
-                                                                            definition?.title ??
-                                                                            selectedNode.title,
-                                                                        description:
-                                                                            definition?.description ??
-                                                                            selectedNode.description,
+                                                                            definition.defaults?.title ??
+                                                                            definition.title,
+                                                                        description: definition.description,
+                                                                        // Merged into the existing config, so the
+                                                                        // audience is kept; clear the old trigger's
+                                                                        // parameters before applying the new ones.
                                                                         config: {
-                                                                            condition: event.target.value,
+                                                                            triggerTag: undefined,
+                                                                            triggerDaysBefore: undefined,
+                                                                            triggerEventName: undefined,
+                                                                            ...(definition.defaults?.config ?? {}),
                                                                         },
                                                                     });
                                                                 }}
                                                             >
-                                                                {triggerDefinitions.map((item) => {
-                                                                    const value =
-                                                                        item.defaults?.config?.condition ?? item.title;
-                                                                    return (
-                                                                        <option key={item.id} value={value}>
-                                                                            {item.title}
-                                                                        </option>
-                                                                    );
-                                                                })}
+                                                                {!selectedTriggerDefinition && (
+                                                                    <option value="__current__">
+                                                                        {selectedNode.config.condition || selectedNode.title}
+                                                                    </option>
+                                                                )}
+                                                                {triggerDefinitions.map((item) => (
+                                                                    <option key={item.id} value={item.id}>
+                                                                        {item.title}
+                                                                    </option>
+                                                                ))}
                                                             </select>
                                                         </label>
+
+                                                        {selectedNode.config.triggerType === "tag_added" && (
+                                                            <label className={styles.field}>
+                                                                <span>Tag</span>
+                                                                <input
+                                                                    value={String(selectedNode.config.triggerTag ?? "")}
+                                                                    placeholder="e.g. at-risk"
+                                                                    onChange={(event) =>
+                                                                        updateSelectedNode({
+                                                                            config: { triggerTag: event.target.value },
+                                                                        })
+                                                                    }
+                                                                />
+                                                            </label>
+                                                        )}
+
+                                                        {selectedNode.config.triggerType === "renewal_upcoming" && (
+                                                            <label className={styles.field}>
+                                                                <span>Days before renewal</span>
+                                                                <input
+                                                                    type="number"
+                                                                    min={1}
+                                                                    max={365}
+                                                                    value={String(selectedNode.config.triggerDaysBefore ?? "")}
+                                                                    onChange={(event) =>
+                                                                        updateSelectedNode({
+                                                                            config: {
+                                                                                triggerDaysBefore:
+                                                                                    event.target.value === ""
+                                                                                        ? undefined
+                                                                                        : Number(event.target.value),
+                                                                            },
+                                                                        })
+                                                                    }
+                                                                />
+                                                            </label>
+                                                        )}
+
+                                                        {selectedNode.config.triggerType === "custom_event" && (
+                                                            <label className={styles.field}>
+                                                                <span>Event name</span>
+                                                                <input
+                                                                    value={String(selectedNode.config.triggerEventName ?? "")}
+                                                                    placeholder="e.g. payment_failed"
+                                                                    onChange={(event) =>
+                                                                        updateSelectedNode({
+                                                                            config: { triggerEventName: event.target.value },
+                                                                        })
+                                                                    }
+                                                                />
+                                                                <small>
+                                                                    Send it from Zapier or your app with POST /api/automations/events
+                                                                    and the contact&apos;s email.
+                                                                </small>
+                                                            </label>
+                                                        )}
 
                                                         <div className={styles.settingsSection}>
                                                             <div className={styles.settingsSectionHeading}>

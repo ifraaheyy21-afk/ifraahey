@@ -12,6 +12,7 @@ export const SUPPORTED_OAUTH_SCOPES = [
     "emails:read",
     "emails:write",
     "events:read",
+    "events:write",
 ] as const;
 
 type SupportedScope = (typeof SUPPORTED_OAUTH_SCOPES)[number];

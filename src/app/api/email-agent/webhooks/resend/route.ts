@@ -5,6 +5,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../../../../lib/prisma";
 import { decryptIntegrationSecret } from "../../../../../lib/integrationEncryption";
+import { emitAutomationEvent } from "../../../../../lib/automation/enrollment";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -158,6 +159,12 @@ async function lockEmail(tx: Prisma.TransactionClient, workspaceId: string, id: 
     return email;
 }
 
+const OUTBOUND_AUTOMATION_EVENTS: Record<string, "email_opened" | "email_clicked" | "email_bounced"> = {
+    "email.opened": "email_opened",
+    "email.clicked": "email_clicked",
+    "email.bounced": "email_bounced",
+};
+
 async function duplicate(tx: Prisma.TransactionClient, webhookEventId: string) {
     return Boolean(await tx.emailEvent.findUnique({
         where: { webhookEventId }, select: { id: true },
@@ -199,7 +206,7 @@ async function handleOutbound(
         throw new WebhookError("EMAIL_RECIPIENT_MISMATCH");
     }
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
         await lockIntegration(tx, integration);
         const email = await lockEmail(tx, integration.workspaceId, candidate.id);
         if (email.providerMessageId !== providerMessageId) throw new WebhookError("EMAIL_MAPPING_CHANGED");
@@ -292,6 +299,20 @@ async function handleOutbound(
         });
         return { received: true };
     });
+
+    // After commit, so a rolled-back webhook never enrolls anyone. Keyed by
+    // the email, so this and the tracking pixel enroll at most once.
+    const automationEvent = OUTBOUND_AUTOMATION_EVENTS[type];
+    if (automationEvent && !("duplicate" in result)) {
+        await emitAutomationEvent({
+            workspaceId: candidate.workspaceId,
+            customerId: candidate.customerId,
+            event: { type: automationEvent },
+            eventKey: candidate.id,
+            data: { scheduledEmailId: candidate.id, subject: candidate.subject },
+        });
+    }
+    return result;
 }
 
 async function handleReply(
@@ -345,7 +366,7 @@ async function handleReply(
     const authentication = record(incoming.authentication);
     const rejectedAuthentication = text(authentication?.dmarc).toLowerCase() === "fail";
 
-    return prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx) => {
         await lockIntegration(tx, integration);
         const email = await lockEmail(tx, integration.workspaceId, matched.id);
         if (email.providerRfcMessageId !== parentId || email.providerMessageId !== matched.providerMessageId) {
@@ -374,6 +395,18 @@ async function handleReply(
         });
         return { received: true, reviewRequired: rejectedAuthentication };
     });
+
+    // Replies that fail DMARC could be spoofed, so they never start workflows.
+    if (!("duplicate" in result) && !rejectedAuthentication) {
+        await emitAutomationEvent({
+            workspaceId: matched.workspaceId,
+            customerId: matched.customerId,
+            event: { type: "email_replied" },
+            eventKey: incomingId,
+            data: { scheduledEmailId: matched.id, subject: matched.subject },
+        });
+    }
+    return result;
 }
 
 export async function POST(req: Request) {
