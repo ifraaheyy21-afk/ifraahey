@@ -13,6 +13,7 @@ import {
 import { useRouter, useSearchParams } from "next/navigation";
 
 import { auth } from "../../lib/firebase";
+import { establishServerSession } from "../../lib/auth/sessionClient";
 
 function LoginPageContent() {
     const router = useRouter();
@@ -36,7 +37,8 @@ function LoginPageContent() {
 
     const returnUrl =
         requestedReturnUrl?.startsWith("/") &&
-            !requestedReturnUrl.startsWith("//")
+            !requestedReturnUrl.startsWith("//") &&
+            !requestedReturnUrl.includes("\\")
             ? requestedReturnUrl
             : "/dashboard";
 
@@ -56,19 +58,20 @@ function LoginPageContent() {
 
             const cleanEmail = email.trim().toLowerCase();
 
-            if (mode === "login") {
-                await signInWithEmailAndPassword(
-                    auth,
-                    cleanEmail,
-                    password
-                );
-            } else {
-                await createUserWithEmailAndPassword(
-                    auth,
-                    cleanEmail,
-                    password
-                );
-            }
+            const credential =
+                mode === "login"
+                    ? await signInWithEmailAndPassword(
+                        auth,
+                        cleanEmail,
+                        password
+                    )
+                    : await createUserWithEmailAndPassword(
+                        auth,
+                        cleanEmail,
+                        password
+                    );
+
+            await establishServerSession(credential.user);
 
             redirectAfterAuthentication();
         } catch (error: unknown) {
@@ -95,7 +98,9 @@ function LoginPageContent() {
                 prompt: "select_account",
             });
 
-            await signInWithPopup(auth, provider);
+            const credential = await signInWithPopup(auth, provider);
+
+            await establishServerSession(credential.user);
 
             redirectAfterAuthentication();
         } catch (error: unknown) {

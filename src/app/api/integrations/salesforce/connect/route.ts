@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { beginIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export const runtime = "nodejs";
 
@@ -11,7 +12,10 @@ function base64UrlEncode(buffer: Buffer) {
         .replace(/=+$/, "");
 }
 
-export async function GET() {
+export async function GET(req: Request) {
+    const oauth = await beginIntegrationOAuth(req, "salesforce");
+    if (oauth instanceof NextResponse) return oauth;
+
     const clientId = process.env.SALESFORCE_CLIENT_ID;
     const redirectUri = process.env.SALESFORCE_REDIRECT_URI;
     const loginUrl = process.env.SALESFORCE_LOGIN_URL || "https://login.salesforce.com";
@@ -36,9 +40,10 @@ export async function GET() {
         prompt: "login",
         code_challenge: codeChallenge,
         code_challenge_method: "S256",
+        state: oauth.state,
     });
 
-    const response = NextResponse.redirect(
+    const response = oauth.redirect(
         `${loginUrl}/services/oauth2/authorize?${params.toString()}`
     );
 

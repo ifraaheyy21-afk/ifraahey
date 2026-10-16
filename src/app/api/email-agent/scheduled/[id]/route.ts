@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
 
 type RouteParams = {
     params: Promise<{ id: string }>;
 };
+
+// Emails the sender has finished with, or is working on, must not change.
+const MUTABLE_STATUSES = ["scheduled", "failed", "cancelled"];
 
 function isValidDate(value: string) {
     const date = new Date(value);
@@ -11,14 +15,18 @@ function isValidDate(value: string) {
 }
 
 export async function PATCH(req: Request, { params }: RouteParams) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { id } = await params;
         const body = await req.json();
 
-        const { workspaceId, scheduledFor } = body;
+        const { workspaceId } = auth;
+        const { scheduledFor } = body;
 
-        if (!workspaceId || !scheduledFor) {
-            return NextResponse.json({ error: "Missing workspaceId or scheduledFor" }, { status: 400 });
+        if (!scheduledFor) {
+            return NextResponse.json({ error: "Missing scheduledFor" }, { status: 400 });
         }
 
         if (!isValidDate(scheduledFor)) {
@@ -33,17 +41,25 @@ export async function PATCH(req: Request, { params }: RouteParams) {
             return NextResponse.json({ error: "Scheduled email not found" }, { status: 404 });
         }
 
-        if (existing.status === "sent" || existing.status === "sending") {
+        if (!MUTABLE_STATUSES.includes(existing.status)) {
             return NextResponse.json({ error: "This email can no longer be rescheduled" }, { status: 409 });
         }
 
-        const scheduledEmail = await prisma.scheduledEmail.update({
-            where: { id },
+        const changed = await prisma.scheduledEmail.updateMany({
+            where: { id, workspaceId, status: existing.status, updatedAt: existing.updatedAt },
             data: {
                 scheduledFor: new Date(scheduledFor),
                 status: "scheduled",
                 failureReason: null,
             },
+        });
+
+        if (changed.count !== 1) {
+            return NextResponse.json({ error: "This email changed while you were editing it. Refresh and try again." }, { status: 409 });
+        }
+
+        const scheduledEmail = await prisma.scheduledEmail.findUnique({
+            where: { id },
             include: {
                 customer: {
                     select: {
@@ -64,14 +80,12 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 }
 
 export async function DELETE(req: Request, { params }: RouteParams) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { id } = await params;
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId");
-
-        if (!workspaceId) {
-            return NextResponse.json({ error: "Missing workspaceId" }, { status: 400 });
-        }
+        const { workspaceId } = auth;
 
         const existing = await prisma.scheduledEmail.findFirst({
             where: { id, workspaceId },
@@ -81,13 +95,17 @@ export async function DELETE(req: Request, { params }: RouteParams) {
             return NextResponse.json({ error: "Scheduled email not found" }, { status: 404 });
         }
 
-        if (existing.status === "sent" || existing.status === "sending") {
+        if (!MUTABLE_STATUSES.includes(existing.status) || existing.sendAttemptedAt) {
             return NextResponse.json({ error: "This email can no longer be deleted" }, { status: 409 });
         }
 
-        await prisma.scheduledEmail.delete({
-            where: { id },
+        const deleted = await prisma.scheduledEmail.deleteMany({
+            where: { id, workspaceId, status: existing.status, updatedAt: existing.updatedAt },
         });
+
+        if (deleted.count !== 1) {
+            return NextResponse.json({ error: "This email changed before it could be deleted. Refresh and try again." }, { status: 409 });
+        }
 
         return NextResponse.json({ success: true });
     } catch (error) {

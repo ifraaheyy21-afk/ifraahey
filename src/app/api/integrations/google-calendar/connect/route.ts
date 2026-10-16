@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { googleOAuthClient } from "../../../../../lib/google";
+import { beginIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export const runtime = "nodejs";
 
-export async function GET() {
+export async function GET(req: Request) {
+    const oauth = await beginIntegrationOAuth(req, "google_calendar");
+    if (oauth instanceof NextResponse) return oauth;
+
     try {
         if (!process.env.GOOGLE_CLIENT_ID || !process.env.GOOGLE_CLIENT_SECRET) {
             return NextResponse.json(
@@ -19,10 +23,10 @@ export async function GET() {
                 "https://www.googleapis.com/auth/calendar",
                 "https://www.googleapis.com/auth/calendar.events",
             ],
-            state: "demo-workspace",
+            state: oauth.state,
         });
 
-        return NextResponse.redirect(url);
+        return oauth.redirect(url);
     } catch (error) {
         console.error("Google Calendar connect error:", error);
 

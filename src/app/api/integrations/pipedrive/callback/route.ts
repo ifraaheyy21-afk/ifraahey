@@ -1,29 +1,17 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export const runtime = "nodejs";
 
-function getWorkspaceId() {
-    return process.env.DEMO_WORKSPACE_ID || "demo-workspace";
-}
-
-function getCookie(req: Request, name: string) {
-    return req.headers
-        .get("cookie")
-        ?.split(";")
-        .map((cookie) => cookie.trim())
-        .find((cookie) => cookie.startsWith(`${name}=`))
-        ?.split("=")[1];
-}
-
 export async function GET(req: Request) {
+    const oauth = await completeIntegrationOAuth(req, "pipedrive");
+    if (oauth instanceof NextResponse) return oauth;
+
     const url = new URL(req.url);
 
     const code = url.searchParams.get("code");
-    const state = url.searchParams.get("state");
     const error = url.searchParams.get("error");
-
-    const cookieState = getCookie(req, "pipedrive_oauth_state");
 
     if (error) {
         return NextResponse.redirect(
@@ -34,12 +22,6 @@ export async function GET(req: Request) {
     if (!code) {
         return NextResponse.redirect(
             new URL("/dashboard/integrations?error=pipedrive_missing_code", req.url)
-        );
-    }
-
-    if (!state || !cookieState || state !== decodeURIComponent(cookieState)) {
-        return NextResponse.redirect(
-            new URL("/dashboard/integrations?error=pipedrive_invalid_state", req.url)
         );
     }
 
@@ -82,16 +64,8 @@ export async function GET(req: Request) {
         );
     }
 
-    const workspaceId = getWorkspaceId();
+    const { workspaceId } = oauth;
 
-    await prisma.workspace.upsert({
-        where: { id: workspaceId },
-        update: {},
-        create: {
-            id: workspaceId,
-            name: "Demo Workspace",
-        },
-    });
 
     await prisma.workspaceIntegration.upsert({
         where: {
@@ -131,7 +105,7 @@ export async function GET(req: Request) {
         new URL("/dashboard/integrations?connected=pipedrive", req.url)
     );
 
-    response.cookies.delete("pipedrive_oauth_state");
+    response.cookies.delete("oauth_state_pipedrive");
 
     return response;
 }

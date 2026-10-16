@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../lib/prisma";
 import { openai } from "../../../../lib/openai";
 import { buildEmailStyleAnalysisPrompt } from "../../../../lib/emailStylePrompt";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 type AnalysedProfile = {
     logoStyle?: string;
@@ -41,9 +42,11 @@ function toJsonObject(value: AnalysedProfile): Prisma.InputJsonObject {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const body = await req.json();
-        const workspaceId = body.workspaceId as string | undefined;
+        const { workspaceId } = auth;
 
         if (!workspaceId) {
             return NextResponse.json(

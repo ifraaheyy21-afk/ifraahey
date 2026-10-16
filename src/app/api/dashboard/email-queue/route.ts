@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 export const dynamic = "force-dynamic";
 
@@ -22,6 +23,9 @@ function mapQueueEmail(email: any) {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { searchParams } = new URL(req.url);
 
@@ -32,7 +36,7 @@ export async function GET(req: Request) {
         const status = searchParams.get("status");
         const priority = searchParams.get("priority");
 
-        const where: any = {};
+        const where: any = { workspaceId: auth.workspaceId };
 
         if (status && status !== "all") {
             where.status = status;

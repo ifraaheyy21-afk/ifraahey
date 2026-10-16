@@ -1,7 +1,7 @@
 "use client";
 
 import "@fontsource/inter";
-import { FormEvent, useEffect, useMemo, useState } from "react";
+import { FormEvent, Suspense, useEffect, useMemo, useState } from "react";
 import { onAuthStateChanged, User } from "firebase/auth";
 import { useRouter, useSearchParams } from "next/navigation";
 import { auth } from "../../../lib/firebase";
@@ -21,7 +21,7 @@ const scopeLabels: Record<string, string> = {
     "events:read": "View email activity and tracking events",
 };
 
-export default function OAuthAuthorizePage() {
+function OAuthAuthorizeContent() {
     const router = useRouter();
     const searchParams = useSearchParams();
 
@@ -277,5 +277,14 @@ export default function OAuthAuthorizePage() {
                 </p>
             </section>
         </main>
+    );
+}
+
+// useSearchParams() needs a Suspense boundary for the page to prerender.
+export default function OAuthAuthorizePage() {
+    return (
+        <Suspense fallback={null}>
+            <OAuthAuthorizeContent />
+        </Suspense>
     );
 }

@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { searchParams } = new URL(req.url);
 
-        const workspaceId = searchParams.get("workspaceId");
+        const { workspaceId } = auth;
         const customerId = searchParams.get("customerId");
 
         if (!workspaceId || !customerId) {

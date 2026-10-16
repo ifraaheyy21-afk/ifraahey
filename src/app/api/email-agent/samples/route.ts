@@ -3,6 +3,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../../../lib/prisma";
 import { supabaseAdmin } from "../../../../lib/supabase";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 const BUCKET_NAME = "email-samples";
 const DEMO_WORKSPACE_ID = "demo-workspace";
@@ -56,9 +57,11 @@ function getStoragePathFromPublicUrl(imageUrl: string) {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId")?.trim();
+        const { workspaceId } = auth;
 
         if (!workspaceId) {
             return NextResponse.json(
@@ -115,10 +118,13 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = (await req.json()) as SamplePayload;
 
-        const workspaceId = normaliseString(body.workspaceId);
+        const { workspaceId } = auth;
         const title = normaliseString(body.title);
         const imageUrl = normaliseString(body.imageUrl);
         const fileName = normaliseNullableString(body.fileName);
@@ -194,11 +200,14 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { searchParams } = new URL(req.url);
 
         const id = searchParams.get("id")?.trim();
-        const workspaceId = searchParams.get("workspaceId")?.trim();
+        const { workspaceId } = auth;
 
         if (!id) {
             return NextResponse.json(
@@ -224,9 +233,10 @@ export async function DELETE(req: Request) {
             );
         }
 
-        const sample = await prisma.emailSample.findUnique({
+        const sample = await prisma.emailSample.findFirst({
             where: {
                 id,
+                workspaceId,
             },
         });
 

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import fs from "fs/promises";
 import path from "path";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 export const runtime = "nodejs";
 
@@ -100,6 +101,9 @@ function normalizeTemplate(template: any) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         if (!process.env.OPENAI_API_KEY) {
             return NextResponse.json(

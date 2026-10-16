@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import { prisma } from "../../../../../../lib/prisma";
+import { requireWorkspace } from "../../../../../../lib/auth/requireWorkspace";
 
 type RouteParams = {
     params: Promise<{ id: string }>;
@@ -19,9 +20,11 @@ function countByStatus(events: { status: string }[], statusNames: string[]) {
 }
 
 export async function GET(req: Request, { params }: RouteParams) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId");
+        const { workspaceId } = auth;
         const { id } = await params;
 
         const customerId = decodeURIComponent(id);

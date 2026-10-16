@@ -1,13 +1,14 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export const runtime = "nodejs";
 
-function getWorkspaceId() {
-    return process.env.DEMO_WORKSPACE_ID || "demo-workspace";
-}
 
 export async function GET(req: Request) {
+    const oauth = await completeIntegrationOAuth(req, "salesforce");
+    if (oauth instanceof NextResponse) return oauth;
+
     const url = new URL(req.url);
     const code = url.searchParams.get("code");
     const error = url.searchParams.get("error");
@@ -84,16 +85,8 @@ export async function GET(req: Request) {
         );
     }
 
-    const workspaceId = getWorkspaceId();
+    const { workspaceId } = oauth;
 
-    await prisma.workspace.upsert({
-        where: { id: workspaceId },
-        update: {},
-        create: {
-            id: workspaceId,
-            name: "Demo Workspace",
-        },
-    });
 
     await prisma.workspaceIntegration.upsert({
         where: {

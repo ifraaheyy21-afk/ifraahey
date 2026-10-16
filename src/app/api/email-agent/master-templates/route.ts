@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 const DEMO_WORKSPACE_ID = "demo-workspace";
 
@@ -34,9 +35,11 @@ function normaliseNullableString(value: unknown) {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId")?.trim();
+        const { workspaceId } = auth;
 
         if (!workspaceId) {
             return NextResponse.json(
@@ -93,10 +96,13 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = (await req.json()) as MasterTemplatePayload;
 
-        const workspaceId = normaliseString(body.workspaceId);
+        const { workspaceId } = auth;
         const title = normaliseString(body.title);
         const html = normaliseString(body.html);
         const sampleId = normaliseNullableString(body.sampleId);
@@ -184,11 +190,14 @@ export async function POST(req: Request) {
 }
 
 export async function DELETE(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { searchParams } = new URL(req.url);
 
         const id = searchParams.get("id")?.trim();
-        const workspaceId = searchParams.get("workspaceId")?.trim();
+        const { workspaceId } = auth;
 
         if (!id) {
             return NextResponse.json(
@@ -214,11 +223,19 @@ export async function DELETE(req: Request) {
             );
         }
 
-        await prisma.emailMasterTemplate.delete({
+        const deleted = await prisma.emailMasterTemplate.deleteMany({
             where: {
                 id,
+                workspaceId,
             },
         });
+
+        if (deleted.count === 0) {
+            return NextResponse.json(
+                { error: "Master template not found." },
+                { status: 404 },
+            );
+        }
 
         return NextResponse.json(
             { success: true },

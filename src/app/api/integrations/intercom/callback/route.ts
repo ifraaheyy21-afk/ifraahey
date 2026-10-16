@@ -1,9 +1,13 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: Request) {
+    const oauth = await completeIntegrationOAuth(req, "intercom");
+    if (oauth instanceof NextResponse) return oauth;
+
     try {
         const url = new URL(req.url);
         const code = url.searchParams.get("code");
@@ -43,16 +47,8 @@ export async function GET(req: Request) {
             );
         }
 
-        const workspaceId = "demo-workspace";
+        const { workspaceId } = oauth;
 
-        await prisma.workspace.upsert({
-            where: { id: workspaceId },
-            update: {},
-            create: {
-                id: workspaceId,
-                name: "Demo Workspace",
-            },
-        });
 
         await prisma.workspaceIntegration.upsert({
             where: {

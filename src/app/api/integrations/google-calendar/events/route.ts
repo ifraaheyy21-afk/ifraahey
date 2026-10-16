@@ -1,14 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { google } from "googleapis";
 import { prisma } from "../../../../../lib/prisma";
-import { googleOAuthClient } from "../../../../../lib/google";
+import { createGoogleOAuthClient } from "../../../../../lib/google";
+import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const workspaceId =
-            req.nextUrl.searchParams.get("workspaceId") || "demo-workspace";
+        const { workspaceId } = auth;
 
         const integration = await prisma.workspaceIntegration.findUnique({
             where: {
@@ -26,6 +29,7 @@ export async function GET(req: NextRequest) {
             );
         }
 
+        const googleOAuthClient = createGoogleOAuthClient();
         googleOAuthClient.setCredentials({
             access_token: integration.accessToken,
             refresh_token: integration.refreshToken || undefined,

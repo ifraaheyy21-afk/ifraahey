@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../../lib/prisma";
+import { requireWorkspace } from "../../../../../../lib/auth/requireWorkspace";
 
 type RouteParams = {
     params: Promise<{ id: string }>;
@@ -41,9 +42,12 @@ function getActivityDescription(status: string, subject: string, reason?: string
 }
 
 export async function GET(req: Request, { params }: RouteParams) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId");
+        const { workspaceId } = auth;
         const { id } = await params;
 
         const customerId = decodeURIComponent(id);

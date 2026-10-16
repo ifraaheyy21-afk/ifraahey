@@ -4,6 +4,7 @@ import { openai } from "../../../../lib/openai";
 import { Prisma } from "@prisma/client";
 import fs from "fs/promises";
 import path from "path";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 function safeJsonParse(text: string) {
     const cleaned = text
@@ -87,9 +88,12 @@ async function getImageUrlForOpenAI(sampleImageUrl?: string) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     const body = await req.json();
 
-    const workspaceId = body.workspaceId as string | undefined;
+    const { workspaceId } = auth;
     const emailType = body.emailType || "Personalised email";
     const subject = body.subject || "Just checking in";
     const prompt = body.prompt || "";

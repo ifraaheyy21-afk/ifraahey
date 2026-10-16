@@ -231,37 +231,7 @@ export async function getWorkspaceFromRequest(
     }
 
     try {
-        /*
-         * TEMPORARY DEVELOPMENT DIAGNOSTICS
-         *
-         * These logs only run outside production.
-         * Once workspace resolution is verified,
-         * we can remove them.
-         */
-        if (
-            process.env.NODE_ENV !== "production"
-        ) {
-            console.log(
-                "[Workspace auth debug] Firebase email:",
-                email,
-            );
-
-            const workspaceDebug =
-                await prisma.workspace.findMany({
-                    select: {
-                        id: true,
-                        name: true,
-                        userEmail: true,
-                    },
-                });
-
-            console.log(
-                "[Workspace auth debug] Database workspaces:",
-                workspaceDebug,
-            );
-        }
-
-        const workspace =
+        const existing =
             await prisma.workspace.findFirst({
                 where: {
                     userEmail: {
@@ -272,38 +242,24 @@ export async function getWorkspaceFromRequest(
 
                 select: {
                     id: true,
-                    userEmail: true,
                 },
             });
 
-        if (!workspace) {
-            if (
-                process.env.NODE_ENV !== "production"
-            ) {
-                console.warn(
-                    "[Workspace auth debug] No matching workspace found for:",
-                    email,
-                );
-            }
-
-            throw new AuthError(
-                "No workspace is linked to this account.",
-                403,
-                "WORKSPACE_NOT_FOUND",
-            );
-        }
-
-        if (
-            process.env.NODE_ENV !== "production"
-        ) {
-            console.log(
-                "[Workspace auth debug] Workspace matched:",
-                {
-                    id: workspace.id,
-                    userEmail: workspace.userEmail,
+        // First authenticated request for a new account: provision its
+        // workspace. The unique userEmail makes concurrent first requests safe.
+        const workspace =
+            existing ??
+            await prisma.workspace.upsert({
+                where: { userEmail: email },
+                update: {},
+                create: {
+                    userEmail: email,
+                    name: `${email.split("@")[0]}'s Workspace`,
                 },
-            );
-        }
+                select: {
+                    id: true,
+                },
+            });
 
         return {
             workspaceId: workspace.id,

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "../../../../../../lib/prisma";
+import { requireWorkspace } from "../../../../../../lib/auth/requireWorkspace";
 
 type RouteContext = {
     params: Promise<{
@@ -21,6 +22,9 @@ export async function GET(
     req: Request,
     context: RouteContext,
 ) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const {
             runId: rawRunId,
@@ -31,18 +35,8 @@ export async function GET(
                 rawRunId,
             );
 
-        const {
-            searchParams,
-        } = new URL(
-            req.url,
-        );
 
-        const workspaceId =
-            cleanText(
-                searchParams.get(
-                    "workspaceId",
-                ),
-            );
+        const { workspaceId } = auth;
 
         if (!runId) {
             return NextResponse.json(

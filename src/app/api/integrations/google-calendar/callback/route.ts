@@ -1,14 +1,18 @@
 import { NextRequest, NextResponse } from "next/server";
 import { googleOAuthClient } from "../../../../../lib/google";
 import { prisma } from "../../../../../lib/prisma";
+import { completeIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export const runtime = "nodejs";
 
 export async function GET(req: NextRequest) {
+    const oauth = await completeIntegrationOAuth(req, "google_calendar");
+    if (oauth instanceof NextResponse) return oauth;
+
     try {
         const code = req.nextUrl.searchParams.get("code");
         const error = req.nextUrl.searchParams.get("error");
-        const workspaceId = req.nextUrl.searchParams.get("state") || "demo-workspace";
+        const { workspaceId } = oauth;
 
         const appUrl =
             process.env.NEXT_PUBLIC_APP_URL || req.nextUrl.origin;
@@ -37,14 +41,6 @@ export async function GET(req: NextRequest) {
             ? new Date(tokens.expiry_date)
             : null;
 
-        await prisma.workspace.upsert({
-            where: { id: workspaceId },
-            update: {},
-            create: {
-                id: workspaceId,
-                name: "Demo Workspace",
-            },
-        });
 
         const existing = await prisma.workspaceIntegration.findUnique({
             where: {

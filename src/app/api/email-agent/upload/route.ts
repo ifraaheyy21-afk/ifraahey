@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "../../../../lib/supabase";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 export const runtime = "nodejs";
 
@@ -19,10 +20,13 @@ function getFileExtension(fileName: string) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const formData = await req.formData();
         const file = formData.get("file");
-        const workspaceId = String(formData.get("workspaceId") || "").trim();
+        const { workspaceId } = auth;
 
         if (!workspaceId) {
             return NextResponse.json({ error: "workspaceId is required" }, { status: 400 });

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 export const runtime = "nodejs";
 
@@ -15,10 +16,11 @@ function isDatabaseUnavailable(error: unknown) {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const workspaceId =
-            searchParams.get("workspaceId")?.trim() || DEMO_WORKSPACE_ID;
+        const { workspaceId } = auth;
 
         /*
          * Demo integrations are not persisted in the production database.

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 import {
     customers as demoCustomers,
     customerStats as demoCustomerStats,
@@ -165,9 +166,11 @@ function parseMrr(value: unknown) {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId");
+        const { workspaceId } = auth;
 
         if (!workspaceId || workspaceId === "demo-workspace") {
             return NextResponse.json({
@@ -195,9 +198,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = await req.json();
-        const workspaceId = cleanText(body.workspaceId);
+        const { workspaceId } = auth;
         const name = cleanText(body.name);
         const email = cleanText(body.email).toLowerCase();
         const company = cleanText(body.company);

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 const DEMO_WORKSPACE_ID = "demo-workspace";
 
@@ -47,9 +48,11 @@ function createProfileData(body: ProfilePayload) {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId")?.trim();
+        const { workspaceId } = auth;
 
         if (!workspaceId) {
             return NextResponse.json(
@@ -121,9 +124,12 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = (await req.json()) as ProfilePayload;
-        const workspaceId = normaliseString(body.workspaceId);
+        const { workspaceId } = auth;
 
         if (!workspaceId) {
             return NextResponse.json(

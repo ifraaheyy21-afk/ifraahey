@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "../../../../lib/prisma";
+import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
 
 const DEMO_WORKSPACE_ID = "demo-workspace";
 
@@ -15,10 +16,13 @@ function isValidDate(value: unknown): value is string {
 }
 
 export async function GET(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { searchParams } = new URL(req.url);
 
-        const workspaceId = searchParams.get("workspaceId")?.trim();
+        const { workspaceId } = auth;
         const customerId = searchParams.get("customerId")?.trim();
 
         if (!workspaceId) {
@@ -79,13 +83,13 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = await req.json();
 
-        const workspaceId =
-            typeof body.workspaceId === "string"
-                ? body.workspaceId.trim()
-                : "";
+        const { workspaceId } = auth;
 
         const customerId =
             typeof body.customerId === "string"

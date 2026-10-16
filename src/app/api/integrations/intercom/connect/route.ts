@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
+import { beginIntegrationOAuth } from "../../../../../lib/integrationOAuth";
 
 export async function GET(req: Request) {
+    const oauth = await beginIntegrationOAuth(req, "intercom");
+    if (oauth instanceof NextResponse) return oauth;
+
     const clientId = process.env.INTERCOM_CLIENT_ID;
     const redirectUri =
         process.env.INTERCOM_REDIRECT_URI ||
@@ -16,9 +20,10 @@ export async function GET(req: Request) {
         client_id: clientId,
         redirect_uri: redirectUri,
         response_type: "code",
+        state: oauth.state,
     });
 
-    return NextResponse.redirect(
+    return oauth.redirect(
         `https://app.intercom.com/oauth?${params.toString()}`
     );
 }

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { prisma } from "../../../../../lib/prisma";
+import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
 
 function cleanText(value: unknown) {
     return typeof value === "string" ? value.trim() : "";
@@ -13,12 +14,13 @@ function parseMrr(value: unknown) {
 }
 
 export async function PATCH(req: Request, context: { params: Promise<{ id: string }> }) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { id } = await context.params;
         const body = await req.json();
-        const workspaceId = cleanText(body.workspaceId);
-
-        if (!workspaceId || workspaceId === "demo-workspace") return NextResponse.json({ error: "A live workspace is required." }, { status: 400 });
+        const { workspaceId } = auth;
 
         const existing = await prisma.customer.findFirst({ where: { id, workspaceId } });
         if (!existing) return NextResponse.json({ error: "Account not found." }, { status: 404 });
@@ -96,12 +98,12 @@ export async function PATCH(req: Request, context: { params: Promise<{ id: strin
 }
 
 export async function DELETE(req: Request, context: { params: Promise<{ id: string }> }) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const { id } = await context.params;
-        const { searchParams } = new URL(req.url);
-        const workspaceId = searchParams.get("workspaceId") || "";
-
-        if (!workspaceId || workspaceId === "demo-workspace") return NextResponse.json({ error: "A live workspace is required." }, { status: 400 });
+        const { workspaceId } = auth;
 
         const existing = await prisma.customer.findFirst({ where: { id, workspaceId } });
         if (!existing) return NextResponse.json({ error: "Account not found." }, { status: 404 });

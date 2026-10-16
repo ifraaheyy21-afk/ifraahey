@@ -1,15 +1,15 @@
 import { NextResponse } from "next/server";
 import { prisma } from "../../../../../lib/prisma";
+import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
 
 export const runtime = "nodejs";
 
-function getWorkspaceId() {
-    return process.env.DEMO_WORKSPACE_ID || "demo-workspace";
-}
+export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
 
-export async function POST() {
     try {
-        const workspaceId = getWorkspaceId();
+        const { workspaceId } = auth;
 
         await prisma.workspaceIntegration.deleteMany({
             where: {

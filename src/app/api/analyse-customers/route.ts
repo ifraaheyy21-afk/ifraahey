@@ -1,12 +1,16 @@
 import { NextResponse } from "next/server";
 import OpenAI from "openai";
 import type { CustomerRow } from "../../../lib/types";
+import { requireWorkspace } from "../../../lib/auth/requireWorkspace";
 
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
 export async function POST(req: Request) {
+    const auth = await requireWorkspace(req);
+    if (auth instanceof NextResponse) return auth;
+
     try {
         const body = await req.json();
         const customers: CustomerRow[] = body.customers;
