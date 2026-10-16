@@ -39,6 +39,7 @@ import {
     AlignRight,
     List,
     ListOrdered,
+    History,
 } from "lucide-react";
 
 import Link from "next/link";
@@ -80,6 +81,7 @@ import {
     getAutomation,
     saveAutomation,
 } from "../../../../lib/automation/client";
+import AutomationRunsPanel, { type RunsPanelTab } from "./AutomationRunsPanel";
 
 import { auth } from "../../../../lib/firebase";
 import { getAutomationActionCapability } from "../../../../lib/automation/action-capabilities";
@@ -935,6 +937,8 @@ export default function WorkflowBuilderPage() {
     const [zoom, setZoom] = useState(1);
     const [addFromNodeId, setAddFromNodeId] = useState<string | null>(null);
     const [notice, setNotice] = useState("");
+    const [statusSaving, setStatusSaving] = useState(false);
+    const [runsPanel, setRunsPanel] = useState<RunsPanelTab | null>(null);
     const [emailEditorFormats, setEmailEditorFormats] = useState<EmailEditorFormatState>(
         EMPTY_EMAIL_EDITOR_FORMAT_STATE,
     );
@@ -1404,7 +1408,7 @@ export default function WorkflowBuilderPage() {
                     window.localStorage.getItem("workspaceId") || "demo-workspace";
 
                 const response = await fetch(
-                    `/api/email-agent/integrations?workspaceId=${encodeURIComponent(workspaceId)}`,
+                    "/api/integrations/status",
                     {
                         method: "GET",
                         credentials: "include",
@@ -3974,16 +3978,17 @@ export default function WorkflowBuilderPage() {
     }
 
 
-    async function toggleWorkflowStatus() {
-        if (!workflow) return;
-
-        const nextStatus: WorkflowStatus =
-            workflow.status === "active" ? "draft" : "active";
+    // Publish (draft -> active), Pause (active -> paused), Resume (paused -> active).
+    // Pausing holds in-progress runs at their current step until resumed.
+    async function setWorkflowStatus(nextStatus: WorkflowStatus) {
+        if (!workflow || workflow.status === nextStatus || statusSaving) return;
 
         if (nextStatus === "active" && validationIssues.length > 0) {
             showNotice(validationIssues[0]);
             return;
         }
+
+        setStatusSaving(true);
 
         try {
             const saved = await persistWorkflowToStorage({
@@ -3993,9 +3998,11 @@ export default function WorkflowBuilderPage() {
 
             setWorkflow(saved);
             showNotice(
-                nextStatus === "active"
-                    ? "Automation activated"
-                    : "Automation paused",
+                nextStatus === "paused"
+                    ? "Automation paused. Runs in progress will wait until you resume."
+                    : workflow.status === "paused"
+                        ? "Automation resumed"
+                        : "Automation published. New contacts that match the trigger will be enrolled.",
             );
         } catch (error) {
             console.error("Automation status update error:", error);
@@ -4004,6 +4011,8 @@ export default function WorkflowBuilderPage() {
                     ? error.message
                     : "Unable to update automation status.",
             );
+        } finally {
+            setStatusSaving(false);
         }
     }
 
@@ -4441,15 +4450,28 @@ export default function WorkflowBuilderPage() {
                                         }`}
                                 >
                                     <CircleDot size={12} />
-                                    {workflow.status === "active" ? "Active" : "Draft"}
+                                    {workflow.status === "active"
+                                        ? "Active"
+                                        : workflow.status === "paused"
+                                            ? "Paused"
+                                            : "Draft"}
                                 </span>
 
                                 <button
                                     type="button"
                                     className={styles.secondaryButton}
-                                    onClick={toggleWorkflowStatus}
+                                    disabled={statusSaving}
+                                    onClick={() =>
+                                        void setWorkflowStatus(
+                                            workflow.status === "active" ? "paused" : "active",
+                                        )
+                                    }
                                 >
-                                    {workflow.status === "active" ? "Pause" : "Activate"}
+                                    {workflow.status === "active"
+                                        ? "Pause"
+                                        : workflow.status === "paused"
+                                            ? "Resume"
+                                            : "Publish"}
                                 </button>
 
                                 <button
@@ -4469,6 +4491,18 @@ export default function WorkflowBuilderPage() {
                             <Check size={14} />
                             {notice}
                         </div>
+                    )}
+
+                    {runsPanel && (
+                        <AutomationRunsPanel
+                            workflowId={workflow.id}
+                            workflowStatus={workflow.status === "active" || workflow.status === "paused" ? workflow.status : "draft"}
+                            nodeTitles={Object.fromEntries(workflow.nodes.map((node) => [node.id, node.title]))}
+                            tab={runsPanel}
+                            onTabChange={setRunsPanel}
+                            onClose={() => setRunsPanel(null)}
+                            onPublish={() => void setWorkflowStatus("active")}
+                        />
                     )}
 
                     <section
@@ -4519,40 +4553,64 @@ export default function WorkflowBuilderPage() {
                                     >
                                         <StarterAiProviderLogo provider="openclaw" size={30} />
                                     </button>
+                                    <span
+                                        className={`${styles.canvasStatusChip} ${styles[`canvasStatus_${workflow.status}`] ?? ""}`}
+                                        title={
+                                            workflow.status === "active"
+                                                ? "Live: the trigger is enrolling contacts"
+                                                : workflow.status === "paused"
+                                                    ? "Paused: no new enrollments; runs in progress are on hold"
+                                                    : "Draft: not running"
+                                        }
+                                    >
+                                        <CircleDot size={12} />
+                                        {workflow.status === "active"
+                                            ? "Live"
+                                            : workflow.status === "paused"
+                                                ? "Paused"
+                                                : "Draft"}
+                                    </span>
                                     <button
                                         type="button"
-                                        className={styles.canvasDraftButton}
-                                        onClick={() => {
-                                            if (workflow.status === "draft") {
-                                                showNotice("Workflow is already a draft");
-                                                return;
-                                            }
-                                            void toggleWorkflowStatus();
-                                        }}
+                                        className={styles.canvasTestButton}
+                                        aria-pressed={runsPanel === "history"}
+                                        aria-label="Runs"
+                                        onClick={() => setRunsPanel((open) => open === "history" ? null : "history")}
                                     >
-                                        <CircleDot size={13} />
-                                        Draft
+                                        <History size={14} />
+                                        <span className={styles.canvasButtonLabel}>Runs</span>
                                     </button>
                                     <button
                                         type="button"
                                         className={styles.canvasTestButton}
+                                        aria-pressed={runsPanel === "test"}
+                                        aria-label="Test"
                                         onClick={() => {
                                             if (validationIssues.length > 0) {
                                                 showNotice(validationIssues[0]);
                                                 return;
                                             }
-                                            showNotice("Workflow is ready to test");
+                                            setRunsPanel((open) => open === "test" ? null : "test");
                                         }}
                                     >
                                         <Play size={14} />
-                                        Test
+                                        <span className={styles.canvasButtonLabel}>Test</span>
                                     </button>
                                     <button
                                         type="button"
                                         className={styles.canvasPublishButton}
-                                        onClick={toggleWorkflowStatus}
+                                        disabled={statusSaving}
+                                        onClick={() =>
+                                            void setWorkflowStatus(
+                                                workflow.status === "active" ? "paused" : "active",
+                                            )
+                                        }
                                     >
-                                        {workflow.status === "active" ? "Published" : "Publish"}
+                                        {workflow.status === "active"
+                                            ? "Pause"
+                                            : workflow.status === "paused"
+                                                ? "Resume"
+                                                : "Publish"}
                                     </button>
                                 </div>
                             </>

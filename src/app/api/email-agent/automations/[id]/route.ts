@@ -56,21 +56,6 @@ function definitionFromBody(
     };
 }
 
-function assertWorkspaceMatch(
-    requested: string,
-    authorised: string,
-) {
-    if (
-        requested &&
-        requested !== authorised
-    ) {
-        throw new AuthError(
-            "You do not have access to this workspace.",
-            403,
-        );
-    }
-}
-
 function jsonError(
     message: string,
     status: number,
@@ -141,19 +126,6 @@ export async function GET(
                 req,
             );
 
-        const {
-            searchParams,
-        } = new URL(req.url);
-
-        assertWorkspaceMatch(
-            cleanText(
-                searchParams.get(
-                    "workspaceId",
-                ),
-            ),
-            workspaceId,
-        );
-
         const workflow =
             await prisma.automationWorkflow.findFirst({
                 where: {
@@ -161,6 +133,7 @@ export async function GET(
                         workflowId,
 
                     workspaceId,
+                    status: { not: "archived" },
                 },
 
                 include: {
@@ -270,12 +243,6 @@ export async function PUT(
                 )
                 : {};
 
-        assertWorkspaceMatch(
-            cleanText(
-                body.workspaceId,
-            ),
-            workspaceId,
-        );
 
         const name =
             cleanText(
@@ -349,8 +316,19 @@ export async function PUT(
 
                     version:
                         true,
+
+                    status:
+                        true,
                 },
             });
+
+        if (existing?.status === "archived") {
+            return jsonError(
+                "This automation was archived and can no longer be edited.",
+                410,
+                "ARCHIVED",
+            );
+        }
 
         if (!existing) {
             try {
@@ -430,6 +408,9 @@ export async function PUT(
 
                             version:
                                 true,
+
+                            status:
+                                true,
                         },
                     });
 
@@ -472,6 +453,8 @@ export async function PUT(
                         workflowId,
 
                     workspaceId,
+
+                    status: { not: "archived" },
 
                     ...(requestedVersion !==
                         null
@@ -588,5 +571,81 @@ export async function PUT(
             "Failed to save automation.",
             500,
         );
+    }
+}
+
+/**
+ * Archive an automation. It disappears from the list, stops enrolling, and
+ * its unfinished runs are cancelled. Run history is kept.
+ */
+export async function DELETE(
+    req: Request,
+    context: {
+        params: Promise<{
+            id: string;
+        }>;
+    },
+) {
+    try {
+        const { workspaceId } =
+            await getWorkspaceFromRequest(req);
+
+        const workflowId =
+            cleanText((await context.params).id);
+
+        if (!workflowId) {
+            return jsonError("Missing automation id.", 400);
+        }
+
+        const result = await prisma.$transaction(async (tx) => {
+            const archived = await tx.automationWorkflow.updateMany({
+                where: {
+                    id: workflowId,
+                    workspaceId,
+                    status: { not: "archived" },
+                },
+                data: {
+                    status: "archived",
+                    version: { increment: 1 },
+                },
+            });
+
+            if (archived.count === 0) return null;
+
+            // Running runs stop at their next step (the runner checks the
+            // workflow status); queued and waiting ones are cancelled here.
+            const cancelled = await tx.automationRun.updateMany({
+                where: {
+                    workflowId,
+                    workspaceId,
+                    status: { in: ["queued", "waiting"] },
+                },
+                data: {
+                    status: "cancelled",
+                    completedAt: new Date(),
+                    resumeAt: null,
+                    error: "The automation was archived.",
+                },
+            });
+
+            return { cancelledRuns: cancelled.count };
+        });
+
+        if (!result) {
+            return jsonError("Automation not found.", 404);
+        }
+
+        return NextResponse.json({
+            archived: true,
+            cancelledRuns: result.cancelledRuns,
+        });
+    } catch (error) {
+        if (error instanceof AuthError) {
+            return jsonError(error.message, error.status, error.code);
+        }
+
+        console.error("Automation archive failed:", error);
+
+        return jsonError("Unable to archive automation.", 500);
     }
 }

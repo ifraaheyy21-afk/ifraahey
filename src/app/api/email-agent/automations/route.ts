@@ -20,27 +20,6 @@ function cleanText(value: unknown) {
     return typeof value === "string" ? value.trim() : "";
 }
 
-function requestedWorkspaceId(req: Request) {
-    const { searchParams } = new URL(req.url);
-    return cleanText(searchParams.get("workspaceId"));
-}
-
-function bodyWorkspaceId(body: Record<string, unknown>) {
-    return cleanText(body.workspaceId);
-}
-
-function assertWorkspaceMatch(
-    requested: string,
-    authorised: string,
-) {
-    if (requested && requested !== authorised) {
-        throw new AuthError(
-            "You do not have access to this workspace.",
-            403,
-        );
-    }
-}
-
 function parseStatus(value: unknown): WorkflowStatus | null {
     if (
         value === "draft" ||
@@ -78,10 +57,6 @@ export async function GET(req: Request) {
         const { workspaceId } =
             await getWorkspaceFromRequest(req);
 
-        assertWorkspaceMatch(
-            requestedWorkspaceId(req),
-            workspaceId,
-        );
 
         const { searchParams } = new URL(req.url);
         const rawStatus = cleanText(searchParams.get("status"));
@@ -102,6 +77,9 @@ export async function GET(req: Request) {
             await prisma.automationWorkflow.findMany({
                 where: {
                     workspaceId,
+                    // Archived automations are hidden; they are kept only so
+                    // their run history survives.
+                    status: { not: "archived" },
                     ...(rawStatus
                         ? {
                             status:
@@ -121,9 +99,35 @@ export async function GET(req: Request) {
                 },
             });
 
+        // Finished-run counts per workflow, so the list shows real
+        // completion and success rates.
+        const finished = await prisma.automationRun.groupBy({
+            by: ["workflowId", "status"],
+            where: {
+                workspaceId,
+                status: { in: ["completed", "failed"] },
+            },
+            _count: { _all: true },
+        });
+
+        const outcome = new Map<string, { completed: number; failed: number }>();
+        for (const row of finished) {
+            const entry = outcome.get(row.workflowId) ?? { completed: 0, failed: 0 };
+            if (row.status === "completed") entry.completed += row._count._all;
+            else entry.failed += row._count._all;
+            outcome.set(row.workflowId, entry);
+        }
+
         return NextResponse.json(
             {
-                workflows: workflows.map(serializeWorkflow),
+                workflows: workflows.map((workflow) => {
+                    const counts = outcome.get(workflow.id) ?? { completed: 0, failed: 0 };
+                    return serializeWorkflow({
+                        ...workflow,
+                        completedRuns: counts.completed + counts.failed,
+                        successfulRuns: counts.completed,
+                    });
+                }),
                 source: "live",
             },
             {
@@ -159,10 +163,6 @@ export async function POST(req: Request) {
                 ? (parsed as Record<string, unknown>)
                 : {};
 
-        assertWorkspaceMatch(
-            bodyWorkspaceId(body),
-            workspaceId,
-        );
 
         const name = cleanText(body.name);
         const description = cleanText(body.description);

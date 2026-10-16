@@ -32,12 +32,13 @@ import {
 } from "../../../../lib/workflows";
 import {
     AutomationApiError,
+    archiveAutomation,
     saveAutomation,
 } from "../../../../lib/automation/client";
 
 import styles from "./automations-table.module.css";
 
-type AutomationStatus = "Active" | "Inactive" | "Draft";
+type AutomationStatus = "Active" | "Paused" | "Draft";
 type AutomationView =
     | "all"
     | "active"
@@ -55,6 +56,8 @@ type AutomationRow = {
     status: AutomationStatus;
     totalRuns: number;
     successRate: number;
+    // Runs that reached completed or failed; success rate is meaningless until one has.
+    finishedRuns: number;
     lastRun: string;
     workflow: WorkflowRecord & { version?: number };
 };
@@ -113,7 +116,7 @@ function formatStoredLastRun(value?: string) {
 
 function rowStatus(status: WorkflowRecord["status"]): AutomationStatus {
     if (status === "active") return "Active";
-    if (status === "paused") return "Inactive";
+    if (status === "paused") return "Paused";
     return "Draft";
 }
 
@@ -130,6 +133,7 @@ function toRow(workflow: WorkflowRecord & { version?: number }): AutomationRow {
         status: rowStatus(workflow.status),
         totalRuns: Number(workflow.metrics?.enrolled ?? 0),
         successRate: Number(workflow.metrics?.successRate ?? 0),
+        finishedRuns: Number(workflow.metrics?.completed ?? 0),
         lastRun: formatStoredLastRun(workflow.lastRunAt),
         workflow,
     };
@@ -478,7 +482,7 @@ function AutomationRunsCard({
 
                     <div className={styles.kpiStat}>
                         <div className={styles.kpiStatTop}>
-                            <span>Inactive</span>
+                            <span>Paused</span>
                             <span className={styles.kpiIcon} aria-hidden="true">
                                 <CirclePause size={14} strokeWidth={1.8} />
                             </span>
@@ -791,9 +795,10 @@ export default function AutomationsTablePage() {
     const [creating, setCreating] = useState(false);
     const [error, setError] = useState("");
     const [busyId, setBusyId] = useState<string | null>(null);
+    const [confirmArchiveId, setConfirmArchiveId] = useState<string | null>(null);
 
     const [search, setSearch] = useState("");
-    const [view, setView] = useState<AutomationView>("active");
+    const [view, setView] = useState<AutomationView>("all");
     const [filterOpen, setFilterOpen] = useState(false);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(
         null,
@@ -954,7 +959,7 @@ export default function AutomationsTablePage() {
             const targetStatus: WorkflowRecord["status"] =
                 status === "Active"
                     ? "active"
-                    : status === "Inactive"
+                    : status === "Paused"
                         ? "paused"
                         : "draft";
 
@@ -1032,13 +1037,39 @@ export default function AutomationsTablePage() {
         ],
     );
 
+    const archiveRow = useCallback(
+        async (row: AutomationRow) => {
+            if (busyId) return;
+
+            setBusyId(row.id);
+            setError("");
+
+            try {
+                await archiveAutomation(row.id);
+                setRows((current) => current.filter((item) => item.id !== row.id));
+                setMenuOpenId(null);
+                setConfirmArchiveId(null);
+            } catch (archiveError) {
+                console.error("Automation archive error:", archiveError);
+                setError(
+                    archiveError instanceof Error
+                        ? archiveError.message
+                        : "Unable to archive automation.",
+                );
+            } finally {
+                setBusyId(null);
+            }
+        },
+        [busyId],
+    );
+
     const summary = useMemo(() => {
         const active = rows.filter(
             (row) => row.status === "Active",
         ).length;
 
         const inactive = rows.filter(
-            (row) => row.status === "Inactive",
+            (row) => row.status === "Paused",
         ).length;
 
         const enrolled = rows.reduce(
@@ -1063,7 +1094,7 @@ export default function AutomationsTablePage() {
                 view === "recent" ||
                 view === "old" ||
                 (view === "active" && row.status === "Active") ||
-                (view === "inactive" && row.status === "Inactive") ||
+                (view === "inactive" && row.status === "Paused") ||
                 (view === "draft" && row.status === "Draft");
 
             const matchesSearch =
@@ -1165,7 +1196,7 @@ export default function AutomationsTablePage() {
                         {view === "active"
                             ? "Active workflows"
                             : view === "inactive"
-                                ? "Inactive workflows"
+                                ? "Paused workflows"
                                 : view === "draft"
                                     ? "Draft workflows"
                                     : view === "recent"
@@ -1265,7 +1296,7 @@ export default function AutomationsTablePage() {
                                         setPage(1);
                                     }}
                                 >
-                                    Inactive
+                                    Paused
                                 </button>
 
                                 <button
@@ -1436,19 +1467,28 @@ export default function AutomationsTablePage() {
                                             </td>
 
                                             <td>
-                                                <span
-                                                    className={
-                                                        automation.successRate >
-                                                            0
-                                                            ? styles.successRate
-                                                            : styles.zeroRate
-                                                    }
-                                                >
-                                                    {
-                                                        automation.successRate
-                                                    }
-                                                    %
-                                                </span>
+                                                {automation.finishedRuns === 0 ? (
+                                                    <span
+                                                        className={styles.zeroRate}
+                                                        title="No runs have finished yet"
+                                                    >
+                                                        —
+                                                    </span>
+                                                ) : (
+                                                    <span
+                                                        className={
+                                                            automation.successRate >
+                                                                0
+                                                                ? styles.successRate
+                                                                : styles.zeroRate
+                                                        }
+                                                    >
+                                                        {
+                                                            automation.successRate
+                                                        }
+                                                        %
+                                                    </span>
+                                                )}
                                             </td>
 
                                             <td>
@@ -1512,13 +1552,13 @@ export default function AutomationsTablePage() {
                                                         aria-label={
                                                             active
                                                                 ? "Pause automation"
-                                                                : "Activate automation"
+                                                                : "Resume automation"
                                                         }
                                                         onClick={() =>
                                                             void setStatus(
                                                                 automation,
                                                                 active
-                                                                    ? "Inactive"
+                                                                    ? "Paused"
                                                                     : "Active",
                                                             )
                                                         }
@@ -1545,7 +1585,8 @@ export default function AutomationsTablePage() {
                                                         className={
                                                             styles.moreButton
                                                         }
-                                                        onClick={() =>
+                                                        onClick={() => {
+                                                            setConfirmArchiveId(null);
                                                             setMenuOpenId(
                                                                 (
                                                                     current,
@@ -1554,8 +1595,8 @@ export default function AutomationsTablePage() {
                                                                         automation.id
                                                                         ? null
                                                                         : automation.id,
-                                                            )
-                                                        }
+                                                            );
+                                                        }}
                                                         aria-label={`More actions for ${automation.name}`}
                                                     >
                                                         <MoreHorizontal
@@ -1588,14 +1629,49 @@ export default function AutomationsTablePage() {
                                                                             void setStatus(
                                                                                 automation,
                                                                                 active
-                                                                                    ? "Inactive"
+                                                                                    ? "Paused"
                                                                                     : "Active",
                                                                             )
                                                                         }
                                                                     >
                                                                         {active
-                                                                            ? "Deactivate"
-                                                                            : "Activate"}
+                                                                            ? "Pause"
+                                                                            : "Resume"}
+                                                                    </button>
+                                                                )}
+
+                                                                {confirmArchiveId === automation.id ? (
+                                                                    <div className={styles.archiveConfirm}>
+                                                                        <p>
+                                                                            Archive this automation? It stops
+                                                                            enrolling and cancels runs in progress.
+                                                                        </p>
+                                                                        <div>
+                                                                            <button
+                                                                                type="button"
+                                                                                className={styles.archiveConfirmDanger}
+                                                                                disabled={rowBusy}
+                                                                                onClick={() => void archiveRow(automation)}
+                                                                            >
+                                                                                {rowBusy ? "Archiving…" : "Archive"}
+                                                                            </button>
+                                                                            <button
+                                                                                type="button"
+                                                                                disabled={rowBusy}
+                                                                                onClick={() => setConfirmArchiveId(null)}
+                                                                            >
+                                                                                Keep
+                                                                            </button>
+                                                                        </div>
+                                                                    </div>
+                                                                ) : (
+                                                                    <button
+                                                                        type="button"
+                                                                        className={styles.menuDanger}
+                                                                        disabled={rowBusy}
+                                                                        onClick={() => setConfirmArchiveId(automation.id)}
+                                                                    >
+                                                                        Archive
                                                                     </button>
                                                                 )}
                                                             </div>

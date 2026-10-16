@@ -297,3 +297,93 @@ export async function executeAutomation({
         response,
     );
 }
+export type AutomationRunStatus =
+    | "queued"
+    | "running"
+    | "waiting"
+    | "completed"
+    | "failed"
+    | "cancelled";
+
+export type AutomationRunSummary = {
+    id: string;
+    status: AutomationRunStatus;
+    currentNodeId: string | null;
+    resumeAt: string | null;
+    error: string | null;
+    source: "test" | "trigger" | "manual";
+    triggerType: string | null;
+    startedAt: string;
+    completedAt: string | null;
+    createdAt: string;
+    customer: { id: string; name: string; email: string; company: string } | null;
+};
+
+export type AutomationRunStep = {
+    id: string;
+    nodeId: string;
+    nodeType: string;
+    title: string;
+    status: "pending" | "running" | "waiting" | "completed" | "skipped" | "failed";
+    attempt: number;
+    error: string | null;
+    startedAt: string;
+    completedAt: string | null;
+    output: unknown;
+};
+
+export type AutomationRunDetail = Omit<AutomationRunSummary, "source" | "triggerType"> & {
+    steps: AutomationRunStep[];
+};
+
+/** Archive an automation: hidden from the list, unfinished runs cancelled. */
+export async function archiveAutomation(workflowId: string) {
+    const response = await authenticatedFetch(
+        `/api/email-agent/automations/${encodeURIComponent(workflowId)}`,
+        { method: "DELETE" },
+    );
+
+    return jsonOrThrow(response) as Promise<{ archived: true; cancelledRuns: number }>;
+}
+
+export async function listAutomationRuns(workflowId: string, limit = 25) {
+    const response = await authenticatedFetch(
+        `/api/email-agent/automations/${encodeURIComponent(workflowId)}/runs?limit=${limit}`,
+        { method: "GET", cache: "no-store" },
+    );
+
+    const payload = await jsonOrThrow(response);
+
+    return {
+        runs: (payload.runs ?? []) as AutomationRunSummary[],
+        counts: (payload.counts ?? {}) as Partial<Record<AutomationRunStatus, number>>,
+    };
+}
+
+export async function getAutomationRun(runId: string) {
+    const response = await authenticatedFetch(
+        `/api/email-agent/automation-runs/${encodeURIComponent(runId)}`,
+        { method: "GET", cache: "no-store" },
+    );
+
+    const payload = await jsonOrThrow(response);
+    return payload.run as AutomationRunDetail;
+}
+
+/**
+ * Run a published automation now for one contact. Real steps execute:
+ * emails are queued and sent by the send worker within about a minute.
+ */
+export async function startTestRun(workflowId: string, customerId: string) {
+    const response = await authenticatedFetch(
+        `/api/email-agent/automations/${encodeURIComponent(workflowId)}/test-run`,
+        {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ customerId }),
+        },
+    );
+
+    const payload = await jsonOrThrow(response);
+    return payload.run as AutomationRunDetail;
+}

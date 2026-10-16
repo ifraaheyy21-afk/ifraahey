@@ -63,6 +63,12 @@ async function currentResult(runId: string): Promise<RunAutomationResult> {
     }
     return { status: run.status };
 }
+async function currentWorkflowStatus(workflowId: string) {
+    const workflow = await prisma.automationWorkflow.findUnique({
+        where: { id: workflowId }, select: { status: true },
+    });
+    return workflow?.status ?? null;
+}
 async function touchRun(runId: string, token: string) {
     const changed = await prisma.automationRun.updateMany({
         where: ownerWhere(runId, token), data: { updatedAt: new Date() },
@@ -92,6 +98,9 @@ export async function runAutomation(runId: string): Promise<RunAutomationResult>
     if (!run) throw new Error("Automation run not found.");
     // A running run is owned, even if a caller knows its latest timestamp.
     if (run.status !== "queued" && run.status !== "waiting") return currentResult(runId);
+    // Paused (or archived) workflows hold their runs where they are; they
+    // continue from the same step when the workflow is resumed.
+    if (run.workflow.status !== "active") return currentResult(runId);
     if (run.status === "waiting" && (!run.resumeAt || run.resumeAt.getTime() > Date.now())) return currentResult(runId);
 
     const storedContext = asContext(run.context);
@@ -167,6 +176,16 @@ export async function runAutomation(runId: string): Promise<RunAutomationResult>
         let processed = 0;
         while (currentNodeId) {
             await assertOwned();
+            const workflowStatus = await currentWorkflowStatus(run.workflowId);
+            if (workflowStatus !== "active") {
+                const cancelled = workflowStatus === "archived" || workflowStatus === null;
+                await commitRun(runId, token, cancelled
+                    ? { status: "cancelled", completedAt: new Date(), resumeAt: null, error: "The automation was archived." }
+                    : { status: "queued", currentNodeId, context: toJsonInput(executionContext), resumeAt: null });
+                return cancelled
+                    ? { status: "cancelled", completedAt: new Date() }
+                    : { status: "queued" };
+            }
             if (++processed > automationConfig.maxStepsPerRun) throw new Error("Automation stopped because it exceeded the configured step limit.");
             const node = nodesById.get(currentNodeId);
             if (!node) throw new Error(`Workflow step ${currentNodeId} was not found.`);
@@ -259,7 +278,7 @@ async function executeClaimedRun(runId: string, source: WorkerRunResult["source"
 }
 export async function resumeDueAutomationRuns(limit = automationConfig.workerBatchSize) {
     const runs = await prisma.automationRun.findMany({
-        where: { status: "waiting", resumeAt: { lte: new Date() } },
+        where: { status: "waiting", resumeAt: { lte: new Date() }, workflow: { status: "active" } },
         orderBy: { resumeAt: "asc" }, take: batchLimit(limit), select: { id: true },
     });
     const results: WorkerRunResult[] = [];
@@ -269,7 +288,7 @@ export async function resumeDueAutomationRuns(limit = automationConfig.workerBat
 }
 export async function processQueuedAutomationRuns(limit = automationConfig.workerBatchSize) {
     const runs = await prisma.automationRun.findMany({
-        where: { status: "queued" }, orderBy: { createdAt: "asc" },
+        where: { status: "queued", workflow: { status: "active" } }, orderBy: { createdAt: "asc" },
         take: batchLimit(limit), select: { id: true },
     });
     const results: WorkerRunResult[] = [];
