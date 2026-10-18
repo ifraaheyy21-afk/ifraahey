@@ -18,6 +18,15 @@ export type InboxFolder =
 
 export type InboxMessageDirection = "inbound" | "outbound";
 
+/** Where a conversation happens. Email today; messaging apps plug in later. */
+export type InboxChannel = "email" | "whatsapp" | "telegram" | "instagram" | "messenger";
+
+export const CHAT_CHANNELS: InboxChannel[] = ["whatsapp", "telegram", "instagram", "messenger"];
+
+export function isChatChannel(channel: InboxChannel | undefined) {
+    return Boolean(channel && channel !== "email");
+}
+
 export type InboxMessageStatus =
 
     | "received"
@@ -46,6 +55,10 @@ export type InboxAttachment = {
 
     sizeLabel: string;
 
+
+    /** A local preview link, for files added in the browser. */
+    url?: string;
+
 };
 
 export type InboxMessage = {
@@ -72,11 +85,28 @@ export type InboxMessage = {
 
     attachments?: InboxAttachment[];
 
+    // RFC 5322 Message-ID of the delivered email, when the provider gave one.
+    // Replies use it for In-Reply-To/References.
+    providerMessageId?: string;
+
 };
 
 export type InboxThread = {
 
     id: string;
+
+    /** Missing means email. */
+    channel?: InboxChannel;
+
+    /** Phone number or @handle for chat channels. */
+    customerHandle?: string;
+
+    /** Optional profile details shown beside chats. */
+    customerTitle?: string;
+    customerLocation?: string;
+    /** IANA time zone, e.g. "Europe/London", for the contact's local time. */
+    customerTimeZone?: string;
+    customerLanguages?: string[];
 
     customerId: string | null;
 
@@ -2778,9 +2808,151 @@ const folderOrder: InboxFolder[] = [
 
 ];
 
+
+// Chat conversations from messaging channels. They show how WhatsApp,
+// Telegram and Instagram threads appear once those integrations exist.
+function chatMessage(
+    id: string,
+    direction: "inbound" | "outbound",
+    who: { name: string; handle: string },
+    minutesFromNow: number,
+    text: string,
+): InboxMessage {
+    const us = { name: "You", handle: "" };
+    const from = direction === "inbound" ? who : us;
+    const to = direction === "inbound" ? us : who;
+    return {
+        id,
+        direction,
+        fromName: from.name,
+        fromEmail: from.handle,
+        toName: to.name,
+        toEmail: to.handle,
+        sentAt: demoIso(minutesFromNow),
+        status: direction === "inbound" ? "received" : "delivered",
+        html: null,
+        plainText: text,
+    };
+}
+
+const maya = { name: "Maya Okafor", handle: "+44 7700 900412" };
+const leo = { name: "Leo Brandt", handle: "@leobrandt" };
+const sana = { name: "Sana Qureshi", handle: "@sana.designs" };
+const tomas = { name: "Tomás Ruiz", handle: "+34 612 448 901" };
+
+const demoChatThreads: InboxThread[] = [
+    {
+        id: "chat_whatsapp_maya",
+        customerTitle: "Head of Operations",
+        customerLocation: "London, United Kingdom",
+        customerTimeZone: "Europe/London",
+        customerLanguages: ["English"],
+        channel: "whatsapp",
+        customerId: null,
+        customerName: maya.name,
+        customerEmail: "maya@northwind.io",
+        customerHandle: maya.handle,
+        customerCompany: "Northwind",
+        subject: "Seat upgrade before Monday",
+        preview: "Perfect, can you send the invoice to finance@northwind.io?",
+        folder: "inbox",
+        labels: [],
+        unread: true,
+        starred: false,
+        archived: false,
+        lastMessageAt: demoIso(-6),
+        messages: [
+            chatMessage("chat_maya_1", "inbound", maya, -55, "Hi! We're adding 8 people to the team next week. Can we upgrade our seats before Monday?"),
+            chatMessage("chat_maya_2", "outbound", maya, -48, "Hi Maya, yes of course. You're on the Growth plan with 12 seats, so going to 20 keeps your current price per seat."),
+            chatMessage("chat_maya_3", "inbound", maya, -40, "Great. Will the new people get access to the dashboards straight away?"),
+            chatMessage("chat_maya_4", "outbound", maya, -33, "Yes, as soon as you invite them. I can make the change now and it'll show on next month's invoice."),
+            chatMessage("chat_maya_5", "inbound", maya, -6, "Perfect, can you send the invoice to finance@northwind.io?"),
+        ],
+    },
+    {
+        id: "chat_telegram_leo",
+        customerTitle: "CTO",
+        customerLocation: "Berlin, Germany",
+        customerTimeZone: "Europe/Berlin",
+        customerLanguages: ["German", "English"],
+        channel: "telegram",
+        customerId: null,
+        customerName: leo.name,
+        customerEmail: "",
+        customerHandle: leo.handle,
+        customerCompany: "Brandt & Co",
+        subject: "API rate limit question",
+        preview: "Thanks, that fixed it 🙌",
+        folder: "inbox",
+        labels: [],
+        unread: false,
+        starred: true,
+        archived: false,
+        lastMessageAt: demoIso(-95),
+        messages: [
+            chatMessage("chat_leo_1", "inbound", leo, -180, "Hey, our sync keeps getting 429 errors since this morning. Did something change with the API limits?"),
+            chatMessage("chat_leo_2", "outbound", leo, -170, "Hi Leo, nothing changed on our side. 429 means more than 60 requests a minute from one key. Are you running the sync from several workers?"),
+            chatMessage("chat_leo_3", "inbound", leo, -150, "Ah, we scaled to 4 workers yesterday. That's probably it."),
+            chatMessage("chat_leo_4", "outbound", leo, -140, "That would do it. Either share one queue between them, or I can raise your limit to 240 a minute."),
+            chatMessage("chat_leo_5", "inbound", leo, -95, "Thanks, that fixed it 🙌"),
+        ],
+    },
+    {
+        id: "chat_instagram_sana",
+        customerTitle: "Founder, Sana Studio",
+        customerLocation: "Manchester, United Kingdom",
+        customerTimeZone: "Europe/London",
+        customerLanguages: ["English", "Urdu"],
+        channel: "instagram",
+        customerId: null,
+        customerName: sana.name,
+        customerEmail: "",
+        customerHandle: sana.handle,
+        customerCompany: null,
+        subject: "Partnership enquiry",
+        preview: "Would you be open to a quick call this week?",
+        folder: "inbox",
+        labels: [],
+        unread: true,
+        starred: false,
+        archived: false,
+        lastMessageAt: demoIso(-60 * 26),
+        messages: [
+            chatMessage("chat_sana_1", "inbound", sana, -60 * 27, "Hi! I run a small design studio and we recommend your tool to a lot of clients 😊"),
+            chatMessage("chat_sana_2", "inbound", sana, -60 * 26, "Would you be open to a quick call this week to talk about a referral partnership?"),
+        ],
+    },
+    {
+        id: "chat_whatsapp_tomas",
+        customerTitle: "Operations Manager",
+        customerLocation: "Valencia, Spain",
+        customerTimeZone: "Europe/Madrid",
+        customerLanguages: ["Spanish", "English"],
+        channel: "whatsapp",
+        customerId: null,
+        customerName: tomas.name,
+        customerEmail: "tomas@ruizlogistics.es",
+        customerHandle: tomas.handle,
+        customerCompany: "Ruiz Logistics",
+        subject: "Login trouble",
+        preview: "I'm in now, thank you!",
+        folder: "inbox",
+        labels: [],
+        unread: false,
+        starred: false,
+        archived: false,
+        lastMessageAt: demoIso(-60 * 50),
+        messages: [
+            chatMessage("chat_tomas_1", "inbound", tomas, -60 * 52, "Hola, I can't log in. It says my link has expired."),
+            chatMessage("chat_tomas_2", "outbound", tomas, -60 * 51, "Hi Tomás, sign-in links last 15 minutes. I've just sent you a fresh one to tomas@ruizlogistics.es."),
+            chatMessage("chat_tomas_3", "inbound", tomas, -60 * 50, "I'm in now, thank you!"),
+        ],
+    },
+];
+
 function cloneDemoThreads(): InboxThread[] {
 
-    return demoThreads.map((thread) => ({
+    return [...demoThreads, ...demoChatThreads].map((thread) => ({
 
         ...thread,
 
