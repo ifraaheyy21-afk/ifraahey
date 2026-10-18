@@ -29,6 +29,7 @@ model Workspace {
   oauthAuthorizationCodes OAuthAuthorizationCode[]
   oauthAccessTokens       OAuthAccessToken[]
   oauthRefreshTokens      OAuthRefreshToken[]
+  inboxSentMessages       InboxSentMessage[]
 }
 
 model BrandEmailProfile {
@@ -510,4 +511,37 @@ model RateLimitBucket {
   key     String   @id
   count   Int
   resetAt DateTime
+}
+
+// Replies and new emails sent by hand from the dashboard inbox. The inbox
+// reads these back so a sent message shows in its thread and the Sent folder.
+model InboxSentMessage {
+  id                 String    @id @default(cuid())
+  workspaceId        String
+  // Stable per draft, so a retried send reuses the same Resend idempotency key.
+  sendKey            String
+  // The inbox thread this replies to; null for a new email from Compose.
+  threadId           String?
+  toEmail            String
+  toName             String?
+  fromEmail          String
+  fromName           String?
+  subject            String
+  html               String
+  plainText          String
+  inReplyTo          String?
+  attachmentName     String?
+  attachmentMimeType String?
+  attachmentSize     Int?
+  status             String    @default("sending")
+  failureReason      String?
+  providerMessageId  String?
+  sentAt             DateTime?
+  createdAt          DateTime  @default(now())
+  updatedAt          DateTime  @updatedAt
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, sendKey])
+  @@index([workspaceId, threadId])
+  @@index([workspaceId, createdAt])
 }
