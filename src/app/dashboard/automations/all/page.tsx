@@ -6,22 +6,18 @@ import {
     useCallback,
     useEffect,
     useMemo,
+    useRef,
     useState,
 } from "react";
 import {
-    Activity,
+    ArrowUpDown,
     ChevronDown,
     ChevronLeft,
     ChevronRight,
-    CirclePause,
-    Clock3,
-    MoreHorizontal,
-    Pause,
-    Play,
+    Download,
+    MoreVertical,
+    Plus,
     Search,
-    SlidersHorizontal,
-    UsersRound,
-    Workflow,
 } from "lucide-react";
 
 import {
@@ -36,17 +32,11 @@ import {
     saveAutomation,
 } from "../../../../lib/automation/client";
 
-import styles from "./automations-table.module.css";
+import WorkflowStatusChart from "./WorkflowStatusChart";
+import styles from "./workflows-page.module.css";
 
 type AutomationStatus = "Active" | "Paused" | "Draft";
-type AutomationView =
-    | "all"
-    | "active"
-    | "inactive"
-    | "draft"
-    | "recent"
-    | "old";
-type ChartPeriod = "W" | "12M";
+type AutomationView = "all" | "active" | "inactive" | "draft";
 
 type AutomationRow = {
     id: string;
@@ -60,26 +50,6 @@ type AutomationRow = {
     finishedRuns: number;
     lastRun: string;
     workflow: WorkflowRecord & { version?: number };
-};
-
-type ChartPoint = {
-    key: string;
-    label: string;
-    fullLabel: string;
-    runs: number;
-    successful: number;
-    unsuccessful: number;
-    successRate: number;
-};
-
-type AnalyticsPayload = {
-    points?: Array<{
-        key?: unknown;
-        runs?: unknown;
-        successful?: unknown;
-        unsuccessful?: unknown;
-        successRate?: unknown;
-    }>;
 };
 
 const PAGE_SIZE = 10;
@@ -164,627 +134,18 @@ function normalizeWorkflowList(payload: unknown): Array<WorkflowRecord & { versi
     );
 }
 
-function getTriggerClass(trigger: string) {
-    switch (trigger.toLowerCase()) {
-        case "new contact":
-            return styles.triggerBlue;
-        case "email opened":
-            return styles.triggerPurple;
-        case "email clicked":
-            return styles.triggerAmber;
-        case "reply received":
-            return styles.triggerGreen;
-        case "no reply":
-            return styles.triggerPink;
-        case "scheduled":
-            return styles.triggerTeal;
-        default:
-            return styles.triggerNeutral;
-    }
+/** Steps after the trigger. */
+function stepCount(row: AutomationRow) {
+    return row.workflow.nodes.filter((node) => node.type !== "trigger").length;
 }
 
-function startOfCurrentWeek(referenceDate: Date) {
-    const day = referenceDate.getDay();
-    const mondayOffset = day === 0 ? -6 : 1 - day;
-    const monday = new Date(referenceDate);
-
-    monday.setHours(12, 0, 0, 0);
-    monday.setDate(referenceDate.getDate() + mondayOffset);
-
-    return monday;
-}
-
-function dateBucketMetadata(period: ChartPeriod, referenceDate: Date) {
-    if (period === "W") {
-        const monday = startOfCurrentWeek(referenceDate);
-
-        return Array.from({ length: 7 }, (_, index) => {
-            const date = new Date(monday);
-            date.setDate(monday.getDate() + index);
-
-            return {
-                key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`,
-                label: new Intl.DateTimeFormat("en-GB", {
-                    weekday: "short",
-                }).format(date),
-                fullLabel: new Intl.DateTimeFormat("en-GB", {
-                    weekday: "short",
-                    day: "numeric",
-                    month: "long",
-                    year: "numeric",
-                }).format(date),
-            };
-        });
-    }
-
-    const currentMonth = new Date(
-        referenceDate.getFullYear(),
-        referenceDate.getMonth(),
-        1,
-        12,
-        0,
-        0,
-        0,
-    );
-
-    return Array.from({ length: 12 }, (_, index) => {
-        const date = new Date(currentMonth);
-        date.setMonth(currentMonth.getMonth() - (11 - index));
-
-        return {
-            key: `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}`,
-            label: new Intl.DateTimeFormat("en-GB", {
-                month: "short",
-            }).format(date),
-            fullLabel: new Intl.DateTimeFormat("en-GB", {
-                month: "long",
-                year: "numeric",
-            }).format(date),
-        };
-    });
-}
-
-function mergeAnalyticsPoints(
-    payload: AnalyticsPayload | null,
-    period: ChartPeriod,
-    referenceDate: Date,
-): ChartPoint[] {
-    const metadata = dateBucketMetadata(period, referenceDate);
-    const byKey = new Map(
-        (payload?.points ?? [])
-            .filter((point) => typeof point?.key === "string")
-            .map((point) => [String(point.key), point]),
-    );
-
-    return metadata.map((bucket) => {
-        const point = byKey.get(bucket.key);
-
-        const runs = Number(point?.runs ?? 0);
-        const successful = Number(point?.successful ?? 0);
-        const unsuccessful = Number(point?.unsuccessful ?? 0);
-        const successRate = Number(point?.successRate ?? 0);
-
-        return {
-            ...bucket,
-            runs: Number.isFinite(runs) ? Math.max(0, runs) : 0,
-            successful: Number.isFinite(successful)
-                ? Math.max(0, successful)
-                : 0,
-            unsuccessful: Number.isFinite(unsuccessful)
-                ? Math.max(0, unsuccessful)
-                : 0,
-            successRate: Number.isFinite(successRate)
-                ? Math.max(0, Math.min(100, Math.round(successRate)))
-                : 0,
-        };
-    });
-}
-
-function AutomationRunsCard({
-    rows,
-    summary,
-    workspaceId,
-}: {
-    rows: AutomationRow[];
-    summary: {
-        total: number;
-        active: number;
-        enrolled: number;
-        inactive: number;
-    };
-    workspaceId: string;
-}) {
-    const [period, setPeriod] = useState<ChartPeriod>("W");
-    const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
-    const [clientNow, setClientNow] = useState<Date | null>(null);
-    const [analytics, setAnalytics] = useState<AnalyticsPayload | null>(null);
-    const [analyticsLoading, setAnalyticsLoading] = useState(false);
-
-    useEffect(() => {
-        const updateNow = () => setClientNow(new Date());
-        updateNow();
-
-        const interval = window.setInterval(updateNow, 60_000);
-        return () => window.clearInterval(interval);
-    }, []);
-
-    useEffect(() => {
-        if (!workspaceId || workspaceId === "demo-workspace") {
-            setAnalytics(null);
-            return;
-        }
-
-        let cancelled = false;
-
-        async function loadAnalytics() {
-            setAnalyticsLoading(true);
-
-            try {
-                const response = await fetch(
-                    `/api/email-agent/automations/analytics?workspaceId=${encodeURIComponent(
-                        workspaceId,
-                    )}&period=${period}`,
-                    {
-                        method: "GET",
-                        credentials: "include",
-                        cache: "no-store",
-                    },
-                );
-
-                const payload: unknown = await response.json().catch(() => ({}));
-
-                if (!response.ok) {
-                    throw new Error(
-                        payload &&
-                            typeof payload === "object" &&
-                            "error" in payload &&
-                            typeof (payload as { error?: unknown }).error === "string"
-                            ? (payload as { error: string }).error
-                            : "Unable to load automation analytics.",
-                    );
-                }
-
-                if (!cancelled) {
-                    setAnalytics(
-                        payload && typeof payload === "object"
-                            ? (payload as AnalyticsPayload)
-                            : null,
-                    );
-                }
-            } catch (error) {
-                console.error("Automation analytics load error:", error);
-
-                if (!cancelled) {
-                    setAnalytics(null);
-                }
-            } finally {
-                if (!cancelled) {
-                    setAnalyticsLoading(false);
-                }
-            }
-        }
-
-        void loadAnalytics();
-
-        return () => {
-            cancelled = true;
-        };
-    }, [period, workspaceId]);
-
-    const chartData = useMemo(
-        () =>
-            mergeAnalyticsPoints(
-                analytics,
-                period,
-                clientNow ?? new Date(),
-            ),
-        [analytics, clientNow, period],
-    );
-
-    const totalRuns = useMemo(
-        () => rows.reduce((sum, row) => sum + row.totalRuns, 0),
-        [rows],
-    );
-
-    const overallSuccess = useMemo(() => {
-        if (!totalRuns) return 0;
-
-        const successfulRuns = rows.reduce(
-            (sum, row) =>
-                sum + row.totalRuns * (row.successRate / 100),
-            0,
-        );
-
-        return Math.round((successfulRuns / totalRuns) * 100);
-    }, [rows, totalRuns]);
-
-    const chartDateRange = useMemo(() => {
-        if (!clientNow) return "";
-
-        if (period === "W") {
-            const monday = startOfCurrentWeek(clientNow);
-            const sunday = new Date(monday);
-            sunday.setDate(monday.getDate() + 6);
-
-            const start = new Intl.DateTimeFormat("en-GB", {
-                day: "numeric",
-                month: "short",
-            }).format(monday);
-
-            const end = new Intl.DateTimeFormat("en-GB", {
-                day: "numeric",
-                month: "short",
-                year: "numeric",
-            }).format(sunday);
-
-            return `${start} – ${end}`;
-        }
-
-        const buckets = dateBucketMetadata("12M", clientNow);
-
-        return `${buckets[0]?.fullLabel ?? ""} – ${buckets[11]?.fullLabel ?? ""
-            }`;
-    }, [clientNow, period]);
-
-    const maxRuns = Math.max(
-        1,
-        ...chartData.map((point) => point.runs),
-    );
-
-    const axisMax = Math.max(
-        10,
-        Math.ceil(maxRuns / 10) * 10,
-    );
-
-    const yTicks = [1, 0.8, 0.6, 0.4, 0.2, 0].map((ratio) =>
-        Math.round(axisMax * ratio),
-    );
-
-    const hoveredPoint =
-        hoveredIndex !== null ? chartData[hoveredIndex] : null;
-
-    return (
-        <section className={styles.overviewGrid}>
-            <article className={styles.kpiCard}>
-                <div className={styles.kpiStatsGrid}>
-                    <div className={styles.kpiStat}>
-                        <div className={styles.kpiStatTop}>
-                            <span>Total Workflows</span>
-                            <span className={styles.kpiIcon} aria-hidden="true">
-                                <Workflow size={14} strokeWidth={1.8} />
-                            </span>
-                        </div>
-                        <strong>{summary.total}</strong>
-                        <small>Saved workflows</small>
-                    </div>
-
-                    <div className={styles.kpiStat}>
-                        <div className={styles.kpiStatTop}>
-                            <span>Active</span>
-                            <span className={styles.kpiIcon} aria-hidden="true">
-                                <Activity size={14} strokeWidth={1.8} />
-                            </span>
-                        </div>
-                        <strong>{summary.active}</strong>
-                        <small>Running workflows</small>
-                    </div>
-
-                    <div className={styles.kpiStat}>
-                        <div className={styles.kpiStatTop}>
-                            <span>Total Enrolled</span>
-                            <span className={styles.kpiIcon} aria-hidden="true">
-                                <UsersRound size={14} strokeWidth={1.8} />
-                            </span>
-                        </div>
-                        <strong>{summary.enrolled.toLocaleString("en-GB")}</strong>
-                        <small>Real workflow runs</small>
-                    </div>
-
-                    <div className={styles.kpiStat}>
-                        <div className={styles.kpiStatTop}>
-                            <span>Paused</span>
-                            <span className={styles.kpiIcon} aria-hidden="true">
-                                <CirclePause size={14} strokeWidth={1.8} />
-                            </span>
-                        </div>
-                        <strong>{summary.inactive}</strong>
-                        <small>Paused workflows</small>
-                    </div>
-                </div>
-            </article>
-
-            <article className={styles.chartCard}>
-                <div className={styles.performanceHeader}>
-                    <div>
-                        <div className={styles.performanceEyebrow}>
-                            Automation runs
-                        </div>
-
-                        <div className={styles.chartValueRow}>
-                            <strong>
-                                {totalRuns.toLocaleString("en-GB")}
-                            </strong>
-
-                            <div className={styles.performanceChange}>
-                                <span>{overallSuccess}%</span>
-                                <small>success rate</small>
-                            </div>
-                        </div>
-
-                        <div className={styles.performanceMeta}>
-                            {analyticsLoading
-                                ? "Loading run history…"
-                                : chartDateRange || " "}
-                        </div>
-                    </div>
-
-                    <div
-                        className={styles.periodControl}
-                        aria-label="Automation runs period"
-                    >
-                        <button
-                            type="button"
-                            className={
-                                period === "W"
-                                    ? styles.periodButtonActive
-                                    : ""
-                            }
-                            onClick={() => {
-                                setPeriod("W");
-                                setHoveredIndex(null);
-                            }}
-                        >
-                            Week
-                        </button>
-
-                        <button
-                            type="button"
-                            className={
-                                period === "12M"
-                                    ? styles.periodButtonActive
-                                    : ""
-                            }
-                            onClick={() => {
-                                setPeriod("12M");
-                                setHoveredIndex(null);
-                            }}
-                        >
-                            12 Months
-                        </button>
-                    </div>
-                </div>
-
-                <div className={styles.chartCanvas}>
-                    <div
-                        className={styles.barChart}
-                        role="img"
-                        aria-label={
-                            period === "W"
-                                ? "Real automation runs from Monday to Sunday"
-                                : "Real automation runs across the latest 12 months"
-                        }
-                    >
-                        <div
-                            className={styles.barChartScale}
-                            aria-hidden="true"
-                        >
-                            {yTicks.map((tick, index) => (
-                                <span key={`${tick}-${index}`}>
-                                    {tick.toLocaleString("en-GB")}
-                                </span>
-                            ))}
-                        </div>
-
-                        <div className={styles.barChartPlot}>
-                            <div
-                                className={styles.barChartGrid}
-                                aria-hidden="true"
-                            >
-                                {yTicks.map((tick, index) => (
-                                    <span key={`${tick}-${index}`} />
-                                ))}
-                            </div>
-
-                            <div
-                                className={`${styles.barChartBars} ${period === "12M"
-                                        ? styles.barChartBarsTwelveMonths
-                                        : ""
-                                    }`}
-                            >
-                                {chartData.map((point, index) => {
-                                    const totalHeight =
-                                        axisMax > 0
-                                            ? (point.runs / axisMax) * 100
-                                            : 0;
-
-                                    const successfulHeight =
-                                        axisMax > 0
-                                            ? (point.successful / axisMax) * 100
-                                            : 0;
-
-                                    const unsuccessfulHeight =
-                                        axisMax > 0
-                                            ? (point.unsuccessful / axisMax) * 100
-                                            : 0;
-
-                                    const currentDate =
-                                        clientNow ?? new Date();
-
-                                    const currentKey =
-                                        period === "W"
-                                            ? `${currentDate.getFullYear()}-${String(
-                                                currentDate.getMonth() + 1,
-                                            ).padStart(2, "0")}-${String(
-                                                currentDate.getDate(),
-                                            ).padStart(2, "0")}`
-                                            : `${currentDate.getFullYear()}-${String(
-                                                currentDate.getMonth() + 1,
-                                            ).padStart(2, "0")}`;
-
-                                    const isCurrent =
-                                        point.key === currentKey;
-
-                                    return (
-                                        <div
-                                            className={`${styles.barChartColumn} ${isCurrent
-                                                    ? styles.barChartColumnCurrent
-                                                    : ""
-                                                }`}
-                                            key={point.key}
-                                        >
-                                            <div
-                                                className={styles.barChartTrack}
-                                                tabIndex={0}
-                                                onMouseEnter={() =>
-                                                    setHoveredIndex(index)
-                                                }
-                                                onMouseLeave={() =>
-                                                    setHoveredIndex(null)
-                                                }
-                                                onFocus={() =>
-                                                    setHoveredIndex(index)
-                                                }
-                                                onBlur={() =>
-                                                    setHoveredIndex(null)
-                                                }
-                                            >
-                                                <div
-                                                    className={
-                                                        styles.barChartTotal
-                                                    }
-                                                    style={{
-                                                        height: `${totalHeight}%`,
-                                                    }}
-                                                />
-
-                                                <div
-                                                    className={
-                                                        styles.barChartActualStack
-                                                    }
-                                                >
-                                                    <div
-                                                        className={`${styles.barChartSegment} ${styles.barChartSuccessful}`}
-                                                        style={{
-                                                            height: `${successfulHeight}%`,
-                                                        }}
-                                                    />
-
-                                                    <div
-                                                        className={`${styles.barChartSegment} ${styles.barChartUnsuccessful}`}
-                                                        style={{
-                                                            height: `${unsuccessfulHeight}%`,
-                                                        }}
-                                                    />
-                                                </div>
-
-                                                {hoveredPoint &&
-                                                    hoveredIndex === index && (
-                                                        <div
-                                                            className={
-                                                                styles.barChartTooltip
-                                                            }
-                                                            role="tooltip"
-                                                        >
-                                                            <strong>
-                                                                {
-                                                                    point.fullLabel
-                                                                }
-                                                            </strong>
-
-                                                            <span>
-                                                                <i
-                                                                    className={
-                                                                        styles.legendTotal
-                                                                    }
-                                                                />
-                                                                Total Runs
-                                                                <b>
-                                                                    {point.runs.toLocaleString(
-                                                                        "en-GB",
-                                                                    )}
-                                                                </b>
-                                                            </span>
-
-                                                            <span>
-                                                                <i
-                                                                    className={
-                                                                        styles.legendSuccessful
-                                                                    }
-                                                                />
-                                                                Successful
-                                                                <b>
-                                                                    {point.successful.toLocaleString(
-                                                                        "en-GB",
-                                                                    )}
-                                                                </b>
-                                                            </span>
-
-                                                            <span>
-                                                                <i
-                                                                    className={
-                                                                        styles.legendUnsuccessful
-                                                                    }
-                                                                />
-                                                                Unsuccessful
-                                                                <b>
-                                                                    {point.unsuccessful.toLocaleString(
-                                                                        "en-GB",
-                                                                    )}
-                                                                </b>
-                                                            </span>
-
-                                                            <span>
-                                                                <i
-                                                                    className={
-                                                                        styles.legendRate
-                                                                    }
-                                                                />
-                                                                Success Rate
-                                                                <b>
-                                                                    {
-                                                                        point.successRate
-                                                                    }
-                                                                    %
-                                                                </b>
-                                                            </span>
-                                                        </div>
-                                                    )}
-                                            </div>
-
-                                            <span>{point.label}</span>
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-                    </div>
-
-                    <div
-                        className={styles.barChartLegend}
-                        aria-label="Chart legend"
-                    >
-                        <span>
-                            <i className={styles.legendTotal} />
-                            Total Runs
-                        </span>
-                        <span>
-                            <i className={styles.legendSuccessful} />
-                            Successful
-                        </span>
-                        <span>
-                            <i className={styles.legendUnsuccessful} />
-                            Unsuccessful
-                        </span>
-                        <span>
-                            <i className={styles.legendRate} />
-                            Success Rate
-                        </span>
-                    </div>
-                </div>
-            </article>
-        </section>
-    );
-}
+type SortMode = "recent" | "oldest" | "name";
+
+const SORT_LABELS: Record<SortMode, string> = {
+    recent: "Recently updated",
+    oldest: "Oldest first",
+    name: "Name A–Z",
+};
 
 export default function AutomationsTablePage() {
     const router = useRouter();
@@ -799,7 +160,9 @@ export default function AutomationsTablePage() {
 
     const [search, setSearch] = useState("");
     const [view, setView] = useState<AutomationView>("all");
-    const [filterOpen, setFilterOpen] = useState(false);
+    const [sort, setSort] = useState<SortMode>("recent");
+    const [sortOpen, setSortOpen] = useState(false);
+    const searchRef = useRef<HTMLInputElement | null>(null);
     const [menuOpenId, setMenuOpenId] = useState<string | null>(
         null,
     );
@@ -1087,41 +450,40 @@ export default function AutomationsTablePage() {
 
     const filteredRows = useMemo(() => {
         const query = search.trim().toLowerCase();
+        const time = (row: AutomationRow) => {
+            const value = new Date(row.workflow.updatedAt).getTime();
+            return Number.isFinite(value) ? value : 0;
+        };
 
-        const filtered = rows.filter((row) => {
-            const matchesView =
-                view === "all" ||
-                view === "recent" ||
-                view === "old" ||
-                (view === "active" && row.status === "Active") ||
-                (view === "inactive" && row.status === "Paused") ||
-                (view === "draft" && row.status === "Draft");
+        return rows
+            .filter((row) =>
+                (view === "all" ||
+                    (view === "active" && row.status === "Active") ||
+                    (view === "inactive" && row.status === "Paused") ||
+                    (view === "draft" && row.status === "Draft")) &&
+                (!query ||
+                    row.name.toLowerCase().includes(query) ||
+                    row.description.toLowerCase().includes(query) ||
+                    row.trigger.toLowerCase().includes(query)))
+            .sort((a, b) =>
+                sort === "name"
+                    ? a.name.localeCompare(b.name)
+                    : sort === "oldest"
+                        ? time(a) - time(b)
+                        : time(b) - time(a));
+    }, [rows, search, sort, view]);
 
-            const matchesSearch =
-                !query ||
-                row.name.toLowerCase().includes(query) ||
-                row.description.toLowerCase().includes(query) ||
-                row.trigger.toLowerCase().includes(query);
-
-            return matchesView && matchesSearch;
-        });
-
-        if (view !== "recent" && view !== "old") {
-            return filtered;
-        }
-
-        return [...filtered].sort((a, b) => {
-            const aTime = new Date(a.workflow.updatedAt).getTime();
-            const bTime = new Date(b.workflow.updatedAt).getTime();
-
-            const safeATime = Number.isFinite(aTime) ? aTime : 0;
-            const safeBTime = Number.isFinite(bTime) ? bTime : 0;
-
-            return view === "recent"
-                ? safeBTime - safeATime
-                : safeATime - safeBTime;
-        });
-    }, [rows, search, view]);
+    // ⌘K / Ctrl+K jumps to search, as the hint in the header says.
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                searchRef.current?.focus();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
 
     const totalPages = Math.max(
         1,
@@ -1141,21 +503,60 @@ export default function AutomationsTablePage() {
         }
     }, [page, totalPages]);
 
+    const tabs: Array<{ view: AutomationView; label: string; count: number }> = [
+        { view: "all", label: "All", count: rows.length },
+        { view: "active", label: "Active", count: summary.active },
+        { view: "inactive", label: "Paused", count: summary.inactive },
+        { view: "draft", label: "Drafts", count: rows.length - summary.active - summary.inactive },
+    ];
+
+    const exportCsv = () => {
+        const escape = (value: string | number) => `"${String(value).replaceAll('"', '""')}"`;
+        const lines = [
+            ["Name", "Status", "Trigger", "Enrolled", "Completed", "Success rate", "Steps", "Last run"],
+            ...filteredRows.map((row) => [
+                row.name,
+                row.status,
+                row.trigger,
+                row.totalRuns,
+                row.finishedRuns,
+                row.finishedRuns ? `${row.successRate}%` : "",
+                stepCount(row),
+                row.lastRun,
+            ]),
+        ].map((line) => line.map(escape).join(","));
+        const url = URL.createObjectURL(new Blob([lines.join("\n")], { type: "text/csv" }));
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "workflows.csv";
+        link.click();
+        URL.revokeObjectURL(url);
+    };
+
+    const firstShown = filteredRows.length ? (safePage - 1) * PAGE_SIZE + 1 : 0;
+    const lastShown = Math.min(safePage * PAGE_SIZE, filteredRows.length);
+
     return (
         <main className={styles.page}>
-            <header className={styles.pageHeader}>
-                <div>
-                    <div className={styles.breadcrumb}>
-                        Dashboard / Automations
-                    </div>
+            <header className={styles.header}>
+                <h1>Automations</h1>
 
-                    <h1>Automations</h1>
+                <label className={styles.headerSearch}>
+                    <Search size={15} aria-hidden="true" />
+                    <input
+                        ref={searchRef}
+                        value={search}
+                        onChange={(event) => {
+                            setSearch(event.target.value);
+                            setPage(1);
+                        }}
+                        placeholder="Search automations…"
+                        aria-label="Search automations"
+                    />
+                    <kbd>⌘K</kbd>
+                </label>
 
-                    <p>
-                        Build, monitor and manage your workflow
-                        automations.
-                    </p>
-                </div>
+                <span className={styles.headerSpacer} />
 
                 <button
                     type="button"
@@ -1163,519 +564,224 @@ export default function AutomationsTablePage() {
                     onClick={() => void createWorkflow()}
                     disabled={creating}
                 >
+                    <Plus size={15} aria-hidden="true" />
                     {creating ? "Creating…" : "Create workflow"}
                 </button>
             </header>
 
-            {error && (
-                <div
-                    role="alert"
-                    style={{
-                        marginBottom: 14,
-                        padding: "10px 12px",
-                        border: "1px solid #fecaca",
-                        borderRadius: 10,
-                        background: "#fff7f7",
-                        color: "#991b1b",
-                        fontSize: 13,
-                    }}
-                >
-                    {error}
-                </div>
-            )}
+            {error && <div className={styles.error} role="alert">{error}</div>}
 
-            <AutomationRunsCard
-                rows={rows}
-                summary={summary}
-                workspaceId={workspaceId}
+            <WorkflowStatusChart
+                loading={loading}
+                workflows={rows.map((row) => ({ status: row.status, createdAt: row.workflow.createdAt }))}
             />
 
-            <section className={styles.tableSection}>
-                <div className={styles.tableTopline}>
-                    <h2>
-                        {view === "active"
-                            ? "Active workflows"
-                            : view === "inactive"
-                                ? "Paused workflows"
-                                : view === "draft"
-                                    ? "Draft workflows"
-                                    : view === "recent"
-                                        ? "Recent workflows"
-                                        : view === "old"
-                                            ? "Old workflows"
-                                            : "All automations"}
-                    </h2>
-
-                    <span>
-                        {filteredRows.length} workflow
-                        {filteredRows.length === 1 ? "" : "s"}
-                    </span>
-                </div>
-
-                <div className={styles.toolbar}>
-                    <label className={styles.searchBox}>
-                        <Search size={15} />
-
-                        <input
-                            value={search}
-                            onChange={(event) => {
-                                setSearch(event.target.value);
+            <section className={styles.tableCard}>
+                <nav className={styles.tabs} aria-label="Workflow status">
+                    {tabs.map((tab) => (
+                        <button
+                            key={tab.view}
+                            type="button"
+                            className={view === tab.view ? styles.tabActive : styles.tab}
+                            aria-pressed={view === tab.view}
+                            onClick={() => {
+                                setView(tab.view);
                                 setPage(1);
                             }}
-                            placeholder="Search workflows..."
-                        />
-                    </label>
+                        >
+                            {tab.label}
+                            <span className={styles.tabCount}>{tab.count}</span>
+                        </button>
+                    ))}
+                </nav>
 
-                    <div className={styles.filterWrap}>
+                <div className={styles.toolbar}>
+                    <div className={styles.sortWrap}>
                         <button
                             type="button"
-                            className={`${styles.filterButton} ${view !== "all"
-                                    ? styles.filterButtonActive
-                                    : ""
-                                }`}
-                            aria-expanded={filterOpen}
+                            className={styles.toolButton}
+                            aria-expanded={sortOpen}
                             aria-haspopup="menu"
-                            onClick={() =>
-                                setFilterOpen((current) => !current)
-                            }
+                            onClick={() => setSortOpen((open) => !open)}
                         >
-                            <SlidersHorizontal size={14} />
-                            Filter
+                            <ArrowUpDown size={14} aria-hidden="true" />
+                            {SORT_LABELS[sort]}
+                            <ChevronDown size={13} aria-hidden="true" />
                         </button>
-
-                        {filterOpen && (
-                            <div
-                                className={styles.filterMenu}
-                                role="menu"
-                            >
-                                <button
-                                    type="button"
-                                    className={
-                                        view === "all"
-                                            ? styles.filterOptionActive
-                                            : ""
-                                    }
-                                    aria-pressed={view === "all"}
-                                    onClick={() => {
-                                        setView("all");
-                                        setFilterOpen(false);
-                                        setPage(1);
-                                    }}
-                                >
-                                    All workflows
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={
-                                        view === "active"
-                                            ? styles.filterOptionActive
-                                            : ""
-                                    }
-                                    aria-pressed={view === "active"}
-                                    onClick={() => {
-                                        setView("active");
-                                        setFilterOpen(false);
-                                        setPage(1);
-                                    }}
-                                >
-                                    Active
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={
-                                        view === "inactive"
-                                            ? styles.filterOptionActive
-                                            : ""
-                                    }
-                                    aria-pressed={view === "inactive"}
-                                    onClick={() => {
-                                        setView("inactive");
-                                        setFilterOpen(false);
-                                        setPage(1);
-                                    }}
-                                >
-                                    Paused
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={
-                                        view === "draft"
-                                            ? styles.filterOptionActive
-                                            : ""
-                                    }
-                                    aria-pressed={view === "draft"}
-                                    onClick={() => {
-                                        setView("draft");
-                                        setFilterOpen(false);
-                                        setPage(1);
-                                    }}
-                                >
-                                    Drafts
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={
-                                        view === "recent"
-                                            ? styles.filterOptionActive
-                                            : ""
-                                    }
-                                    aria-pressed={view === "recent"}
-                                    onClick={() => {
-                                        setView("recent");
-                                        setFilterOpen(false);
-                                        setPage(1);
-                                    }}
-                                >
-                                    Recent
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={
-                                        view === "old"
-                                            ? styles.filterOptionActive
-                                            : ""
-                                    }
-                                    aria-pressed={view === "old"}
-                                    onClick={() => {
-                                        setView("old");
-                                        setFilterOpen(false);
-                                        setPage(1);
-                                    }}
-                                >
-                                    Old
-                                </button>
+                        {sortOpen && (
+                            <div className={styles.menu} role="menu">
+                                {(Object.keys(SORT_LABELS) as SortMode[]).map((mode) => (
+                                    <button
+                                        key={mode}
+                                        type="button"
+                                        role="menuitemradio"
+                                        aria-checked={sort === mode}
+                                        className={sort === mode ? styles.menuItemActive : styles.menuItem}
+                                        onClick={() => {
+                                            setSort(mode);
+                                            setSortOpen(false);
+                                        }}
+                                    >
+                                        {SORT_LABELS[mode]}
+                                    </button>
+                                ))}
                             </div>
                         )}
                     </div>
+
+                    <span className={styles.headerSpacer} />
+
+                    <button type="button" className={styles.toolButton} onClick={exportCsv} disabled={!filteredRows.length}>
+                        <Download size={14} aria-hidden="true" />
+                        Export
+                    </button>
                 </div>
 
                 <div className={styles.tableWrap}>
                     <table className={styles.table}>
-                        <colgroup>
-                            <col className={styles.colName} />
-                            <col className={styles.colTrigger} />
-                            <col className={styles.colRuns} />
-                            <col className={styles.colSuccess} />
-                            <col className={styles.colLastRun} />
-                            <col className={styles.colStatus} />
-                            <col className={styles.colAction} />
-                        </colgroup>
-
                         <thead>
                             <tr>
-                                <th>Workflow Name</th>
+                                <th className={styles.colToggle}>Off/On</th>
+                                <th>Name</th>
                                 <th>Trigger</th>
-                                <th>Total Runs</th>
-                                <th>Success</th>
-                                <th>Last Run</th>
-                                <th>Status</th>
-                                <th className={styles.actionColumn}>
-                                    Action
-                                </th>
+                                <th className={styles.num}>Enrolled</th>
+                                <th className={styles.num}>Completed</th>
+                                <th className={styles.num}>Success rate</th>
+                                <th className={styles.num}>Steps</th>
+                                <th>Last run</th>
+                                <th className={styles.colMenu}><span className={styles.srOnly}>Actions</span></th>
                             </tr>
                         </thead>
 
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td
-                                        colSpan={7}
-                                        style={{
-                                            padding: "36px 20px",
-                                            textAlign: "center",
-                                            color: "#64748b",
-                                        }}
-                                    >
-                                        Loading automations…
-                                    </td>
+                                    <td colSpan={9} className={styles.emptyCell}>Loading workflows…</td>
                                 </tr>
                             ) : visibleRows.length === 0 ? (
                                 <tr>
-                                    <td
-                                        colSpan={7}
-                                        style={{
-                                            padding: "42px 20px",
-                                            textAlign: "center",
-                                            color: "#64748b",
-                                        }}
-                                    >
+                                    <td colSpan={9} className={styles.emptyCell}>
                                         {rows.length === 0
                                             ? "No workflows yet. Create your first workflow to get started."
-                                            : "No workflows match this filter."}
+                                            : "No workflows match this view."}
                                     </td>
                                 </tr>
                             ) : (
                                 visibleRows.map((automation) => {
-                                    const active =
-                                        automation.status === "Active";
-                                    const draft =
-                                        automation.status === "Draft";
-                                    const rowBusy =
-                                        busyId === automation.id;
+                                    const active = automation.status === "Active";
+                                    const draft = automation.status === "Draft";
+                                    const rowBusy = busyId === automation.id;
 
                                     return (
                                         <tr key={automation.id}>
-                                            <td>
-                                                <Link
-                                                    href={`/dashboard/automations/${automation.id}`}
-                                                    className={
-                                                        styles.workflowCell
-                                                    }
+                                            <td className={styles.colToggle}>
+                                                <button
+                                                    type="button"
+                                                    role="switch"
+                                                    aria-checked={active}
+                                                    aria-label={active ? `Pause ${automation.name}` : `Turn on ${automation.name}`}
+                                                    title={draft ? "Turn on to publish this workflow" : active ? "Pause" : "Resume"}
+                                                    className={active ? styles.switchOn : styles.switchOff}
+                                                    disabled={rowBusy}
+                                                    onClick={() => void setStatus(automation, active ? "Paused" : "Active")}
                                                 >
-                                                    <span
-                                                        className={
-                                                            styles.workflowCopy
-                                                        }
-                                                    >
-                                                        <strong>
-                                                            {
-                                                                automation.name
-                                                            }
-                                                        </strong>
-                                                        <small>
-                                                            {
-                                                                automation.description
-                                                            }
-                                                        </small>
+                                                    <span />
+                                                </button>
+                                            </td>
+
+                                            <td className={styles.nameCell}>
+                                                <Link href={`/dashboard/automations/${automation.id}`} className={styles.nameLink}>
+                                                    <span className={styles.nameLine}>
+                                                        <strong>{automation.name}</strong>
+                                                        <span className={styles[`status${automation.status}`]}>
+                                                            {automation.status}
+                                                        </span>
                                                     </span>
+                                                    <small>{automation.description}</small>
                                                 </Link>
                                             </td>
 
-                                            <td
-                                                className={
-                                                    styles.triggerCell
-                                                }
-                                            >
-                                                <span
-                                                    className={`${styles.triggerBadge} ${getTriggerClass(
-                                                        automation.trigger,
-                                                    )}`}
-                                                >
-                                                    {automation.trigger}
-                                                </span>
+                                            <td><span className={styles.trigger}>{automation.trigger}</span></td>
+
+                                            <td className={styles.num}>
+                                                <span className={styles.countChip}>{automation.totalRuns.toLocaleString("en-GB")}</span>
                                             </td>
 
-                                            <td>
-                                                {automation.totalRuns.toLocaleString(
-                                                    "en-GB",
-                                                )}
+                                            <td className={styles.num}>
+                                                {automation.finishedRuns ? automation.finishedRuns.toLocaleString("en-GB") : <span className={styles.muted}>—</span>}
                                             </td>
 
-                                            <td>
-                                                {automation.finishedRuns === 0 ? (
-                                                    <span
-                                                        className={styles.zeroRate}
-                                                        title="No runs have finished yet"
-                                                    >
-                                                        —
-                                                    </span>
+                                            <td className={styles.num}>
+                                                {automation.finishedRuns ? (
+                                                    <span className={styles.rate}>{automation.successRate}%</span>
                                                 ) : (
-                                                    <span
-                                                        className={
-                                                            automation.successRate >
-                                                                0
-                                                                ? styles.successRate
-                                                                : styles.zeroRate
-                                                        }
-                                                    >
-                                                        {
-                                                            automation.successRate
-                                                        }
-                                                        %
-                                                    </span>
+                                                    <span className={styles.muted} title="No runs have finished yet">—</span>
                                                 )}
                                             </td>
 
-                                            <td>
-                                                <span
-                                                    className={
-                                                        styles.lastRun
-                                                    }
-                                                >
-                                                    <Clock3 size={13} />
-                                                    {automation.lastRun}
-                                                </span>
-                                            </td>
+                                            <td className={styles.num}>{stepCount(automation)}</td>
 
-                                            <td>
-                                                <span
-                                                    className={`${styles.statusPill} ${active
-                                                            ? styles.statusActive
-                                                            : draft
-                                                                ? styles.statusDraft
-                                                                : styles.statusInactive
-                                                        }`}
-                                                >
-                                                    {automation.status}
-                                                </span>
-                                            </td>
+                                            <td className={styles.lastRun}>{automation.lastRun}</td>
 
-                                            <td
-                                                className={
-                                                    styles.actionsCell
-                                                }
-                                            >
-                                                <Link
-                                                    href={`/dashboard/automations/${automation.id}`}
-                                                    className={
-                                                        styles.textAction
-                                                    }
-                                                >
-                                                    {draft
-                                                        ? "Continue building workflow"
-                                                        : "View"}
-                                                </Link>
-
-                                                {!draft && (
-                                                    <Link
-                                                        href={`/dashboard/automations/${automation.id}`}
-                                                        className={
-                                                            styles.textAction
-                                                        }
-                                                    >
-                                                        Edit
-                                                    </Link>
-                                                )}
-
-                                                {!draft && (
+                                            <td className={styles.colMenu}>
+                                                <div className={styles.moreWrap}>
                                                     <button
                                                         type="button"
-                                                        className={
-                                                            styles.iconAction
-                                                        }
-                                                        disabled={rowBusy}
-                                                        aria-label={
-                                                            active
-                                                                ? "Pause automation"
-                                                                : "Resume automation"
-                                                        }
-                                                        onClick={() =>
-                                                            void setStatus(
-                                                                automation,
-                                                                active
-                                                                    ? "Paused"
-                                                                    : "Active",
-                                                            )
-                                                        }
-                                                    >
-                                                        {active ? (
-                                                            <Pause
-                                                                size={14}
-                                                            />
-                                                        ) : (
-                                                            <Play
-                                                                size={14}
-                                                            />
-                                                        )}
-                                                    </button>
-                                                )}
-
-                                                <div
-                                                    className={
-                                                        styles.moreWrap
-                                                    }
-                                                >
-                                                    <button
-                                                        type="button"
-                                                        className={
-                                                            styles.moreButton
-                                                        }
+                                                        className={styles.moreButton}
                                                         onClick={() => {
                                                             setConfirmArchiveId(null);
-                                                            setMenuOpenId(
-                                                                (
-                                                                    current,
-                                                                ) =>
-                                                                    current ===
-                                                                        automation.id
-                                                                        ? null
-                                                                        : automation.id,
-                                                            );
+                                                            setMenuOpenId((current) => (current === automation.id ? null : automation.id));
                                                         }}
                                                         aria-label={`More actions for ${automation.name}`}
+                                                        aria-expanded={menuOpenId === automation.id}
                                                     >
-                                                        <MoreHorizontal
-                                                            size={15}
-                                                        />
+                                                        <MoreVertical size={16} />
                                                     </button>
 
-                                                    {menuOpenId ===
-                                                        automation.id && (
-                                                            <div
-                                                                className={
-                                                                    styles.rowMenu
-                                                                }
-                                                            >
-                                                                <Link
-                                                                    href={`/dashboard/automations/${automation.id}`}
+                                                    {menuOpenId === automation.id && (
+                                                        <div className={styles.rowMenu} role="menu">
+                                                            <Link href={`/dashboard/automations/${automation.id}`} className={styles.menuItem}>
+                                                                {draft ? "Continue building" : "Open workflow"}
+                                                            </Link>
+                                                            {!draft && (
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.menuItem}
+                                                                    disabled={rowBusy}
+                                                                    onClick={() => void setStatus(automation, active ? "Paused" : "Active")}
                                                                 >
-                                                                    {draft
-                                                                        ? "Continue building workflow"
-                                                                        : "Open workflow"}
-                                                                </Link>
-
-                                                                {!draft && (
-                                                                    <button
-                                                                        type="button"
-                                                                        disabled={
-                                                                            rowBusy
-                                                                        }
-                                                                        onClick={() =>
-                                                                            void setStatus(
-                                                                                automation,
-                                                                                active
-                                                                                    ? "Paused"
-                                                                                    : "Active",
-                                                                            )
-                                                                        }
-                                                                    >
-                                                                        {active
-                                                                            ? "Pause"
-                                                                            : "Resume"}
-                                                                    </button>
-                                                                )}
-
-                                                                {confirmArchiveId === automation.id ? (
-                                                                    <div className={styles.archiveConfirm}>
-                                                                        <p>
-                                                                            Archive this automation? It stops
-                                                                            enrolling and cancels runs in progress.
-                                                                        </p>
-                                                                        <div>
-                                                                            <button
-                                                                                type="button"
-                                                                                className={styles.archiveConfirmDanger}
-                                                                                disabled={rowBusy}
-                                                                                onClick={() => void archiveRow(automation)}
-                                                                            >
-                                                                                {rowBusy ? "Archiving…" : "Archive"}
-                                                                            </button>
-                                                                            <button
-                                                                                type="button"
-                                                                                disabled={rowBusy}
-                                                                                onClick={() => setConfirmArchiveId(null)}
-                                                                            >
-                                                                                Keep
-                                                                            </button>
-                                                                        </div>
+                                                                    {active ? "Pause" : "Resume"}
+                                                                </button>
+                                                            )}
+                                                            {confirmArchiveId === automation.id ? (
+                                                                <div className={styles.archiveConfirm}>
+                                                                    <p>Archive this workflow? It stops enrolling and cancels runs in progress.</p>
+                                                                    <div>
+                                                                        <button
+                                                                            type="button"
+                                                                            className={styles.archiveDanger}
+                                                                            disabled={rowBusy}
+                                                                            onClick={() => void archiveRow(automation)}
+                                                                        >
+                                                                            {rowBusy ? "Archiving…" : "Archive"}
+                                                                        </button>
+                                                                        <button type="button" className={styles.archiveKeep} disabled={rowBusy} onClick={() => setConfirmArchiveId(null)}>
+                                                                            Keep
+                                                                        </button>
                                                                     </div>
-                                                                ) : (
-                                                                    <button
-                                                                        type="button"
-                                                                        className={styles.menuDanger}
-                                                                        disabled={rowBusy}
-                                                                        onClick={() => setConfirmArchiveId(automation.id)}
-                                                                    >
-                                                                        Archive
-                                                                    </button>
-                                                                )}
-                                                            </div>
-                                                        )}
+                                                                </div>
+                                                            ) : (
+                                                                <button
+                                                                    type="button"
+                                                                    className={styles.menuDanger}
+                                                                    disabled={rowBusy}
+                                                                    onClick={() => setConfirmArchiveId(automation.id)}
+                                                                >
+                                                                    Archive
+                                                                </button>
+                                                            )}
+                                                        </div>
+                                                    )}
                                                 </div>
                                             </td>
                                         </tr>
@@ -1686,76 +792,41 @@ export default function AutomationsTablePage() {
                     </table>
                 </div>
 
-                <footer className={styles.tableFooter}>
+                <footer className={styles.footer}>
                     <div className={styles.pagination}>
                         <button
                             type="button"
-                            className={styles.paginationArrow}
+                            className={styles.pageArrow}
                             disabled={safePage === 1}
-                            onClick={() =>
-                                setPage((current) =>
-                                    Math.max(1, current - 1),
-                                )
-                            }
+                            onClick={() => setPage((current) => Math.max(1, current - 1))}
+                            aria-label="Previous page"
                         >
                             <ChevronLeft size={15} />
                         </button>
-
-                        {Array.from(
-                            { length: totalPages },
-                            (_, index) => index + 1,
-                        ).map((pageNumber) => (
+                        {Array.from({ length: totalPages }, (_, index) => index + 1).map((pageNumber) => (
                             <button
                                 type="button"
                                 key={pageNumber}
-                                className={
-                                    safePage === pageNumber
-                                        ? styles.pageButtonActive
-                                        : ""
-                                }
-                                onClick={() =>
-                                    setPage(pageNumber)
-                                }
+                                className={safePage === pageNumber ? styles.pageActive : styles.pageButton}
+                                aria-current={safePage === pageNumber ? "page" : undefined}
+                                onClick={() => setPage(pageNumber)}
                             >
                                 {pageNumber}
                             </button>
                         ))}
-
                         <button
                             type="button"
-                            className={styles.paginationArrow}
+                            className={styles.pageArrow}
                             disabled={safePage === totalPages}
-                            onClick={() =>
-                                setPage((current) =>
-                                    Math.min(
-                                        totalPages,
-                                        current + 1,
-                                    ),
-                                )
-                            }
+                            onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                            aria-label="Next page"
                         >
                             <ChevronRight size={15} />
                         </button>
                     </div>
-
-                    <div className={styles.pageSize}>
-                        <span>Show:</span>
-                        <button type="button">
-                            10
-                            <ChevronDown size={13} />
-                        </button>
-                        <span>Per Page</span>
-                        <span>
-                            {(safePage - 1) * PAGE_SIZE +
-                                (visibleRows.length ? 1 : 0)}
-                            -
-                            {Math.min(
-                                safePage * PAGE_SIZE,
-                                filteredRows.length,
-                            )}{" "}
-                            of {filteredRows.length}
-                        </span>
-                    </div>
+                    <span className={styles.range}>
+                        {firstShown}–{lastShown} of {filteredRows.length}
+                    </span>
                 </footer>
             </section>
         </main>

@@ -1,0 +1,288 @@
+/* Workflows-by-status card, modelled on the "Bar Chart - Dashboard
+   Component" shot: one blue family, deepest at the base of each bar. */
+
+.card {
+    --ink: #111827;
+    --ink-2: #4b5563;
+    --ink-3: #9097a1;
+    --line: #eceef1;
+    --active: #3b35e8;
+    --paused: #7c84f3;
+    --draft: #c9cdfa;
+
+    padding: 18px 20px 14px;
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    color: var(--ink);
+}
+
+.head {
+    display: flex;
+    align-items: flex-start;
+    gap: 24px;
+}
+
+.head h2 {
+    margin: 0;
+    color: var(--ink);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.headline {
+    margin-top: 6px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.headline strong {
+    font-size: 34px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    line-height: 1;
+}
+
+.delta {
+    display: flex;
+    flex-direction: column;
+    color: var(--ink-3);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.deltaUp,
+.deltaFlat {
+    font-weight: 600;
+}
+
+.deltaUp {
+    color: #138a43;
+}
+
+.deltaFlat {
+    color: var(--ink-2);
+}
+
+.summary {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    gap: 22px;
+    padding-top: 22px;
+}
+
+.summaryItem {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+}
+
+.summaryItem strong {
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.dot {
+    width: 9px;
+    height: 9px;
+    flex: none;
+    display: inline-block;
+    border-radius: 50%;
+    background: var(--draft);
+}
+
+.dot[data-series="Active"] { background: var(--active); }
+.dot[data-series="Paused"] { background: var(--paused); }
+
+.toggle {
+    padding: 3px;
+    display: inline-flex;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #f7f8fa;
+}
+
+.toggleButton,
+.toggleActive {
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.toggleActive {
+    background: #ffffff;
+    box-shadow: 0 1px 3px rgba(17, 24, 39, 0.1);
+    color: var(--ink);
+}
+
+/* ---- Plot ------------------------------------------------------------ */
+
+.plot {
+    margin-top: 18px;
+    display: flex;
+    gap: 10px;
+}
+
+.axis {
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: var(--ink-3);
+    font-size: 11px;
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.axis span {
+    line-height: 0;
+}
+
+.bars {
+    position: relative;
+    flex: 1;
+    display: flex;
+    gap: 14px;
+}
+
+.grid {
+    position: absolute;
+    inset: 0 0 auto;
+    height: 180px;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    pointer-events: none;
+}
+
+.grid span {
+    border-top: 1px dashed #e4e7ec;
+}
+
+.column {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    outline: none;
+}
+
+.track {
+    position: relative;
+    width: 100%;
+    max-width: 46px;
+    height: 180px;
+    display: flex;
+    align-items: flex-end;
+}
+
+.stack {
+    width: 100%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    overflow: hidden;
+    border-radius: 7px 7px 4px 4px;
+    transition: height 260ms ease;
+}
+
+.segment {
+    flex-basis: 0;
+    min-height: 3px;
+    background: var(--draft);
+}
+
+.segment[data-series="Active"] { background: var(--active); }
+.segment[data-series="Paused"] { background: var(--paused); }
+
+.column:hover .stack,
+.column:focus-visible .stack {
+    filter: brightness(1.04);
+    box-shadow: 0 0 0 3px rgba(59, 53, 232, 0.12);
+}
+
+.label,
+.labelCurrent {
+    overflow: hidden;
+    max-width: 100%;
+    color: var(--ink-3);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.labelCurrent {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.tooltip {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 50%;
+    z-index: 5;
+    min-width: 150px;
+    padding: 10px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 30px rgba(17, 24, 39, 0.12);
+    font-size: 12px;
+    transform: translateX(-50%);
+    pointer-events: none;
+}
+
+.tooltip strong {
+    margin-bottom: 2px;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.tooltip span {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink-2);
+}
+
+.tooltip b {
+    margin-left: auto;
+    color: var(--ink);
+    font-weight: 600;
+}
+
+@media (max-width: 760px) {
+    .head {
+        flex-wrap: wrap;
+    }
+
+    .summary {
+        order: 3;
+        flex-basis: 100%;
+        justify-content: flex-start;
+        padding-top: 0;
+    }
+
+    .bars {
+        gap: 6px;
+    }
+}

@@ -1,0 +1,627 @@
+/* All workflows page, modelled on the Closr "Workflow Automation" shot:
+   compact header, one chart card, then a tabbed table. */
+
+.page {
+    --ink: #111827;
+    --ink-2: #4b5563;
+    --ink-3: #9097a1;
+    --line: #eceef1;
+    --row-line: #f1f2f4;
+
+    max-width: 1280px;
+    margin: 0 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    color: var(--ink);
+    font-size: 13px;
+}
+
+/* ---- Header ---------------------------------------------------------- */
+
+.header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: -0.01em;
+    white-space: nowrap;
+}
+
+.headerSearch {
+    width: min(320px, 100%);
+    height: 36px;
+    padding: 0 8px 0 11px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ink-3);
+}
+
+.headerSearch:focus-within {
+    border-color: #c9ced6;
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.05);
+}
+
+.headerSearch input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+}
+
+.headerSearch kbd {
+    padding: 2px 6px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    background: #f7f8fa;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 11px;
+}
+
+.headerSpacer {
+    flex: 1;
+}
+
+.createButton {
+    height: 36px;
+    padding: 0 14px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 10px;
+    background: var(--ink);
+    color: #ffffff;
+    font: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.createButton:hover:not(:disabled) {
+    background: #1f2937;
+}
+
+.createButton:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.error {
+    padding: 10px 12px;
+    border: 1px solid #fecaca;
+    border-radius: 10px;
+    background: #fff7f7;
+    color: #991b1b;
+}
+
+/* ---- Table card ------------------------------------------------------ */
+
+.tableCard {
+    border: 1px solid var(--line);
+    border-radius: 16px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+}
+
+.tabs {
+    padding: 0 16px;
+    display: flex;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+    overflow-x: auto;
+}
+
+.tab,
+.tabActive {
+    position: relative;
+    height: 44px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tab:hover {
+    color: var(--ink);
+}
+
+.tabActive {
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.tabActive::after {
+    content: "";
+    position: absolute;
+    right: 8px;
+    bottom: -1px;
+    left: 8px;
+    height: 2px;
+    border-radius: 2px;
+    background: var(--ink);
+}
+
+.tabCount {
+    min-width: 20px;
+    padding: 1px 6px;
+    border-radius: 999px;
+    background: #f3f4f6;
+    color: var(--ink-2);
+    font-size: 11px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.toolbar {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.toolButton {
+    height: 32px;
+    padding: 0 11px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.toolButton:hover:not(:disabled) {
+    background: #f7f8fa;
+}
+
+.toolButton:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.sortWrap,
+.moreWrap {
+    position: relative;
+}
+
+.menu,
+.rowMenu {
+    position: absolute;
+    z-index: 20;
+    min-width: 180px;
+    padding: 5px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 11px;
+    background: #ffffff;
+    box-shadow: 0 16px 40px rgba(17, 24, 39, 0.12);
+}
+
+.menu {
+    top: calc(100% + 6px);
+    left: 0;
+}
+
+.rowMenu {
+    top: calc(100% + 4px);
+    right: 0;
+    width: 220px;
+}
+
+.menuItem,
+.menuItemActive,
+.menuDanger {
+    height: 32px;
+    padding: 0 9px;
+    display: flex;
+    align-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.menuItem:hover,
+.menuDanger:hover {
+    background: #f4f5f7;
+}
+
+.menuItemActive {
+    background: #f4f5f7;
+    font-weight: 600;
+}
+
+.menuDanger {
+    color: #b42318;
+}
+
+.archiveConfirm {
+    padding: 8px 9px;
+}
+
+.archiveConfirm p {
+    margin: 0 0 8px;
+    color: var(--ink-2);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.archiveConfirm div {
+    display: flex;
+    gap: 6px;
+}
+
+.archiveDanger,
+.archiveKeep {
+    height: 28px;
+    padding: 0 10px;
+    border-radius: 7px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.archiveDanger {
+    border: 0;
+    background: #b42318;
+    color: #ffffff;
+}
+
+.archiveKeep {
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--ink);
+}
+
+/* ---- Table ----------------------------------------------------------- */
+
+.tableWrap {
+    overflow-x: auto;
+}
+
+.table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+}
+
+.table th {
+    height: 38px;
+    padding: 0 12px;
+    border-top: 1px solid var(--line);
+    border-bottom: 1px solid var(--line);
+    background: #fafbfc;
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 500;
+    text-align: left;
+    white-space: nowrap;
+}
+
+.table td {
+    height: 60px;
+    padding: 8px 12px;
+    border-bottom: 1px solid var(--row-line);
+    color: var(--ink);
+    vertical-align: middle;
+}
+
+.table tbody tr:hover td {
+    background: #fafbfc;
+}
+
+.table th:first-child,
+.table td:first-child {
+    padding-left: 18px;
+}
+
+.table th:last-child,
+.table td:last-child {
+    padding-right: 14px;
+}
+
+.num {
+    text-align: right !important;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.colToggle {
+    width: 64px;
+}
+
+.colMenu {
+    width: 44px;
+    text-align: right !important;
+}
+
+.emptyCell {
+    height: 120px !important;
+    color: var(--ink-3) !important;
+    text-align: center;
+}
+
+/* Off/On switch */
+.switchOn,
+.switchOff {
+    box-sizing: border-box;
+    position: relative;
+    width: 34px;
+    height: 20px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #d9dce1;
+    cursor: pointer;
+    transition: background 160ms ease;
+}
+
+.switchOn {
+    background: #3b35e8;
+}
+
+.switchOn span,
+.switchOff span {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.2);
+    transition: transform 160ms ease;
+}
+
+.switchOn span {
+    transform: translateX(14px);
+}
+
+.switchOn:disabled,
+.switchOff:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+.nameCell {
+    max-width: 380px;
+}
+
+.nameLink {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    color: inherit;
+    text-decoration: none;
+}
+
+.nameLine {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.nameLine strong {
+    overflow: hidden;
+    font-size: 13.5px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.nameLink:hover strong {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.nameLink small {
+    overflow: hidden;
+    color: var(--ink-3);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.statusActive,
+.statusPaused,
+.statusDraft {
+    flex: none;
+    padding: 2px 8px;
+    border: 1px solid;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.statusActive {
+    border-color: #bfe9cf;
+    background: #eaf8ef;
+    color: #138a43;
+}
+
+.statusPaused {
+    border-color: #e5e7eb;
+    background: #f4f5f7;
+    color: var(--ink-2);
+}
+
+.statusDraft {
+    border-color: #f6dfa8;
+    background: #fff8e6;
+    color: #9a6200;
+}
+
+.trigger {
+    display: inline-block;
+    max-width: 180px;
+    overflow: hidden;
+    padding: 3px 9px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink-2);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    vertical-align: middle;
+}
+
+.countChip {
+    display: inline-block;
+    min-width: 30px;
+    padding: 2px 8px;
+    border-radius: 6px;
+    background: #eef6ee;
+    color: #2f6a35;
+    font-size: 12px;
+    font-weight: 600;
+    text-align: center;
+}
+
+.rate {
+    color: #5b3fd6;
+    font-weight: 600;
+}
+
+.muted {
+    color: var(--ink-3);
+}
+
+.lastRun {
+    color: var(--ink-2);
+    white-space: nowrap;
+}
+
+.moreButton {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+}
+
+.moreButton:hover {
+    background: #f1f2f4;
+    color: var(--ink);
+}
+
+.srOnly {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+}
+
+/* ---- Footer ---------------------------------------------------------- */
+
+.footer {
+    padding: 12px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.pagination {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.pageArrow,
+.pageButton,
+.pageActive {
+    box-sizing: border-box;
+    min-width: 30px;
+    height: 30px;
+    padding: 0 8px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.pageArrow:hover:not(:disabled),
+.pageButton:hover {
+    background: #f4f5f7;
+    color: var(--ink);
+}
+
+.pageArrow:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.pageActive {
+    border-color: var(--line);
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.06);
+    color: var(--ink);
+    font-weight: 600;
+}
+
+.range {
+    color: var(--ink-3);
+    font-size: 12.5px;
+    font-variant-numeric: tabular-nums;
+}
+
+@media (max-width: 760px) {
+    .header {
+        flex-wrap: wrap;
+    }
+
+    .headerSearch {
+        order: 3;
+        width: 100%;
+    }
+}
