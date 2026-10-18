@@ -95,6 +95,9 @@ describe("buildInboxThreads", () => {
         assert.equal(thread.id, "ism_s9");
         assert.equal(thread.customerEmail, "sofia@example.com");
         assert.equal(thread.folder, "sent");
+        // Inbox lists all mail, so the new conversation shows there too.
+        assert.ok(threadInFolder(thread, "inbox"));
+        assert.ok(threadInFolder(thread, "sent"));
     });
 
     test("saved state stars, archives and tags a thread", () => {
@@ -163,7 +166,8 @@ describe("buildInboxThreads", () => {
             states: [{ threadId: "se_e2", starred: true, lastReadAt: null, markedUnread: false, folder: null, labels: [] }],
         }));
         const count = (folder: string) => payload.folders.find((item) => item.folder === folder)?.count;
-        assert.equal(count("inbox"), 1);
+        // Inbox is all mail: the reply thread plus the one only sent so far.
+        assert.equal(count("inbox"), 2);
         assert.equal(count("sent"), 2);
         assert.equal(count("starred"), 1);
     });
