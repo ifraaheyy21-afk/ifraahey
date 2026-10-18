@@ -8,6 +8,7 @@ import { toJsonInput } from "./json";
 import { asWorkflowDefinition } from "./serializer";
 import { validateWorkflowDefinition } from "./validation";
 import type { ExecutionContext, WorkflowConnection, WorkflowNode } from "./types";
+import { connectionBranch } from "./branches";
 
 export type RunAutomationResult =
     | { status: "waiting"; resumeAt: Date }
@@ -47,8 +48,8 @@ function chooseNextNodeId(node: WorkflowNode, connections: WorkflowConnection[],
         return outgoing[0].to;
     }
     if (typeof branch !== "boolean") throw new Error(`${node.title} did not return a Yes/No branch result.`);
-    const labels = branch ? ["yes", "true"] : ["no", "false"];
-    const matches = outgoing.filter((connection) => labels.includes(connection.label?.trim().toLowerCase() ?? ""));
+    const wanted = branch ? "YES" : "NO";
+    const matches = outgoing.filter((connection) => connectionBranch(connection) === wanted);
     if (matches.length !== 1) throw new Error(`${node.title} must have exactly one ${branch ? "Yes" : "No"} branch.`);
     return matches[0].to;
 }

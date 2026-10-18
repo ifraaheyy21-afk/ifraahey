@@ -12,6 +12,8 @@ import type {
     WorkflowNode,
 } from "./types";
 import { triggerIssues } from "./triggers";
+import { connectionBranch } from "./branches";
+import { emailConditionTimingIssues, emailPlaceholderIssues } from "./quality";
 
 const VALID_NODE_TYPES = new Set<NodeType>([
     "trigger",
@@ -406,7 +408,7 @@ function validateConnections(
         const edgeKey = [
             connection.from,
             connection.to,
-            connection.label?.trim().toLowerCase() ?? "",
+            connectionBranch(connection) ?? "",
         ].join("::");
 
         if (semanticEdges.has(edgeKey)) {
@@ -537,20 +539,9 @@ function validateGraphShape(
                 continue;
             }
 
-            const labels = outgoing.map(
-                (connection) =>
-                    connection.label?.trim().toLowerCase() ?? "",
-            );
-
-            const yesCount = labels.filter(
-                (label) =>
-                    label === "yes" || label === "true",
-            ).length;
-
-            const noCount = labels.filter(
-                (label) =>
-                    label === "no" || label === "false",
-            ).length;
+            const branches = outgoing.map(connectionBranch);
+            const yesCount = branches.filter((branch) => branch === "YES").length;
+            const noCount = branches.filter((branch) => branch === "NO").length;
 
             if (yesCount !== 1 || noCount !== 1) {
                 issues.push(
@@ -697,6 +688,9 @@ export function validateWorkflowDefinition(
         nodesById,
         issues,
     );
+
+    issues.push(...emailConditionTimingIssues(definition));
+    issues.push(...emailPlaceholderIssues(definition));
 
     return [...new Set(issues)];
 }
