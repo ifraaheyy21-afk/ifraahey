@@ -6,6 +6,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "../../../../../lib/prisma";
 import { decryptIntegrationSecret } from "../../../../../lib/integrationEncryption";
 import { emitAutomationEvent } from "../../../../../lib/automation/enrollment";
+import { sanitiseEmailHtml } from "../../../../../lib/email-html";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -171,6 +172,62 @@ async function duplicate(tx: Prisma.TransactionClient, webhookEventId: string) {
     }));
 }
 
+// Events for an email sent by hand from the dashboard inbox. These have no
+// customer row, so they only record the Message-ID (for reply matching),
+// delivery problems and suppressions. Every write is idempotent.
+async function handleInboxSentOutbound(
+    integration: Integration,
+    apiKey: string,
+    type: string,
+    data: Record<string, unknown>,
+    providerMessageId: string,
+) {
+    const sentMessages = await prisma.inboxSentMessage.findMany({
+        where: { workspaceId: integration.workspaceId, providerMessageId },
+        take: 2,
+    });
+    if (sentMessages.length !== 1) return null;
+    const sent = sentMessages[0];
+    const recipients = addresses(data.to);
+    if (recipients.length !== 1 || recipients[0] !== sent.toEmail.toLowerCase()) {
+        throw new WebhookError("EMAIL_RECIPIENT_MISMATCH");
+    }
+
+    let messageId = sent.providerRfcMessageId;
+    if (!messageId && ["email.sent", "email.delivered", "email.opened", "email.clicked"].includes(type)) {
+        messageId = rfcId((await providerEmail(apiKey, providerMessageId)).message_id) || null;
+        if (!messageId) throw new WebhookError("EMAIL_MESSAGE_ID_PENDING");
+    }
+
+    const problem = type === "email.complained" ? eventReason(data, "Spam complaint")
+        : type === "email.bounced" ? eventReason(data, "Email bounced")
+            : type === "email.failed" || type === "email.suppressed"
+                ? eventReason(data, "Provider could not deliver this email") : null;
+
+    await prisma.$transaction(async (tx) => {
+        await lockIntegration(tx, integration);
+        await tx.inboxSentMessage.updateMany({
+            where: { id: sent.id, workspaceId: integration.workspaceId, providerMessageId },
+            data: {
+                ...(messageId && !sent.providerRfcMessageId ? { providerRfcMessageId: messageId } : {}),
+                ...(problem ? { failureReason: problem.slice(0, 1000) } : {}),
+            },
+        });
+        if (type === "email.bounced" || type === "email.complained" || type === "email.suppressed") {
+            await tx.suppression.upsert({
+                where: { workspaceId_email: { workspaceId: integration.workspaceId, email: recipients[0] } },
+                create: {
+                    workspaceId: integration.workspaceId, email: recipients[0],
+                    reason: type === "email.complained" ? "Spam complaint" :
+                        type === "email.bounced" ? "Email bounced" : "Provider suppression",
+                },
+                update: {},
+            });
+        }
+    });
+    return { received: true, inboxMessage: true };
+}
+
 async function handleOutbound(
     integration: Integration,
     apiKey: string,
@@ -185,6 +242,10 @@ async function handleOutbound(
         where: { workspaceId: integration.workspaceId, providerMessageId },
         take: 2,
     });
+    if (candidates.length === 0) {
+        const inboxResult = await handleInboxSentOutbound(integration, apiKey, type, data, providerMessageId);
+        if (inboxResult) return inboxResult;
+    }
     // A webhook can beat the sender's acknowledgment write. Retry rather than
     // acknowledge and permanently lose the event. Never guess by subject/to.
     if (candidates.length !== 1) throw new WebhookError("EMAIL_MAPPING_PENDING");
@@ -315,6 +376,80 @@ async function handleOutbound(
     return result;
 }
 
+const MAX_STORED_HTML = 512 * 1024;
+const MAX_STORED_TEXT = 128 * 1024;
+
+function displayName(value: unknown) {
+    const match = text(value).match(/^\s*"?([^"<>\r\n]+?)"?\s*<[^<>]+>$/);
+    return match?.[1]?.trim().slice(0, 180) || null;
+}
+
+function attachmentList(value: unknown) {
+    if (!Array.isArray(value)) return [];
+    return value.map(record).filter((item): item is Record<string, unknown> => Boolean(item)).slice(0, 20).map((item) => ({
+        id: text(item.id).slice(0, 200),
+        fileName: (text(item.filename) || "Attachment").slice(0, 255),
+        mimeType: (text(item.content_type) || "application/octet-stream").slice(0, 120),
+        size: typeof item.size === "number" && Number.isFinite(item.size) ? item.size : 0,
+    }));
+}
+
+// The body of an inbound email as stored for the inbox.
+function receivedMessage(incoming: Record<string, unknown>, incomingId: string, occurredAt: Date) {
+    const html = text(incoming.html);
+    const created = new Date(text(incoming.created_at));
+    return {
+        providerEmailId: incomingId,
+        fromEmail: mailbox(incoming.from),
+        fromName: displayName(incoming.from),
+        toEmail: addresses(incoming.to)[0] ?? "",
+        subject: (text(incoming.subject) || "(no subject)").slice(0, 998),
+        html: html ? sanitiseEmailHtml(html).slice(0, MAX_STORED_HTML) : null,
+        plainText: text(incoming.text).slice(0, MAX_STORED_TEXT),
+        rfcMessageId: rfcId(incoming.message_id) || null,
+        attachments: attachmentList(incoming.attachments),
+        receivedAt: Number.isFinite(created.getTime()) ? created : occurredAt,
+    };
+}
+
+// A reply to an email sent by hand from the dashboard inbox.
+async function handleInboxSentReply(
+    integration: Integration,
+    incoming: Record<string, unknown>,
+    incomingId: string,
+    parentId: string,
+    occurredAt: Date,
+    rejectedAuthentication: boolean,
+) {
+    const matches = await prisma.inboxSentMessage.findMany({
+        where: { workspaceId: integration.workspaceId, providerRfcMessageId: parentId },
+        take: 2,
+    });
+    if (matches.length !== 1) return null;
+    const sent = matches[0];
+    const sender = mailbox(incoming.from);
+    const incomingTo = addresses(incoming.to);
+    if (!sender || sender !== sent.toEmail.toLowerCase() || !incomingTo.includes(sent.fromEmail.toLowerCase())) {
+        throw new WebhookError("REPLY_ENVELOPE_MISMATCH");
+    }
+    const message = receivedMessage(incoming, incomingId, occurredAt);
+    await prisma.$transaction(async (tx) => {
+        await lockIntegration(tx, integration);
+        await tx.inboxReceivedMessage.upsert({
+            where: { workspaceId_providerEmailId: { workspaceId: integration.workspaceId, providerEmailId: incomingId } },
+            create: {
+                ...message,
+                workspaceId: integration.workspaceId,
+                threadId: sent.threadId ?? `ism_${sent.id}`,
+                inboxSentMessageId: sent.id,
+                authenticationFailed: rejectedAuthentication,
+            },
+            update: {},
+        });
+    });
+    return { received: true, inboxMessage: true, reviewRequired: rejectedAuthentication };
+}
+
 async function handleReply(
     integration: Integration,
     apiKey: string,
@@ -343,10 +478,18 @@ async function handleReply(
         if (explicitParent) throw new WebhookError("AMBIGUOUS_REPLY_REFERENCE");
         return { received: true, ignored: "not_a_threaded_reply" };
     }
+    const authentication = record(incoming.authentication);
+    const rejectedAuthentication = text(authentication?.dmarc).toLowerCase() === "fail";
     const matches = await prisma.scheduledEmail.findMany({
         where: { workspaceId: integration.workspaceId, providerRfcMessageId: parentId },
         take: 2,
     });
+    if (matches.length === 0) {
+        const inboxResult = await handleInboxSentReply(
+            integration, incoming, incomingId, parentId, occurredAt, rejectedAuthentication,
+        );
+        if (inboxResult) return inboxResult;
+    }
     if (matches.length !== 1 || !matches[0].providerMessageId) {
         throw new WebhookError("REPLY_MAPPING_PENDING");
     }
@@ -363,8 +506,7 @@ async function handleReply(
         !expectedInbox.some((address) => incomingTo.includes(address))) {
         throw new WebhookError("REPLY_ENVELOPE_MISMATCH");
     }
-    const authentication = record(incoming.authentication);
-    const rejectedAuthentication = text(authentication?.dmarc).toLowerCase() === "fail";
+    const message = receivedMessage(incoming, incomingId, occurredAt);
 
     const result = await prisma.$transaction(async (tx) => {
         await lockIntegration(tx, integration);
@@ -373,6 +515,19 @@ async function handleReply(
             throw new WebhookError("REPLY_MAPPING_CHANGED");
         }
         if (await duplicate(tx, webhookEventId)) return { received: true, duplicate: true };
+        // Keep the reply itself so the inbox can show it.
+        await tx.inboxReceivedMessage.upsert({
+            where: { workspaceId_providerEmailId: { workspaceId: email.workspaceId, providerEmailId: incomingId } },
+            create: {
+                ...message,
+                workspaceId: email.workspaceId,
+                threadId: `se_${email.id}`,
+                scheduledEmailId: email.id,
+                customerId: email.customerId,
+                authenticationFailed: rejectedAuthentication,
+            },
+            update: {},
+        });
         // Separate provider notifications about the same inbound email must not
         // generate multiple reply records, even if their delivery IDs differ.
         const previous = await tx.emailEvent.findFirst({

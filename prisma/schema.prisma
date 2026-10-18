@@ -30,6 +30,8 @@ model Workspace {
   oauthAccessTokens       OAuthAccessToken[]
   oauthRefreshTokens      OAuthRefreshToken[]
   inboxSentMessages       InboxSentMessage[]
+  inboxReceivedMessages   InboxReceivedMessage[]
+  inboxThreadStates       InboxThreadState[]
 }
 
 model BrandEmailProfile {
@@ -536,6 +538,8 @@ model InboxSentMessage {
   status             String    @default("sending")
   failureReason      String?
   providerMessageId  String?
+  // RFC 5322 Message-ID, filled in from Resend so replies can be matched.
+  providerRfcMessageId String?
   sentAt             DateTime?
   createdAt          DateTime  @default(now())
   updatedAt          DateTime  @updatedAt
@@ -544,4 +548,60 @@ model InboxSentMessage {
   @@unique([workspaceId, sendKey])
   @@index([workspaceId, threadId])
   @@index([workspaceId, createdAt])
+  @@index([workspaceId, providerMessageId])
+  @@index([workspaceId, providerRfcMessageId])
+}
+
+// A customer's reply, received through the Resend inbound webhook and matched
+// to the exact email it answers. Stored so the inbox can show it.
+model InboxReceivedMessage {
+  id                 String    @id @default(cuid())
+  workspaceId        String
+  // Resend's id for the inbound email; one row per received email.
+  providerEmailId    String
+  // The inbox thread this belongs to: "se_<ScheduledEmail id>" or "ism_<InboxSentMessage id>".
+  threadId           String
+  scheduledEmailId   String?
+  inboxSentMessageId String?
+  customerId         String?
+  fromEmail          String
+  fromName           String?
+  toEmail            String
+  subject            String
+  html               String?
+  plainText          String
+  rfcMessageId       String?
+  // [{ id, fileName, mimeType, size }]
+  attachments        Json?
+  // True when the sender failed DMARC, so the message could be spoofed.
+  authenticationFailed Boolean @default(false)
+  receivedAt         DateTime
+  createdAt          DateTime  @default(now())
+  workspace          Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, providerEmailId])
+  @@index([workspaceId, threadId])
+  @@index([workspaceId, receivedAt])
+  @@index([workspaceId, rfcMessageId])
+}
+
+// What the user did to a thread: star, read, archive/delete and tags.
+model InboxThreadState {
+  id          String    @id @default(cuid())
+  workspaceId String
+  threadId    String
+  starred     Boolean   @default(false)
+  // Messages received after this are unread; null means never read.
+  lastReadAt  DateTime?
+  // Set by "Mark unread" until the thread is opened again.
+  markedUnread Boolean  @default(false)
+  // "archived" or "deleted"; null keeps the thread in its natural folder.
+  folder      String?
+  labels      String[]  @default([])
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, threadId])
+  @@index([workspaceId])
 }
