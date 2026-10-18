@@ -98,6 +98,17 @@ export type InboxThread = {
     /** A sample conversation; actions on it stay in the browser. */
     demo?: boolean;
 
+    /** Set on a saved draft in the Drafts folder; opening it resumes editing. */
+    draft?: {
+        id: string;
+        /** The conversation this replies to; null for a new email. */
+        threadId: string | null;
+        toEmail: string | null;
+        toName: string | null;
+        subject: string;
+        html: string;
+    };
+
     /** Missing means email. */
     channel?: InboxChannel;
 

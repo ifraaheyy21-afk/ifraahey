@@ -59,6 +59,7 @@ import {
     Fragment,
     useCallback,
     useEffect,
+    useLayoutEffect,
     useMemo,
     useRef,
     useState,
@@ -634,6 +635,13 @@ export default function InboxPage() {
     // One key per unchanged draft, so clicking Send again after a failure
     // cannot deliver the same email twice.
     const sendKeyRef = useRef<{ signature: string; key: string } | null>(null);
+    // The draft last saved for what's being written: "compose" or a thread id.
+    const [savedDraft, setSavedDraft] = useState<{ target: string | null; id: string | null; signature: string }>(
+        { target: null, id: null, signature: "" },
+    );
+    const [draftError, setDraftError] = useState("");
+    // What was just sent or discarded, so autosave never brings it back.
+    const sentDraftSignatureRef = useRef("");
     const replyRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const [listFilter, setListFilter] = useState<ListFilter>("all");
@@ -995,6 +1003,8 @@ export default function InboxPage() {
     const [composerThreadId, setComposerThreadId] = useState(selectedThreadId);
     if (composerThreadId !== selectedThreadId) {
         setComposerThreadId(selectedThreadId);
+        setSavedDraft({ target: selectedThreadId, id: null, signature: "" });
+        setDraftError("");
         setReplySubject("");
         setReplyBody("");
         setAiReply("");
@@ -1013,6 +1023,14 @@ export default function InboxPage() {
     }
 
     const selectThread = (thread: InboxThread) => {
+        // A draft (or a conversation with a saved reply) reopens for editing.
+        const draftThread = thread.draft
+            ? thread
+            : payload?.threads.find((candidate) => candidate.draft?.threadId === thread.id);
+        if (draftThread) {
+            resumeDraft(draftThread);
+            return;
+        }
         setComposeOpen(false);
         setComposeAccountPickerOpen(false);
         if (thread.id !== selectedThreadId) {
@@ -1193,6 +1211,10 @@ export default function InboxPage() {
     };
 
     const deleteSelectedThread = () => {
+        if (selectedThread?.draft) {
+            void discardDraft(selectedThread.draft.id);
+            return;
+        }
         if (selectedThread) saveThreadAction(selectedThread, { folder: "deleted" });
     };
 
@@ -1206,6 +1228,8 @@ export default function InboxPage() {
 
     const openCompose = () => {
         setSendError("");
+        setSavedDraft({ target: "compose", id: null, signature: "" });
+        setDraftError("");
         setComposeOpen(true);
         setComposeRecipient(null);
         setComposeAccountSearch("");
@@ -1294,6 +1318,8 @@ export default function InboxPage() {
             form.set("toName", composeRecipient.name);
         }
         if (replyAttachment) form.set("attachment", replyAttachment);
+        if (savedDraft.target === draftTarget && savedDraft.id) form.set("draftId", savedDraft.id);
+        const sendingDraftSignature = draftSignature;
 
         const wasCompose = composeOpen;
         let sentThreadId = "";
@@ -1327,6 +1353,10 @@ export default function InboxPage() {
         }
 
         sendKeyRef.current = null;
+        // The server removed the draft along with sending it.
+        sentDraftSignatureRef.current = sendingDraftSignature;
+        setSavedDraft({ target: draftTarget, id: null, signature: "" });
+        setDraftError("");
         setReplySubject("");
         setReplyBody("");
         if (replyRef.current) {
@@ -1355,6 +1385,146 @@ export default function InboxPage() {
             setSelectedThreadId(sentThreadId);
             router.replace("/dashboard/inbox?folder=sent", { scroll: false });
         }
+    };
+
+    // ---- Drafts: saved as you type, reopened from the Drafts folder ----------
+
+    // What a draft would be saved against right now: Compose, or a reply to a
+    // real email conversation in the Inbox.
+    const replyDraftThread = !composeOpen && selectedThread && activeFolder === "inbox" &&
+        !selectedThread.demo && !selectedThread.draft && !isChatChannel(selectedThread.channel)
+        ? selectedThread
+        : null;
+    const draftTarget = composeOpen ? "compose" : replyDraftThread?.id ?? null;
+    const draftSignature = draftTarget
+        ? JSON.stringify({
+            threadId: replyDraftThread?.id ?? null,
+            to: composeOpen ? composeRecipient?.email ?? "" : "",
+            toName: composeOpen ? composeRecipient?.name ?? "" : "",
+            subject: replySubject,
+            html: replyBody,
+        })
+        : "";
+    const draftIsEmpty = !replyBody.replace(/<[^>]*>|&nbsp;/g, "").trim() && !replySubject.trim() &&
+        !(composeOpen && composeRecipient);
+    const draftSaved = Boolean(draftTarget && savedDraft.target === draftTarget && savedDraft.id &&
+        savedDraft.signature === draftSignature);
+
+    // Cleanup of the save effect below runs after this, so it can tell
+    // "still typing here" from "moved to another draft".
+    const currentDraftTargetRef = useRef<string | null>(null);
+    useLayoutEffect(() => {
+        currentDraftTargetRef.current = draftTarget;
+        return () => {
+            currentDraftTargetRef.current = null;
+        };
+    }, [draftTarget]);
+
+    useEffect(() => {
+        if (!draftTarget || sending) return;
+        const known = savedDraft.target === draftTarget ? savedDraft : { id: null, signature: "" };
+        if (draftSignature === known.signature || draftSignature === sentDraftSignatureRef.current) return;
+        if (draftIsEmpty && !known.id && draftTarget === "compose") return;
+
+        const target = draftTarget;
+        const body = JSON.stringify({ ...JSON.parse(draftSignature), draftId: known.id });
+        const save = (keepalive: boolean) => fetch("/api/dashboard/inbox/drafts", {
+            method: "PUT",
+            credentials: "include",
+            keepalive,
+            headers: { "Content-Type": "application/json" },
+            body,
+        });
+        let started = false;
+        const timer = window.setTimeout(() => {
+            started = true;
+            void save(false)
+                .then(async (response) => {
+                    const result = (await response.json().catch(() => ({}))) as { draftId?: string | null; error?: string };
+                    if (!response.ok) throw new Error(result.error || "Draft not saved.");
+                    if (currentDraftTargetRef.current !== target) return;
+                    setSavedDraft({ target, id: result.draftId ?? null, signature: draftSignature });
+                    setDraftError("");
+                    void loadInbox({ silent: true });
+                })
+                .catch((saveError: unknown) => {
+                    if (currentDraftTargetRef.current !== target) return;
+                    setDraftError(saveError instanceof Error ? saveError.message : "Draft not saved.");
+                });
+        }, 1200);
+
+        return () => {
+            window.clearTimeout(timer);
+            // Moving to another thread or closing Compose: save what's unsaved now.
+            if (!started && currentDraftTargetRef.current !== target &&
+                draftSignature !== sentDraftSignatureRef.current) {
+                void save(true).then(() => loadInbox({ silent: true })).catch(() => undefined);
+            }
+        };
+    }, [draftIsEmpty, draftSignature, draftTarget, loadInbox, savedDraft, sending]);
+
+    /** Reopen a saved draft in Compose, or in the reply box of its conversation. */
+    const resumeDraft = (thread: InboxThread) => {
+        const draft = thread.draft;
+        if (!draft) return;
+        setSendError("");
+        setDraftError("");
+        if (draft.threadId) {
+            setComposeOpen(false);
+            setComposeAccountPickerOpen(false);
+            setActiveFolder("inbox");
+            setSelectedThreadId(draft.threadId);
+            // Same thread for the reset check, so the draft isn't wiped.
+            setComposerThreadId(draft.threadId);
+            setSavedDraft({
+                target: draft.threadId,
+                id: draft.id,
+                signature: JSON.stringify({ threadId: draft.threadId, to: "", toName: "", subject: draft.subject, html: draft.html }),
+            });
+            router.replace("/dashboard/inbox", { scroll: false });
+        } else {
+            openCompose();
+            const recipient = draft.toEmail
+                ? { id: `new:${draft.toEmail}`, name: draft.toName || draft.toEmail, email: draft.toEmail }
+                : null;
+            setComposeRecipient(recipient);
+            setComposeAccountPickerOpen(!recipient);
+            setSavedDraft({
+                target: "compose",
+                id: draft.id,
+                signature: JSON.stringify({
+                    threadId: null, to: recipient?.email ?? "", toName: recipient?.name ?? "",
+                    subject: draft.subject, html: draft.html,
+                }),
+            });
+        }
+        setReplySubject(draft.subject);
+        setReplyBody(draft.html);
+        requestAnimationFrame(() => {
+            if (replyRef.current) replyRef.current.innerHTML = draft.html;
+            replyRef.current?.focus();
+        });
+    };
+
+    const discardDraft = async (draftId: string) => {
+        try {
+            const response = await fetch(`/api/dashboard/inbox/drafts/${encodeURIComponent(draftId)}`, {
+                method: "DELETE",
+                credentials: "include",
+            });
+            if (!response.ok) throw new Error("The draft could not be deleted.");
+            await loadInbox({ silent: true });
+        } catch (discardError) {
+            setError(discardError instanceof Error ? discardError.message : "The draft could not be deleted.");
+        }
+    };
+
+    /** Throw away the email being composed, including its saved draft. */
+    const discardCompose = () => {
+        sentDraftSignatureRef.current = draftSignature;
+        const draftId = savedDraft.target === "compose" ? savedDraft.id : null;
+        closeCompose();
+        if (draftId) void discardDraft(draftId);
     };
 
     const runEditorCommand = (command: string, value?: string) => {
@@ -2923,13 +3093,19 @@ export default function InboxPage() {
                                             className={styles.iconButton}
                                             aria-label={composeOpen ? "Discard email" : "Clear reply"}
                                             title={composeOpen ? "Discard" : "Clear"}
-                                            onClick={composeOpen ? closeCompose : clearReply}
+                                            onClick={composeOpen ? discardCompose : clearReply}
                                         >
                                             <Trash2 size={14} />
                                         </button>
 
                                         {sendError && (
                                             <p className={styles.aiError} role="alert">{sendError}</p>
+                                        )}
+                                        {!sendError && draftError && (
+                                            <p className={styles.aiError} role="status">{draftError}</p>
+                                        )}
+                                        {!sendError && !draftError && draftSaved && (
+                                            <span className={styles.fieldLabel} role="status">Draft saved</span>
                                         )}
                                         <button
                                             type="button"

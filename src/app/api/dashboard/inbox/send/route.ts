@@ -14,6 +14,7 @@ import {
     prismaInboxSentStore,
     saveRfcMessageId,
 } from "../../../../../lib/inbox-sent-store";
+import { deleteDraftsAfterSend } from "../../../../../lib/inbox-draft-store";
 import { prisma } from "../../../../../lib/prisma";
 import { getWorkspaceResendClient } from "../../../../../lib/resendIntegration";
 
@@ -54,6 +55,12 @@ export async function POST(request: Request) {
             },
             input,
         );
+
+        // The email is out; a leftover draft would only confuse. Best effort.
+        const draftId = typeof form.get("draftId") === "string" ? String(form.get("draftId")).slice(0, 100) : "";
+        await deleteDraftsAfterSend(workspaceId, draftId || null, record.threadId).catch((error) => {
+            console.error("Failed to remove the sent draft", error instanceof Error ? error.message : error);
+        });
 
         return NextResponse.json(
             {

@@ -1,6 +1,8 @@
 import { prisma } from "./prisma";
 import { buildInboxPayload, type InboxPayload, type InboxThread } from "./inbox-data";
 import { listInboxSentMessages } from "./inbox-sent-store";
+import { listInboxDrafts } from "./inbox-draft-store";
+import { withDraftThreads } from "./inbox-drafts";
 import {
     buildInboxThreads,
     buildPayload,
@@ -113,7 +115,12 @@ export async function loadInboxThreads(workspaceId: string): Promise<InboxThread
 }
 
 export async function loadInboxPayload(workspaceId: string): Promise<InboxPayload> {
-    return buildPayload(workspaceId, await loadInboxThreads(workspaceId));
+    const [threads, drafts] = await Promise.all([
+        loadInboxThreads(workspaceId),
+        optional("inbox drafts", () => listInboxDrafts(workspaceId)),
+    ]);
+    // Drafts only show in the payload; replies and thread actions never target them.
+    return buildPayload(workspaceId, withDraftThreads(threads, drafts));
 }
 
 /** Whether a stored (non-demo) thread with this id exists in the workspace. */

@@ -32,6 +32,7 @@ model Workspace {
   inboxSentMessages       InboxSentMessage[]
   inboxReceivedMessages   InboxReceivedMessage[]
   inboxThreadStates       InboxThreadState[]
+  inboxDrafts             InboxDraft[]
 }
 
 model BrandEmailProfile {
@@ -604,4 +605,22 @@ model InboxThreadState {
 
   @@unique([workspaceId, threadId])
   @@index([workspaceId])
+}
+
+// Unsent inbox emails, saved as you type. threadId is set for a reply draft
+// (one per thread); new emails from Compose have no thread.
+model InboxDraft {
+  id          String    @id @default(cuid())
+  workspaceId String
+  threadId    String?
+  toEmail     String?
+  toName      String?
+  subject     String    @default("")
+  html        String    @default("")
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  workspace   Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@unique([workspaceId, threadId])
+  @@index([workspaceId, updatedAt])
 }
