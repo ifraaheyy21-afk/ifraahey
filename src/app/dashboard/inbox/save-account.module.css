@@ -1,0 +1,58 @@
+/* "Save account" prompt in the reading pane. Uses the page's colour tokens. */
+
+.prompt,
+.form {
+    margin-top: 12px;
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.prompt {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.copy {
+    flex: 1;
+    min-width: 0;
+    color: var(--ink-2);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.form {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.field {
+    display: grid;
+    gap: 4px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.field input {
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    padding: 0 10px;
+    height: 32px;
+}
+
+.actions {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+@media (max-width: 640px) {
+    .form {
+        grid-template-columns: 1fr;
+    }
+}

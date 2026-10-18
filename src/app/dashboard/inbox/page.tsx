@@ -80,6 +80,7 @@ import InboxChat from "./InboxChat";
 import { escapeHtml, safeLinkUrl } from "../../../lib/email-html";
 import ThreadHistory, { MessageBody } from "./ThreadHistory";
 import SummaryCard from "./SummaryCard";
+import SaveAccountPrompt from "./SaveAccountPrompt";
 import { CHANNEL_META, channelOf, UPCOMING_CHANNELS } from "./channels";
 import styles from "./inbox-page.module.css";
 import {
@@ -595,6 +596,9 @@ export default function InboxPage() {
     const [composeAccounts, setComposeAccounts] = useState<ComposeAccount[]>([]);
     const [composeRecipient, setComposeRecipient] = useState<ComposeAccount | null>(null);
     const [composeAccountSearch, setComposeAccountSearch] = useState("");
+    // Emails saved as accounts; null until the accounts list has loaded.
+    const [savedAccountEmails, setSavedAccountEmails] = useState<Set<string> | null>(null);
+    const [dismissedSavePrompts, setDismissedSavePrompts] = useState<Set<string>>(() => new Set());
     const [composeAccountPickerOpen, setComposeAccountPickerOpen] = useState(false);
     const [replySubject, setReplySubject] = useState("");
     const [replyBody, setReplyBody] = useState("");
@@ -806,6 +810,10 @@ export default function InboxPage() {
                         (account: ComposeAccount | null): account is ComposeAccount =>
                             Boolean(account),
                     );
+
+                setSavedAccountEmails(new Set(
+                    nextAccounts.map((account: ComposeAccount) => account.email.toLowerCase()),
+                ));
 
                 if (nextAccounts.length > 0) {
                     setComposeAccounts(nextAccounts);
@@ -1074,6 +1082,20 @@ export default function InboxPage() {
                 .some((value) => String(value).toLowerCase().includes(query)),
         );
     }, [availableComposeAccounts, composeAccountSearch]);
+
+    // A typed address that isn't in the list can be emailed directly.
+    const typedComposeEmail = useMemo(() => {
+        const value = composeAccountSearch.trim().toLowerCase();
+        if (!/^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/.test(value)) return "";
+        return availableComposeAccounts.some((account) => account.email.toLowerCase() === value) ? "" : value;
+    }, [availableComposeAccounts, composeAccountSearch]);
+
+    const chooseComposeRecipient = (account: ComposeAccount) => {
+        setComposeRecipient(account);
+        setComposeAccountSearch("");
+        setComposeAccountPickerOpen(false);
+        requestAnimationFrame(() => replyRef.current?.focus());
+    };
 
     const filteredSavedEmails = useMemo(() => {
         const query = savedEmailSearch.trim().toLowerCase();
@@ -2396,6 +2418,22 @@ export default function InboxPage() {
                                                 </span>
                                             </div>
                                         )}
+
+                                        {savedAccountEmails &&
+                                            !selectedThread.demo &&
+                                            channelOf(selectedThread) === "email" &&
+                                            selectedThread.customerEmail &&
+                                            !savedAccountEmails.has(selectedThread.customerEmail.toLowerCase()) &&
+                                            !dismissedSavePrompts.has(selectedThread.customerEmail.toLowerCase()) && (
+                                                <SaveAccountPrompt
+                                                    key={selectedThread.customerEmail}
+                                                    email={selectedThread.customerEmail}
+                                                    name={selectedThread.customerName}
+                                                    company={selectedThread.customerCompany}
+                                                    onSaved={() => void loadComposeAccounts()}
+                                                    onDismiss={() => setDismissedSavePrompts((current) => new Set(current).add(selectedThread.customerEmail.toLowerCase()))}
+                                                />
+                                            )}
                                         </div>
 
                                         <ThreadHistory
@@ -2469,7 +2507,16 @@ export default function InboxPage() {
                                                             setComposeAccountPickerOpen(true);
                                                         }}
                                                         onFocus={() => setComposeAccountPickerOpen(true)}
-                                                        placeholder="Search accounts by name, company or email…"
+                                                        onKeyDown={(event) => {
+                                                            if (event.key !== "Enter") return;
+                                                            event.preventDefault();
+                                                            if (typedComposeEmail) {
+                                                                chooseComposeRecipient({ id: `new:${typedComposeEmail}`, name: typedComposeEmail, email: typedComposeEmail });
+                                                            } else if (filteredComposeAccounts.length === 1) {
+                                                                chooseComposeRecipient(filteredComposeAccounts[0]);
+                                                            }
+                                                        }}
+                                                        placeholder="Search accounts or type an email…"
                                                         aria-label="Select account to email"
                                                     />
                                                 )}
@@ -2478,6 +2525,21 @@ export default function InboxPage() {
                                                     <div className={styles.accountMenu} role="listbox" aria-label="Accounts">
                                                         <div className={styles.menuLabel}>Accounts <span>{filteredComposeAccounts.length}</span></div>
                                                         <div className={styles.subList}>
+                                                            {typedComposeEmail && (
+                                                                <button
+                                                                    type="button"
+                                                                    role="option"
+                                                                    aria-selected={false}
+                                                                    className={styles.menuItem}
+                                                                    onClick={() => chooseComposeRecipient({ id: `new:${typedComposeEmail}`, name: typedComposeEmail, email: typedComposeEmail })}
+                                                                >
+                                                                    <span className={styles.avatarTiny} style={avatarStyle(typedComposeEmail)}>{getInitials(typedComposeEmail)}</span>
+                                                                    <span className={styles.menuCopy}>
+                                                                        Send to {typedComposeEmail}
+                                                                        <small>Not saved as an account</small>
+                                                                    </span>
+                                                                </button>
+                                                            )}
                                                             {filteredComposeAccounts.length > 0 ? (
                                                                 filteredComposeAccounts.map((account) => (
                                                                     <button
@@ -2500,8 +2562,8 @@ export default function InboxPage() {
                                                                         </span>
                                                                     </button>
                                                                 ))
-                                                            ) : (
-                                                                <div className={styles.menuEmpty}>No matching accounts</div>
+                                                            ) : !typedComposeEmail && (
+                                                                <div className={styles.menuEmpty}>No matching accounts. Type a full email address to send to someone new.</div>
                                                             )}
                                                         </div>
                                                     </div>
