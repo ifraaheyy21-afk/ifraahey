@@ -1,12 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 
-import {
-    buildInboxPayload,
-    DEMO_INBOX_WORKSPACE_ID,
-} from "../../../../lib/inbox-data";
 import { requireWorkspace } from "../../../../lib/auth/requireWorkspace";
-import { mergeSentMessages } from "../../../../lib/inbox-send";
-import { listInboxSentMessages } from "../../../../lib/inbox-sent-store";
+import { loadInboxPayload } from "../../../../lib/inbox-store";
 
 export const dynamic = "force-dynamic";
 
@@ -15,20 +10,13 @@ export async function GET(request: NextRequest) {
     if (auth instanceof NextResponse) return auth;
 
     try {
-        const workspaceId =
-            request.nextUrl.searchParams.get("workspaceId")?.trim() ||
-            DEMO_INBOX_WORKSPACE_ID;
-
-        // Sent mail is always read for the signed-in workspace.
-        const payload = mergeSentMessages(
-            buildInboxPayload(workspaceId),
-            await listInboxSentMessages(auth.workspaceId),
-        );
+        // Always the signed-in workspace; a workspaceId in the URL is ignored.
+        const payload = await loadInboxPayload(auth.workspaceId);
 
         return NextResponse.json(payload, {
             status: 200,
             headers: {
-                "Cache-Control": "no-store",
+                "Cache-Control": "private, no-store",
             },
         });
     } catch (error) {

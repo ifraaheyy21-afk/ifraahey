@@ -88,12 +88,15 @@ export type InboxMessage = {
     // RFC 5322 Message-ID of the delivered email, when the provider gave one.
     // Replies use it for In-Reply-To/References.
     providerMessageId?: string;
-
+    /** The sender failed DMARC, so this message could be forged. */
+    authenticationFailed?: boolean;
 };
 
 export type InboxThread = {
 
     id: string;
+    /** A sample conversation; actions on it stay in the browser. */
+    demo?: boolean;
 
     /** Missing means email. */
     channel?: InboxChannel;

@@ -6,7 +6,6 @@ import { createHash } from "node:crypto";
 
 import type {
     InboxMessage,
-    InboxPayload,
     InboxThread,
 } from "./inbox-data";
 
@@ -60,13 +59,14 @@ export type InboxSentRecord = {
     status: string;
     failureReason: string | null;
     providerMessageId: string | null;
+    providerRfcMessageId?: string | null;
     sentAt: Date | null;
     createdAt: Date;
 };
 
 export type InboxSentCreate = Omit<
     InboxSentRecord,
-    "id" | "status" | "failureReason" | "providerMessageId" | "sentAt" | "createdAt"
+    "id" | "status" | "failureReason" | "providerMessageId" | "providerRfcMessageId" | "sentAt" | "createdAt"
 >;
 
 export type InboxSentStore = {
@@ -235,6 +235,9 @@ export async function sendInboxEmail(deps: InboxSendDeps, input: InboxSendInput)
         const threads = await deps.loadThreads(workspaceId);
         thread = threads.find((candidate) => candidate.id === input.threadId) ?? null;
         if (!thread) throw new InboxSendError("That conversation could not be found.", 404);
+        if (thread.demo || thread.channel && thread.channel !== "email") {
+            throw new InboxSendError("This is a sample conversation, so replies are not sent.", 400);
+        }
     }
 
     // Replies always go to the thread's customer, never to an address from the browser.
@@ -370,68 +373,5 @@ export function sentRecordToMessage(record: InboxSentRecord): InboxMessage {
                 }],
             }
             : {}),
-    };
-}
-
-function preview(plainText: string) {
-    const flat = plainText.replace(/\s+/g, " ").trim();
-    return flat.length > 140 ? `${flat.slice(0, 137)}…` : flat;
-}
-
-/**
- * Fold sent messages into the inbox payload: a reply joins its thread, and
- * every sent email also gets its own entry in the Sent folder.
- */
-export function mergeSentMessages(payload: InboxPayload, records: InboxSentRecord[]): InboxPayload {
-    const sent = records
-        .filter((record) => record.status === "sent")
-        .sort((a, b) => (a.sentAt ?? a.createdAt).getTime() - (b.sentAt ?? b.createdAt).getTime());
-    if (sent.length === 0) return payload;
-
-    const threads = payload.threads.map((thread) => ({ ...thread, messages: [...thread.messages] }));
-    const byId = new Map(threads.map((thread) => [thread.id, thread]));
-    const sentThreads: InboxThread[] = [];
-
-    for (const record of sent) {
-        const message = sentRecordToMessage(record);
-        const parent = record.threadId ? byId.get(record.threadId) : undefined;
-
-        if (parent) {
-            parent.messages.push(message);
-            if (new Date(message.sentAt).getTime() >= new Date(parent.lastMessageAt).getTime()) {
-                parent.lastMessageAt = message.sentAt;
-                parent.preview = preview(record.plainText);
-            }
-        }
-
-        sentThreads.push({
-            id: `sent_thread_${record.id}`,
-            customerId: parent?.customerId ?? null,
-            customerName: record.toName ?? record.toEmail,
-            customerEmail: record.toEmail,
-            customerCompany: parent?.customerCompany ?? null,
-            subject: record.subject,
-            preview: preview(record.plainText),
-            folder: "sent",
-            labels: ["Sent"],
-            unread: false,
-            starred: false,
-            archived: false,
-            lastMessageAt: message.sentAt,
-            messages: parent ? [...parent.messages.filter((m) => m.sentAt <= message.sentAt)] : [message],
-        });
-    }
-
-    const allThreads = [...threads, ...sentThreads].sort(
-        (a, b) => new Date(b.lastMessageAt).getTime() - new Date(a.lastMessageAt).getTime(),
-    );
-
-    return {
-        ...payload,
-        folders: payload.folders.map((count) => ({
-            ...count,
-            count: allThreads.filter((thread) => thread.folder === count.folder).length,
-        })),
-        threads: allThreads,
     };
 }

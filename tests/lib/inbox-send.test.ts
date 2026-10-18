@@ -1,12 +1,11 @@
 import { describe, test } from "node:test";
 import assert from "node:assert/strict";
 
-import type { InboxPayload, InboxThread } from "../../src/lib/inbox-data";
+import type { InboxThread } from "../../src/lib/inbox-data";
 import {
     InboxSendError,
     MAX_ATTACHMENT_BYTES,
     inboxIdempotencyKey,
-    mergeSentMessages,
     parseSendForm,
     sanitiseEmailHtml,
     sendInboxEmail,
@@ -277,43 +276,6 @@ describe("sendInboxEmail", () => {
         await sendInboxEmail(deps, input({ html: '<p onclick="x()">Hi<script>alert(1)</script> <a href="javascript:x()">l</a></p>' }));
         assert.equal(calls[0].payload.html, "<p>Hi <a>l</a></p>");
         assert.equal(calls[0].payload.text, "Hi l");
-    });
-});
-
-describe("mergeSentMessages", () => {
-    test("adds a reply to its thread and a copy to the Sent folder", async () => {
-        const { deps, rows } = setup();
-        await sendInboxEmail(deps, input());
-        const payload: InboxPayload = {
-            workspaceId: WORKSPACE,
-            folders: [{ folder: "inbox", count: 1 }, { folder: "sent", count: 0 }],
-            threads: [thread()],
-        };
-
-        const merged = mergeSentMessages(payload, rows);
-        const inboxThread = merged.threads.find((t) => t.id === "thread_1")!;
-        assert.equal(inboxThread.messages.length, 2);
-        assert.equal(inboxThread.messages[1].direction, "outbound");
-        assert.equal(inboxThread.preview, "Thanks, looking into it.");
-        assert.equal(inboxThread.lastMessageAt, "2026-10-17T10:00:01.000Z");
-
-        const sent = merged.threads.filter((t) => t.folder === "sent");
-        assert.equal(sent.length, 1);
-        assert.equal(sent[0].customerEmail, "sofia@example.com");
-        assert.deepEqual(merged.folders, [{ folder: "inbox", count: 1 }, { folder: "sent", count: 1 }]);
-        // The input payload is not mutated.
-        assert.equal(payload.threads[0].messages.length, 1);
-    });
-
-    test("ignores sends that did not go out", () => {
-        const payload: InboxPayload = { workspaceId: WORKSPACE, folders: [], threads: [thread()] };
-        const failed = {
-            id: "x", workspaceId: WORKSPACE, sendKey: "k", threadId: "thread_1", toEmail: "a@b.co", toName: null,
-            fromEmail: "t@c.co", fromName: null, subject: "s", html: "", plainText: "", inReplyTo: null,
-            attachmentName: null, attachmentMimeType: null, attachmentSize: null, status: "failed",
-            failureReason: "x", providerMessageId: null, sentAt: null, createdAt: new Date(),
-        };
-        assert.equal(mergeSentMessages(payload, [failed]), payload);
     });
 });
 

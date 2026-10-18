@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
-import { buildInboxPayload } from "../../../../../lib/inbox-data";
+import { loadInboxThreads } from "../../../../../lib/inbox-store";
 import {
     InboxSendError,
     parseSendForm,
@@ -35,7 +35,7 @@ export async function POST(request: Request) {
                 workspaceId,
                 store: prismaInboxSentStore,
                 getClient: getWorkspaceResendClient,
-                loadThreads: async (id) => buildInboxPayload(id).threads,
+                loadThreads: loadInboxThreads,
                 isSuppressed: async (id, email) => Boolean(
                     await prisma.suppression.findUnique({
                         where: { workspaceId_email: { workspaceId: id, email } },
