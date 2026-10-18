@@ -1,0 +1,702 @@
+/* Workflow builder canvas. Self-contained: none of the older builder
+   stylesheet's canvas rules apply to these classes. */
+
+.root {
+    --ink: #111827;
+    --ink-2: #4b5563;
+    --ink-3: #9097a1;
+    --line: #e8eaee;
+    --line-strong: #d4d8de;
+    --connector: #d0d5dc;
+    --accent: #111827;
+    --accent-soft: #f3f4f6;
+
+    /* One neutral palette for every step type. */
+    --trigger: #374151;
+    --trigger-soft: #f4f5f7;
+    --email: #374151;
+    --email-soft: #f4f5f7;
+    --flow: #374151;
+    --flow-soft: #f4f5f7;
+    --action: #374151;
+    --action-soft: #f4f5f7;
+
+    position: absolute;
+    inset: 0;
+    z-index: 1;
+    display: flex;
+    flex-direction: column;
+    background: #ffffff;
+    color: var(--ink);
+    font-size: 13px;
+}
+
+/* ---- Header ---------------------------------------------------------- */
+
+.header {
+    flex: none;
+    height: 56px;
+    padding: 0 16px 0 20px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid var(--line);
+    background: #ffffff;
+}
+
+.crumb {
+    color: var(--ink-3);
+    font-size: 13px;
+    text-decoration: none;
+}
+
+.crumb:hover {
+    color: var(--ink);
+}
+
+.crumbSep {
+    color: #c6cbd2;
+}
+
+.name {
+    min-width: 60px;
+    max-width: 320px;
+    padding: 4px 6px;
+    margin-left: -6px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    field-sizing: content;
+    text-overflow: ellipsis;
+}
+
+.name:hover {
+    border-color: var(--line);
+}
+
+.name:focus {
+    outline: none;
+    border-color: #c7d7ff;
+    box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.1);
+}
+
+.status {
+    flex: none;
+    padding: 2px 9px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #f7f8fa;
+    color: var(--ink-2);
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.status_active {
+    border-color: #bfe9cf;
+    background: #eaf8ef;
+    color: #138a43;
+}
+
+.status_paused {
+    border-color: #f6dfa8;
+    background: #fff9ea;
+    color: #9a6500;
+}
+
+.saved {
+    color: var(--ink-3);
+    font-size: 12px;
+    white-space: nowrap;
+}
+
+.savedError {
+    color: #c2341f;
+}
+
+.spacer {
+    flex: 1;
+}
+
+.secondary,
+.primary {
+    height: 32px;
+    padding: 0 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.secondary {
+    border: 1px solid var(--line-strong);
+    background: #ffffff;
+    color: var(--ink);
+}
+
+.secondary:hover {
+    background: #f7f8fa;
+}
+
+.primary {
+    border: 1px solid var(--ink);
+    background: var(--ink);
+    color: #ffffff;
+}
+
+.primary:hover:not(:disabled) {
+    background: #000000;
+}
+
+.primary:disabled {
+    opacity: 0.6;
+    cursor: wait;
+}
+
+/* ---- Body: sidebar + canvas ------------------------------------------ */
+
+.body {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.canvasArea {
+    position: relative;
+    flex: 1;
+    min-width: 0;
+    display: flex;
+}
+
+/* ---- Canvas & flow ---------------------------------------------------- */
+
+.canvas {
+    position: relative;
+    flex: 1;
+    min-height: 0;
+    min-width: 0;
+    overflow: auto;
+    background-color: #ffffff;
+    background-image: radial-gradient(circle, #dfe2e7 0.9px, transparent 1.1px);
+    background-size: 18px 18px;
+}
+
+.flow {
+    min-width: max-content;
+    padding: 32px 40px 64px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+/* Keep the flow beside an open slide-over instead of under it. */
+/* The stage is at least as wide as the canvas, so a narrow flow sits in
+   the middle and a wide one scrolls. The flow inside it is zoomed with
+   CSS zoom, which (unlike a scale transform) changes its real size. */
+.stage {
+    min-width: 100%;
+    width: max-content;
+    min-height: 100%;
+    display: flex;
+    justify-content: center;
+    align-items: flex-start;
+}
+
+.canvasWithPanel .stage {
+    padding-right: 384px;
+    box-sizing: border-box;
+}
+
+@media (max-width: 900px) {
+    .canvasWithPanel .flow {
+        padding-right: 32px;
+    }
+}
+
+.line {
+    width: 1px;
+    height: 16px;
+    flex: none;
+    background: var(--connector);
+}
+
+/* Descriptive step card (PayPal / Stripe inspiration) */
+.step {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+}
+
+.card {
+    --tone: var(--trigger);
+    --tone-soft: var(--trigger-soft);
+
+    width: 340px;
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    border: 1px solid var(--line-strong);
+    border-radius: 14px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04);
+    transition: border-color 120ms ease, box-shadow 120ms ease, transform 120ms ease;
+    position: relative;
+}
+
+/* Run-order number, pinned to the card's top-left corner. */
+.number,
+.waitNumber {
+    box-sizing: border-box;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--ink);
+    color: #ffffff;
+    font-size: 11px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 1;
+}
+
+.number {
+    position: absolute;
+    top: -10px;
+    left: -10px;
+    min-width: 22px;
+    height: 22px;
+    padding: 0 6px;
+    border: 2px solid #ffffff;
+}
+
+.waitNumber {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: -6px;
+}
+
+.card[data-type="email"] { --tone: var(--email); --tone-soft: var(--email-soft); }
+.card[data-type="condition"] { --tone: var(--flow); --tone-soft: var(--flow-soft); }
+.card[data-type="action"] { --tone: var(--action); --tone-soft: var(--action-soft); }
+
+.card:hover {
+    border-color: #b9bfc8;
+    box-shadow: 0 8px 22px rgba(17, 24, 39, 0.07);
+    transform: translateY(-1px);
+}
+
+.cardHead {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.icon {
+    width: 36px;
+    height: 36px;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    box-sizing: border-box;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ink-2);
+    overflow: hidden;
+}
+
+.icon img {
+    width: 22px;
+    height: 22px;
+    object-fit: contain;
+}
+
+.headCopy {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.title {
+    overflow: hidden;
+    font-size: 14.5px;
+    font-weight: 600;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.subtitle {
+    overflow: hidden;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.badgeOk,
+.badgeWarn {
+    flex: none;
+    align-self: flex-start;
+    padding: 3px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.badgeOk {
+    background: #f4f5f7;
+    color: var(--ink-3);
+}
+
+/* Neutral pill; only a small dot carries the warning colour. */
+.badgeWarn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--ink-2);
+}
+
+.badgeWarn::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f59e0b;
+}
+
+.description {
+    padding: 10px 12px;
+    border: 1px solid #eef0f3;
+    border-radius: 10px;
+    background: #fafbfc;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.appChip {
+    align-self: flex-start;
+    padding: 4px 10px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.editorSlot {
+    display: flex;
+    justify-content: center;
+}
+
+.entry {
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: var(--flow-soft);
+    color: var(--flow);
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.wait {
+    height: 30px;
+    padding: 0 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #f7f8fa;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.wait:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+}
+
+.wait.selected {
+    background: #ffffff;
+}
+
+.insert {
+    box-sizing: border-box;
+    width: 22px;
+    height: 22px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid var(--line-strong);
+    border-radius: 50%;
+    background: #ffffff;
+    color: var(--ink-3);
+    cursor: pointer;
+    transition: color 120ms ease, border-color 120ms ease, transform 120ms ease;
+}
+
+.insert:hover {
+    border-color: var(--accent);
+    color: var(--accent);
+    transform: scale(1.1);
+}
+
+.branches {
+    --branch-gap: 28px;
+    display: flex;
+    align-items: flex-start;
+    gap: var(--branch-gap);
+}
+
+/* Each branch hangs off one horizontal bar under the condition: a bar
+   segment to the middle of the row, then a short drop to its label. */
+.branch {
+    --branch-line: var(--connector);
+    position: relative;
+    padding-top: 18px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.branch[data-branch="YES"] { --branch-line: #86d3a5; }
+.branch[data-branch="NO"] { --branch-line: #f0a596; }
+
+.branch::before,
+.branch::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    background: var(--branch-line);
+}
+
+.branch::before {
+    left: calc(var(--branch-gap) / -2);
+    right: calc(var(--branch-gap) / -2);
+    height: 1px;
+}
+
+.branch:first-child::before {
+    left: 50%;
+}
+
+.branch:last-child::before {
+    right: 50%;
+}
+
+.branch:only-child::before {
+    display: none;
+}
+
+.branch::after {
+    left: 50%;
+    width: 1px;
+    height: 18px;
+}
+
+.branch[data-branch] > .line {
+    background: var(--branch-line);
+}
+
+.branch[data-branch] > .line ~ .line {
+    background: var(--connector);
+}
+
+.branchPill {
+    padding: 2px 11px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.yes {
+    border: 1px solid #bfe9cf;
+    background: #eaf8ef;
+    color: #138a43;
+}
+
+.no {
+    border: 1px solid #f6c9c0;
+    background: #fdeeec;
+    color: #c2341f;
+}
+
+.jump {
+    padding: 6px 12px;
+    border: 1px dashed var(--line-strong);
+    border-radius: 999px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.empty {
+    margin-top: 12vh;
+    width: 320px;
+    padding: 24px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #ffffff;
+    text-align: center;
+}
+
+.empty strong {
+    font-size: 15px;
+}
+
+.empty p {
+    margin: 0 0 10px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.emptyIcon {
+    width: 38px;
+    height: 38px;
+    margin-bottom: 4px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 11px;
+    background: var(--trigger-soft);
+    color: var(--trigger);
+}
+
+.notice {
+    margin-bottom: 20px;
+    padding: 8px 8px 8px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid #f6dfa8;
+    border-radius: 10px;
+    background: #fff9ea;
+    color: #7a5200;
+    font-size: 12.5px;
+}
+
+.notice button {
+    height: 28px;
+    padding: 0 10px;
+    border: 1px solid #e9cf8d;
+    border-radius: 7px;
+    background: #ffffff;
+    color: #7a5200;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.disconnected {
+    margin-top: 40px;
+    padding: 18px 24px 22px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    border: 1px dashed var(--line-strong);
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.8);
+}
+
+.disconnectedLabel {
+    margin-bottom: 12px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+/* ---- Right slide-over (step library or step settings) --------------- */
+
+.panelSlot {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    bottom: 12px;
+    z-index: 10;
+    width: min(360px, calc(100% - 24px));
+}
+
+/* The panels reuse the existing library/settings markup; these rules
+   replace that markup's old floating-card positioning. */
+.root .panelSlot > aside[class] {
+    position: relative !important;
+    inset: auto !important;
+    top: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    left: auto !important;
+    width: 100% !important;
+    max-width: none !important;
+    height: 100% !important;
+    max-height: none !important;
+    margin: 0 !important;
+    border: 1px solid var(--line) !important;
+    border-radius: 14px !important;
+    background: #ffffff !important;
+    box-shadow: 0 18px 48px rgba(17, 24, 39, 0.12) !important;
+    transform: none !important;
+    pointer-events: auto !important;
+    animation: slideIn 160ms ease-out;
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(12px);
+    }
+}
+
+@media (max-width: 720px) {
+    .header {
+        padding: 0 10px 0 12px;
+        gap: 8px;
+    }
+
+    .crumb,
+    .crumbSep,
+    .saved {
+        display: none;
+    }
+
+    .toolbar {
+        max-width: calc(100% - 16px);
+        overflow-x: auto;
+    }
+
+    .card {
+        width: 260px;
+    }
+}
+
+/* The builder fills the window; drop the dashboard's bottom padding so the
+   page itself never scrolls when a step opens. */
+:global(.dashboardContent):has(.root) {
+    padding-bottom: 0;
+}

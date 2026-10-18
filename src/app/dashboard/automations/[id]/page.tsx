@@ -9,13 +9,8 @@ import {
     CircleDot,
     Clock3,
     GitBranch,
-    GripVertical,
     Mail,
-    MoreHorizontal,
-    Maximize2,
-    Minus,
     Pencil,
-    Play,
     Plug,
     Plus,
     Save,
@@ -39,7 +34,6 @@ import {
     AlignRight,
     List,
     ListOrdered,
-    History,
 } from "lucide-react";
 
 import Link from "next/link";
@@ -53,8 +47,7 @@ import {
     useEffect,
     useMemo,
     useRef,
-    useState,
-} from "react";
+    useState, Fragment } from "react";
 
 import {
     NODE_LIBRARY,
@@ -82,6 +75,13 @@ import {
     saveAutomation,
 } from "../../../../lib/automation/client";
 import AutomationRunsPanel, { type RunsPanelTab } from "./AutomationRunsPanel";
+import WorkflowStarter from "./WorkflowStarter";
+import FlowBuilder from "./FlowBuilder";
+import BuilderSidebar, { type SidebarTab } from "./BuilderSidebar";
+import StepEditor from "./StepEditor";
+import AiChatPanel from "./AiChatPanel";
+import { applyAiOperations, parseAiOperation, type AiOperation } from "../../../../lib/automation/ai-edit";
+import { describeStep } from "./step-copy";
 
 import { auth } from "../../../../lib/firebase";
 import { getAutomationActionCapability } from "../../../../lib/automation/action-capabilities";
@@ -92,6 +92,23 @@ const NODE_WIDTH = 250;
 const NODE_HEIGHT = 76;
 const CANVAS_WIDTH = 1800;
 const CANVAS_HEIGHT = 1800;
+
+// Example requests shown in the empty AI assistant panel.
+const AI_PANEL_SUGGESTIONS = [
+    "Add a 2-day wait after the first email",
+    "Tag contacts who don't open the welcome email",
+    "Send a follow-up if they don't reply within 3 days",
+] as const;
+
+// Label shown above each step card on the canvas, grouped like the step
+// library (triggers, emails, flow control, actions).
+const NODE_CATEGORY_LABEL: Record<WorkflowNode["type"], string> = {
+    trigger: "Trigger",
+    email: "Email",
+    delay: "Flow control",
+    condition: "Flow control",
+    action: "Action",
+};
 
 type DragState = {
     nodeId: string;
@@ -923,6 +940,8 @@ export default function WorkflowBuilderPage() {
     const [workflow, setWorkflow] = useState<Workflow | null>(null);
     const [selectedNodeId, setSelectedNodeId] = useState("");
     const [libraryOpen, setLibraryOpen] = useState(false);
+    const [sidebarTab, setSidebarTab] = useState<SidebarTab | null>(null);
+    const [settingsOpen, setSettingsOpen] = useState(false);
     const [inspectorOpen, setInspectorOpen] = useState(false);
     const [isSavingInspector, setIsSavingInspector] = useState(false);
     const inspectorSavingRef = useRef(false);
@@ -936,6 +955,8 @@ export default function WorkflowBuilderPage() {
     });
     const [zoom, setZoom] = useState(1);
     const [addFromNodeId, setAddFromNodeId] = useState<string | null>(null);
+    const [addFromBranch, setAddFromBranch] = useState<ConditionBranch | null>(null);
+    const [saveState, setSaveState] = useState<"idle" | "saving" | "saved" | "error">("idle");
     const [notice, setNotice] = useState("");
     const [statusSaving, setStatusSaving] = useState(false);
     const [runsPanel, setRunsPanel] = useState<RunsPanelTab | null>(null);
@@ -1324,6 +1345,9 @@ export default function WorkflowBuilderPage() {
         }
     }, [workflow]);
 
+    // The page only mounts once the workflow has loaded, so fit it then.
+    const workflowReady = Boolean(workflow);
+
     useEffect(() => {
         const page = pageRef.current;
         if (!page) return;
@@ -1383,7 +1407,7 @@ export default function WorkflowBuilderPage() {
                 element.style.overflow = overflow;
             });
         };
-    }, []);
+    }, [workflowReady]);
 
     useEffect(() => {
         return () => {
@@ -2251,8 +2275,12 @@ export default function WorkflowBuilderPage() {
             window.clearTimeout(autosaveTimer.current);
         }
 
+        setSaveState("saving");
         autosaveTimer.current = window.setTimeout(() => {
-            void persistWorkflowToStorage(nextWorkflow).catch((error) => {
+            void persistWorkflowToStorage(nextWorkflow).then(() => {
+                setSaveState("saved");
+            }).catch((error) => {
+                setSaveState("error");
                 console.error("Automation autosave error:", error);
                 showNotice(
                     error instanceof Error
@@ -2749,7 +2777,12 @@ export default function WorkflowBuilderPage() {
         );
     }
 
-    function addNode(type: NodeType, parentId?: string | null, presetId?: string) {
+    function addNode(
+        type: NodeType,
+        parentId?: string | null,
+        presetId?: string,
+        branchHint: ConditionBranch | null = null,
+    ) {
         if (!workflow) return;
 
         if (
@@ -2761,55 +2794,91 @@ export default function WorkflowBuilderPage() {
         }
 
         const node = createNode(type, workflow.nodes.length, presetId);
-        const parent =
-            workflow.nodes.find((item) => item.id === parentId) ??
-            selectedNode ??
-            workflow.nodes[workflow.nodes.length - 1];
+        let nextConnections = workflow.connections;
+        let parent: WorkflowNode | undefined;
 
-        let branch: ConditionBranch | null = null;
-
-        if (parent?.type === "condition") {
-            const usedBranches = new Set(
-                workflow.connections
-                    .filter((connection) => connection.from === parent.id)
-                    .map((connection) => getConditionBranch(connection.id))
-                    .filter((value): value is ConditionBranch => Boolean(value)),
-            );
-
-            branch = !usedBranches.has("YES")
-                ? "YES"
-                : !usedBranches.has("NO")
-                    ? "NO"
-                    : null;
-
-            if (!branch) {
-                showNotice("This condition already has YES and NO branches.");
-                return;
-            }
-        }
-
-        if (parent) {
-            node.position =
-                parent.type === "condition" && branch
-                    ? getConditionChildPosition(parent, branch)
-                    : getNewChildPosition(parent);
-        } else {
+        if (type === "trigger") {
+            // A trigger always starts the flow: it points at whatever step
+            // currently has nothing before it.
+            const hasIncoming = new Set(workflow.connections.map((connection) => connection.to));
+            const firstStep = workflow.nodes.find((item) => !hasIncoming.has(item.id));
             node.position = {
                 x: Math.round(CANVAS_WIDTH / 2 - NODE_WIDTH / 2),
                 y: Math.round(CANVAS_HEIGHT / 2 - NODE_HEIGHT / 2),
             };
-        }
+            if (firstStep) {
+                nextConnections = [
+                    ...workflow.connections,
+                    { id: makeConnectionId(null), from: node.id, to: firstStep.id },
+                ];
+            }
+        } else {
+            parent =
+                workflow.nodes.find((item) => item.id === parentId) ??
+                selectedNode ??
+                workflow.nodes[workflow.nodes.length - 1];
 
-        const nextConnections = parent
-            ? [
-                ...workflow.connections,
-                {
-                    id: makeConnectionId(branch),
-                    from: parent.id,
-                    to: node.id,
-                },
-            ]
-            : workflow.connections;
+            const parentEdges = parent
+                ? workflow.connections.filter((connection) => connection.from === parent!.id)
+                : [];
+
+            let branch: ConditionBranch | null = null;
+            // The existing edge the new step is inserted into, if any.
+            let splitEdge: (typeof workflow.connections)[number] | null = null;
+
+            if (parent?.type === "condition") {
+                if (branchHint) {
+                    branch = branchHint;
+                    splitEdge = parentEdges.find((edge) => getConditionBranch(edge) === branchHint) ?? null;
+                } else {
+                    const usedBranches = new Set(
+                        parentEdges
+                            .map((edge) => getConditionBranch(edge))
+                            .filter((value): value is ConditionBranch => Boolean(value)),
+                    );
+                    branch = !usedBranches.has("YES") ? "YES" : !usedBranches.has("NO") ? "NO" : null;
+                    if (!branch) {
+                        showNotice("This condition already has YES and NO branches.");
+                        return;
+                    }
+                }
+            } else if (parentEdges.length === 1) {
+                splitEdge = parentEdges[0];
+            }
+
+            if (parent) {
+                node.position =
+                    parent.type === "condition" && branch
+                        ? getConditionChildPosition(parent, branch)
+                        : getNewChildPosition(parent);
+            } else {
+                node.position = {
+                    x: Math.round(CANVAS_WIDTH / 2 - NODE_WIDTH / 2),
+                    y: Math.round(CANVAS_HEIGHT / 2 - NODE_HEIGHT / 2),
+                };
+            }
+
+            if (parent) {
+                nextConnections = [
+                    ...workflow.connections.filter((connection) => connection.id !== splitEdge?.id),
+                    {
+                        id: makeConnectionId(branch),
+                        from: parent.id,
+                        to: node.id,
+                        ...(splitEdge?.label ? { label: splitEdge.label } : {}),
+                    },
+                    // Reconnect the step that used to follow, so inserting
+                    // never leaves it stranded. A new condition keeps it on Yes.
+                    ...(splitEdge
+                        ? [{
+                            id: makeConnectionId(type === "condition" ? "YES" : null),
+                            from: node.id,
+                            to: splitEdge.to,
+                        }]
+                        : []),
+                ];
+            }
+        }
 
         const nextWorkflow = {
             ...workflow,
@@ -2822,6 +2891,7 @@ export default function WorkflowBuilderPage() {
         setShowCanvasStart(false);
         setInspectorOpen(true);
         setAddFromNodeId(null);
+        setAddFromBranch(null);
         showNotice(parent ? `Step added after ${parent.title}` : "Step added");
 
         window.requestAnimationFrame(() => {
@@ -3111,73 +3181,13 @@ export default function WorkflowBuilderPage() {
                 throw new Error(message);
             }
 
-            type AiOperation = {
-                action: "add" | "update" | "remove";
-                operationId: string | null;
-                targetIndex: number | null;
-                afterIndex: number | null;
-                parentIndex: number | null;
-                parentOperationId: string | null;
-                branch: ConditionBranch | null;
-                stepId: string | null;
-                integrationStepId: string | null;
-                actionValue: string | null;
-                condition: string | null;
-                sourceEmailIndex: number | null;
-                sourceEmailOperationId: string | null;
-                delayValue: number | null;
-                delayUnit: DelayUnit | null;
-            };
-
-            const operations =
-                payload &&
-                    typeof payload === "object" &&
-                    Array.isArray((payload as { operations?: unknown[] }).operations)
-                    ? (payload as { operations: unknown[] }).operations.filter(
-                        (item): item is AiOperation => {
-                            if (!item || typeof item !== "object") return false;
-
-                            const operation = item as Record<string, unknown>;
-
-                            return (
-                                (operation.action === "add" ||
-                                    operation.action === "update" ||
-                                    operation.action === "remove") &&
-                                (operation.operationId === null ||
-                                    typeof operation.operationId === "string") &&
-                                (operation.targetIndex === null ||
-                                    typeof operation.targetIndex === "number") &&
-                                (operation.afterIndex === null ||
-                                    typeof operation.afterIndex === "number") &&
-                                (operation.parentIndex === null ||
-                                    typeof operation.parentIndex === "number") &&
-                                (operation.parentOperationId === null ||
-                                    typeof operation.parentOperationId === "string") &&
-                                (operation.branch === null ||
-                                    operation.branch === "YES" ||
-                                    operation.branch === "NO") &&
-                                (operation.stepId === null ||
-                                    typeof operation.stepId === "string") &&
-                                (operation.integrationStepId === null ||
-                                    typeof operation.integrationStepId === "string") &&
-                                (operation.actionValue === null ||
-                                    typeof operation.actionValue === "string") &&
-                                (operation.condition === null ||
-                                    typeof operation.condition === "string") &&
-                                (operation.sourceEmailIndex === null ||
-                                    typeof operation.sourceEmailIndex === "number") &&
-                                (operation.sourceEmailOperationId === null ||
-                                    typeof operation.sourceEmailOperationId === "string") &&
-                                (operation.delayValue === null ||
-                                    typeof operation.delayValue === "number") &&
-                                (operation.delayUnit === null ||
-                                    operation.delayUnit === "minutes" ||
-                                    operation.delayUnit === "hours" ||
-                                    operation.delayUnit === "days")
-                            );
-                        },
-                    )
-                    : [];
+            const operations = payload &&
+                typeof payload === "object" &&
+                Array.isArray((payload as { operations?: unknown[] }).operations)
+                ? (payload as { operations: unknown[] }).operations
+                    .map(parseAiOperation)
+                    .filter((operation): operation is AiOperation => operation !== null)
+                : [];
 
             const assistantMessage =
                 payload &&
@@ -3201,19 +3211,6 @@ export default function WorkflowBuilderPage() {
                 return;
             }
 
-            const libraryById = new Map(
-                NODE_LIBRARY.map((item) => [item.id, item] as const),
-            );
-
-            const integrationByStepId = new Map<string, IntegrationRecord>(
-                availableIntegrations
-                    .filter((integration) => integration.connected)
-                    .map(
-                        (integration) =>
-                            [`integration:${integration.id}`, integration] as const,
-                    ),
-            );
-
             const integrationById = new Map<string, IntegrationRecord>(
                 availableIntegrations.map(
                     (integration) => [integration.id, integration] as const,
@@ -3224,387 +3221,38 @@ export default function WorkflowBuilderPage() {
                 (window.localStorage.getItem("workspaceId") || "demo-workspace") ===
                 "demo-workspace";
 
-            let nextNodes = [...workflow.nodes];
+            // The server already applied these operations to a copy of this
+            // workflow and checked the result; the shared module applies them
+            // here the same way.
+            const applied = applyAiOperations(workflow, operations, {
+                createNode: (stepId, index) => {
+                    const definition = NODE_LIBRARY.find((item) => item.id === stepId);
+                    if (!definition) return null;
+                    const node = createNode(definition.type, index, definition.id);
 
-            // Apply removals first, from highest index to lowest so indexes stay stable.
-            operations
-                .filter(
-                    (operation) =>
-                        operation.action === "remove" &&
-                        operation.targetIndex !== null,
-                )
-                .sort(
-                    (a, b) =>
-                        (b.targetIndex ?? -1) - (a.targetIndex ?? -1),
-                )
-                .forEach((operation) => {
-                    const index = operation.targetIndex ?? -1;
-
-                    if (index >= 0 && index < nextNodes.length) {
-                        nextNodes.splice(index, 1);
-                    }
-                });
-
-            // Apply updates without replacing the existing node.
-            operations
-                .filter(
-                    (operation) =>
-                        operation.action === "update" &&
-                        operation.targetIndex !== null,
-                )
-                .forEach((operation) => {
-                    const targetId = operation.targetIndex === null ? undefined : workflow.nodes[operation.targetIndex]?.id;
-                    const index = nextNodes.findIndex((node) => node.id === targetId);
-                    const currentNode = nextNodes[index];
-
-                    if (!currentNode) return;
-
-                    const updatedNode: WorkflowNode = {
-                        ...currentNode,
-                        config: {
-                            ...currentNode.config,
-                        },
-                    };
-
-                    if (operation.integrationStepId !== null) {
-                        const integration =
-                            integrationByStepId.get(operation.integrationStepId);
-
-                        if (integration) {
-                            (
-                                updatedNode.config as ToolAwareNodeConfig
-                            ).integrationId = integration.id;
-
-                            if (currentNode.type === "email") {
-                                updatedNode.config.sendingAccount = integration.id;
-                                updatedNode.description = `Send email using ${integration.name}.`;
-                            } else if (currentNode.type === "action") {
-                                updatedNode.config.actionType = integration.id;
-                                updatedNode.title = integration.name;
-                                updatedNode.description =
-                                    integration.description ||
-                                    `Run an action with ${integration.name}.`;
-                            } else if (currentNode.type === "trigger") {
-                                updatedNode.description =
-                                    `Start this workflow from ${integration.name}.`;
-                            }
-                        }
-                    }
-
-                    if (
-                        currentNode.type === "action" &&
-                        operation.actionValue !== null
-                    ) {
-                        updatedNode.config.actionValue =
-                            operation.actionValue;
-                    }
-
-                    if (
-                        currentNode.type === "condition" &&
-                        operation.condition !== null
-                    ) {
-                        updatedNode.config.condition = operation.condition;
-                        updatedNode.title = operation.condition;
-                    }
-
-                    if (
-                        currentNode.type === "delay" &&
-                        operation.delayValue !== null
-                    ) {
-                        updatedNode.config.delayValue = Math.max(
-                            1,
-                            operation.delayValue,
-                        );
-                    }
-
-                    if (
-                        currentNode.type === "delay" &&
-                        operation.delayUnit !== null
-                    ) {
-                        updatedNode.config.delayUnit = operation.delayUnit;
-                    }
-
-                    if (
-                        currentNode.type === "delay" &&
-                        (operation.delayValue !== null ||
-                            operation.delayUnit !== null)
-                    ) {
-                        const value =
-                            updatedNode.config.delayValue ?? 1;
-                        const unit =
-                            updatedNode.config.delayUnit ?? "days";
-                        const singular =
-                            value === 1
-                                ? unit.replace(/s$/, "")
-                                : unit;
-
-                        updatedNode.title = `Wait ${value} ${singular}`;
-                    }
-
-                    nextNodes[index] = updatedNode;
-                });
-
-            const addedNodeIdByOperationId = new Map<string, string>();
-
-            // Apply additions in the order returned by the assistant.
-            operations
-                .filter(
-                    (operation) =>
-                        operation.action === "add" &&
-                        operation.stepId !== null,
-                )
-                .forEach((operation) => {
-                    const stepId = operation.stepId;
-
-                    if (!stepId) return;
-
-                    const definition = libraryById.get(stepId);
-                    const integration = integrationByStepId.get(stepId);
-
-                    if (!definition && !integration) return;
-
-                    const node = integration
-                        ? createNode("action", nextNodes.length)
-                        : createNode(
-                            definition!.type,
-                            nextNodes.length,
-                            definition!.id,
-                        );
-
-                    if (integration) {
-                        node.title = integration.name;
-                        node.label = "Tool";
-                        node.description =
-                            integration.description ||
-                            `Run an action with ${integration.name}.`;
-                        node.config = {
-                            ...node.config,
-                            actionType: integration.id,
-                            integrationId: integration.id,
-                        } as ToolAwareNodeConfig;
-                    } else {
-                        const explicitlySelectedIntegration =
-                            operation.integrationStepId
-                                ? integrationByStepId.get(
-                                    operation.integrationStepId,
-                                )
-                                : undefined;
-
-                        const demoDefaultIntegration =
-                            isDemoWorkspace && definition
-                                ? integrationById.get(
-                                    DEMO_STEP_TOOL_DEFAULTS[definition.id] ?? "",
-                                )
-                                : undefined;
-
-                        const stepIntegration =
-                            explicitlySelectedIntegration ||
-                            demoDefaultIntegration;
-
-                        if (stepIntegration) {
-                            (
-                                node.config as ToolAwareNodeConfig
-                            ).integrationId = stepIntegration.id;
-
-                            if (node.type === "email") {
-                                node.config.sendingAccount = stepIntegration.id;
-                                node.description =
-                                    `Send email using ${stepIntegration.name}.`;
-                            } else if (node.type === "trigger") {
-                                node.description =
-                                    `Start this workflow from ${stepIntegration.name}.`;
-                            } else if (node.type === "action") {
-                                node.config.actionType = stepIntegration.id;
-                            }
-                        }
-                    }
-
-                    if (
-                        node.type === "action" &&
-                        operation.actionValue !== null
-                    ) {
-                        node.config.actionValue =
-                            operation.actionValue;
-                    }
-
-                    if (
-                        node.type === "condition" &&
-                        operation.condition !== null
-                    ) {
-                        node.config.condition = operation.condition;
-                        node.title = operation.condition;
-                    }
-
-                    if (
-                        node.type === "delay" &&
-                        operation.delayValue !== null
-                    ) {
-                        node.config.delayValue = Math.max(
-                            1,
-                            operation.delayValue,
-                        );
-                    }
-
-                    if (
-                        node.type === "delay" &&
-                        operation.delayUnit !== null
-                    ) {
-                        node.config.delayUnit = operation.delayUnit;
-                    }
-
-                    if (
-                        node.type === "delay" &&
-                        (operation.delayValue !== null ||
-                            operation.delayUnit !== null)
-                    ) {
-                        const value = node.config.delayValue ?? 1;
-                        const unit = node.config.delayUnit ?? "days";
-                        const singular =
-                            value === 1 ? unit.replace(/s$/, "") : unit;
-                        node.title = `Wait ${value} ${singular}`;
-                    }
-
-                    const requestedAfter =
-                        operation.afterIndex === null
-                            ? nextNodes.length - 1
-                            : operation.afterIndex;
-
-                    const insertAt = Math.min(
-                        nextNodes.length,
-                        Math.max(0, requestedAfter + 1),
-                    );
-
-                    nextNodes.splice(insertAt, 0, node);
-
-                    if (operation.operationId) {
-                        addedNodeIdByOperationId.set(
-                            operation.operationId,
-                            node.id,
-                        );
-                    }
-                });
-
-            // Keep graph meaning separate from visual position. Existing condition
-            // branches are preserved, and new condition children receive a stable
-            // YES/NO branch instead of deriving logic from where a node is dragged.
-            for (const operation of operations) {
-                if (operation.action === "remove") continue;
-                const nodeId = operation.action === "add"
-                    ? addedNodeIdByOperationId.get(operation.operationId ?? "")
-                    : operation.targetIndex === null ? undefined : workflow.nodes[operation.targetIndex]?.id;
-                const node = nextNodes.find((item) => item.id === nodeId);
-                if (!node || node.type !== "condition") continue;
-                const sourceId = operation.sourceEmailIndex !== null
-                    ? workflow.nodes[operation.sourceEmailIndex]?.id
-                    : operation.sourceEmailOperationId
-                        ? addedNodeIdByOperationId.get(operation.sourceEmailOperationId)
+                    // Demo workspaces show which demo tool a step would use.
+                    const demoIntegration = isDemoWorkspace
+                        ? integrationById.get(DEMO_STEP_TOOL_DEFAULTS[definition.id] ?? "")
                         : undefined;
-                if (sourceId) {
-                    if (!nextNodes.some((item) => item.id === sourceId && item.type === "email")) {
-                        throw new Error("The condition references an email step that was removed.");
+                    if (demoIntegration && (node.type === "email" || node.type === "trigger")) {
+                        (node.config as ToolAwareNodeConfig).integrationId = demoIntegration.id;
+                        if (node.type === "email") {
+                            node.config.sendingAccount = demoIntegration.id;
+                            node.description = `Send email using ${demoIntegration.name}.`;
+                        } else {
+                            node.description = `Start this workflow from ${demoIntegration.name}.`;
+                        }
                     }
-                    node.config.sourceEmailNodeId = sourceId;
-                }
-                if (operation.condition !== null) {
-                    node.config.conditionRules = undefined;
-                    node.config.conditionMatch = undefined;
-                }
+                    return node;
+                },
+            });
+
+            if (applied.errors.length > 0) {
+                throw new Error(applied.errors[0]);
             }
 
-            const survivingNodeIds = new Set(nextNodes.map((node) => node.id));
-            const nextConnections = workflow.connections.filter(
-                (connection) =>
-                    survivingNodeIds.has(connection.from) &&
-                    survivingNodeIds.has(connection.to),
-            );
-
-            const connectedTo = new Set(
-                nextConnections.map((connection) => connection.to),
-            );
-
-            // Use the semantic parent/branch returned by the AI. afterIndex is only
-            // for list/display ordering; it must not decide workflow meaning.
-            operations
-                .filter(
-                    (operation) =>
-                        operation.action === "add" &&
-                        operation.operationId !== null,
-                )
-                .forEach((operation) => {
-                    if (!operation.operationId) return;
-
-                    const childId = addedNodeIdByOperationId.get(
-                        operation.operationId,
-                    );
-                    if (!childId || connectedTo.has(childId)) return;
-
-                    const parentId =
-                        operation.parentIndex !== null
-                            ? workflow.nodes[operation.parentIndex]?.id
-                            : operation.parentOperationId
-                                ? addedNodeIdByOperationId.get(
-                                    operation.parentOperationId,
-                                )
-                                : undefined;
-
-                    if (
-                        !parentId ||
-                        !survivingNodeIds.has(parentId) ||
-                        !survivingNodeIds.has(childId)
-                    ) {
-                        return;
-                    }
-
-                    nextConnections.push({
-                        id: makeConnectionId(operation.branch),
-                        from: parentId,
-                        to: childId,
-                        ...(operation.branch
-                            ? {
-                                label:
-                                    operation.branch === "YES"
-                                        ? "Yes"
-                                        : "No",
-                            }
-                            : {}),
-                    });
-                    connectedTo.add(childId);
-                });
-
-            // Fallback only for older/underspecified AI edits that did not include
-            // semantic parent metadata.
-            for (let index = 0; index < nextNodes.length - 1; index += 1) {
-                const parent = nextNodes[index];
-                const child = nextNodes[index + 1];
-
-                if (connectedTo.has(child.id)) continue;
-
-                let branch: ConditionBranch | null = null;
-
-                if (parent.type === "condition") {
-                    const usedBranches = new Set(
-                        nextConnections
-                            .filter((connection) => connection.from === parent.id)
-                            .map((connection) => getConditionBranch(connection.id))
-                            .filter(
-                                (value): value is ConditionBranch => Boolean(value),
-                            ),
-                    );
-
-                    branch = !usedBranches.has("YES")
-                        ? "YES"
-                        : !usedBranches.has("NO")
-                            ? "NO"
-                            : null;
-                }
-
-                nextConnections.push({
-                    id: makeConnectionId(branch),
-                    from: parent.id,
-                    to: child.id,
-                });
-                connectedTo.add(child.id);
-            }
+            let nextNodes = applied.definition.nodes as WorkflowNode[];
+            const nextConnections = applied.definition.connections;
 
             const incomingByNode = new Map<string, string>();
             nextConnections.forEach((connection) => {
@@ -3829,27 +3477,36 @@ export default function WorkflowBuilderPage() {
             return;
         }
 
+        const removed = workflow.nodes.find((node) => node.id === nodeId);
+        const incoming = workflow.connections.filter((connection) => connection.to === nodeId);
+        const outgoing = workflow.connections.filter((connection) => connection.from === nodeId);
+
+        // Removing a step from the middle of a chain reconnects its neighbours.
+        // The incoming edge is kept (redirected) so a Yes/No branch survives.
+        const bridge =
+            removed && removed.type !== "condition" && incoming.length === 1 && outgoing.length === 1
+                ? { ...incoming[0], to: outgoing[0].to }
+                : null;
+
         const nextWorkflow = {
             ...workflow,
             nodes: workflow.nodes.filter((node) => node.id !== nodeId),
-            connections: workflow.connections.filter(
-                (connection) =>
-                    connection.from !== nodeId &&
-                    connection.to !== nodeId,
-            ),
+            connections: [
+                ...workflow.connections.filter(
+                    (connection) =>
+                        connection.from !== nodeId &&
+                        connection.to !== nodeId,
+                ),
+                ...(bridge ? [bridge] : []),
+            ],
         };
 
         setWorkflowAndAutosave(nextWorkflow);
 
-        const fallback = nextWorkflow.nodes[0] ?? null;
-
-        setSelectedNodeId(fallback?.id ?? "");
+        setSelectedNodeId("");
+        setInspectorOpen(false);
+        setSettingsOpen(false);
         setShowCanvasStart(nextWorkflow.nodes.length === 0);
-
-        if (nextWorkflow.nodes.length === 0) {
-            setLibraryOpen(true);
-            setInspectorOpen(true);
-        }
 
         showNotice("Step deleted");
     }
@@ -4146,9 +3803,11 @@ export default function WorkflowBuilderPage() {
         const heightZoom =
             (visibleHeight - verticalPadding * 2) / contentHeight;
 
+        // Never open below 80%: cards must stay readable; long workflows
+        // scroll instead of shrinking to a thumbnail.
         const fitZoom = clamp(
             Math.min(widthZoom, heightZoom, 1),
-            0.35,
+            0.8,
             1,
         );
 
@@ -4353,842 +4012,70 @@ export default function WorkflowBuilderPage() {
             : null;
     const actionDefinitions = NODE_LIBRARY.filter((item) => item.type === "action" && getAutomationActionCapability(item.defaults?.config?.actionType ?? item.title));
     const starterActive = showCanvasStart && workflow.nodes.length === 0;
+    const titleOf = (id: string) => workflow.nodes.find((item) => item.id === id)?.title ?? null;
+    const insertTargetId = addFromNodeId ?? (inspectorOpen && selectedNodeId ? selectedNodeId : null);
+    const triggerOptions = triggerDefinitions.map((item) => ({
+        id: item.id,
+        title: item.title,
+        config: (item.defaults?.config ?? {}) as Record<string, unknown>,
+    }));
+    // The email tool a step sends through: the connected provider when one is
+    // resolved, otherwise Resend, which delivers workflow emails by default.
+    const emailToolFor = (nodeId: string) => {
+        const node = workflow.nodes.find((item) => item.id === nodeId);
+        const integration = node ? integrationForNode(node) : null;
+        if (!integration) return { name: "Resend", logo: "https://cdn.simpleicons.org/resend/000000" };
+        const key = integration.id.toLowerCase().replace(/[^a-z0-9]+/g, "");
+        return { name: integration.name, logo: providerLogoUrl(key, integration) || `https://cdn.simpleicons.org/${key}` };
+    };
+    const nodeIcon = (type: NodeType, nodeId?: string) => {
+        if (type === "email" && nodeId) {
+            const tool = emailToolFor(nodeId);
+            // eslint-disable-next-line @next/next/no-img-element
+            return <img src={tool.logo} alt={tool.name} />;
+        }
+        const Icon = iconByType[type];
+        return <Icon size={17} />;
+    };
 
-    return (
-        <>
-            <style>{`
-                @keyframes miloOrbFloat {
-                    0%, 100% { transform: translateY(0) scale(1); }
-                    50% { transform: translateY(-1px) scale(1.035); }
-                }
-                @keyframes miloOrbGlow {
-                    0%, 100% { opacity: 0.65; transform: rotate(0deg) scale(1); }
-                    50% { opacity: 1; transform: rotate(10deg) scale(1.08); }
-                }
-                @keyframes miloHeroOrbFloat {
-                    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
-                    50% { transform: translate3d(0, -8px, 0) scale(1.018); }
-                }
-                @keyframes miloHeroOrbGlow {
-                    0%, 100% { opacity: 0.72; transform: rotate(0deg) scale(1); }
-                    50% { opacity: 1; transform: rotate(12deg) scale(1.08); }
-                }
-            `}</style>
-            <main
-                ref={pageRef}
-                className={`${styles.page} ${starterActive ? styles.pageStarter : styles.pageCanvas}`}
-            >
-                <div
-                    className={`${styles.pageInner} ${starterActive ? styles.pageInnerStarter : styles.pageInnerCanvas}`}
-                >
-                    {!starterActive && (
-                        <header className={styles.topbar}>
-                            <div className={styles.titleGroup}>
-                                <div className={styles.eyebrow}>AUTOMATION</div>
-                                <div className={styles.workflowNameEditor}>
-                                    <input
-                                        ref={workflowNameRef}
-                                        className={styles.workflowNameInput}
-                                        value={workflow.name}
-                                        readOnly={!isEditingWorkflowName}
-                                        size={Math.max(workflow.name.length, 1)}
-                                        onChange={(event) =>
-                                            setWorkflowAndAutosave({
-                                                ...workflow,
-                                                name: event.target.value,
-                                            })
-                                        }
-                                        onBlur={() => setIsEditingWorkflowName(false)}
-                                        onKeyDown={(event) => {
-                                            if (event.key === "Enter" || event.key === "Escape") {
-                                                event.currentTarget.blur();
-                                            }
-                                        }}
-                                        aria-label="Workflow name"
-                                    />
-                                    <button
-                                        type="button"
-                                        className={styles.workflowNameEditButton}
-                                        aria-label="Edit workflow name"
-                                        onMouseDown={(event) => event.preventDefault()}
-                                        onClick={() => {
-                                            setIsEditingWorkflowName(true);
-                                            window.requestAnimationFrame(() => {
-                                                workflowNameRef.current?.focus();
-                                                workflowNameRef.current?.select();
-                                            });
-                                        }}
-                                    >
-                                        <Pencil size={12} />
-                                    </button>
-                                </div>
-                            </div>
+    const aiChat = (
+        <AiChatPanel
+            workflowName={workflow.name}
+            statusLabel={workflow.status === "active" ? "Live" : workflow.status === "paused" ? "Paused" : "Draft"}
+            historyOpen={workflowHistoryMenuOpen}
+            onToggleHistory={toggleWorkflowHistoryMenu}
+            historyRef={workflowHistoryMenuRef}
+            history={workflowHistory}
+            currentWorkflowId={workflowId}
+            onNewWorkflow={() => {
+                setWorkflowHistoryMenuOpen(false);
+                void startNewWorkflow();
+            }}
+            onOpenWorkflow={(id) => {
+                setWorkflowHistoryMenuOpen(false);
+                if (id !== workflowId) router.push(`/dashboard/automations/${id}`);
+            }}
+            onShare={() => void shareWorkflowLink()}
+            onClose={() => {
+                setSidebarTab(null);
+                setAiPanelCollapsed(true);
+            }}
+            messages={aiMessages}
+            timeOf={(message) => formatAiMessageTime(message as AiChatMessage) ?? ""}
+            building={isAiBuilding}
+            suggestions={AI_PANEL_SUGGESTIONS}
+            endRef={chatEndRef}
+            prompt={aiPrompt}
+            onPromptChange={setAiPrompt}
+            onSend={() => void buildWorkflowWithAI()}
+            attachments={starterAttachments}
+            onRemoveAttachment={removeStarterAttachment}
+            onFiles={(files) => void addStarterAttachments(files)}
+            modelLogo={<StarterAiProviderLogo provider="openclaw" size={14} />}
+        />
+    );
 
-                            <div className={styles.topActions}>
-                                <button
-                                    type="button"
-                                    className={styles.newWorkflowButton}
-                                    onClick={() => void startNewWorkflow()}
-                                >
-                                    <Plus size={13} />
-                                    New workflow
-                                </button>
-
-                                <Link href="/dashboard/automations/all" className={styles.backButton}>
-                                    All automations
-                                </Link>
-
-                                {validationIssues.length > 0 && (
-                                    <span className={styles.warningSummary}>
-                                        <AlertCircle size={13} />
-                                        {validationIssues.length} {validationIssues.length === 1 ? "issue" : "issues"}
-                                    </span>
-                                )}
-
-                                <span
-                                    className={`${styles.statusBadge} ${workflow.status === "active" ? styles.statusActive : styles.statusDraft
-                                        }`}
-                                >
-                                    <CircleDot size={12} />
-                                    {workflow.status === "active"
-                                        ? "Active"
-                                        : workflow.status === "paused"
-                                            ? "Paused"
-                                            : "Draft"}
-                                </span>
-
-                                <button
-                                    type="button"
-                                    className={styles.secondaryButton}
-                                    disabled={statusSaving}
-                                    onClick={() =>
-                                        void setWorkflowStatus(
-                                            workflow.status === "active" ? "paused" : "active",
-                                        )
-                                    }
-                                >
-                                    {workflow.status === "active"
-                                        ? "Pause"
-                                        : workflow.status === "paused"
-                                            ? "Resume"
-                                            : "Publish"}
-                                </button>
-
-                                <button
-                                    type="button"
-                                    className={styles.primaryButton}
-                                    onClick={persistWorkflow}
-                                >
-                                    <Save size={14} />
-                                    Save
-                                </button>
-                            </div>
-                        </header>
-                    )}
-
-                    {notice && (
-                        <div className={styles.notice} role="status">
-                            <Check size={14} />
-                            {notice}
-                        </div>
-                    )}
-
-                    {runsPanel && (
-                        <AutomationRunsPanel
-                            workflowId={workflow.id}
-                            workflowStatus={workflow.status === "active" || workflow.status === "paused" ? workflow.status : "draft"}
-                            nodeTitles={Object.fromEntries(workflow.nodes.map((node) => [node.id, node.title]))}
-                            tab={runsPanel}
-                            onTabChange={setRunsPanel}
-                            onClose={() => setRunsPanel(null)}
-                            onPublish={() => void setWorkflowStatus("active")}
-                        />
-                    )}
-
-                    <section
-                        className={`${styles.builderCard} ${aiPanelCollapsed ? styles.builderCardAiCollapsed : ""
-                            } ${starterActive ? styles.builderCardStarter : ""
-                            }`}
-                    >
-                        {!starterActive && (
-                            <>
-                                <div className={styles.canvasBreadcrumb}>
-                                    <Link href="/dashboard/automations/all">Workflows</Link>
-                                    <ChevronRight size={14} />
-                                    <input
-                                        className={styles.canvasBreadcrumbNameInput}
-                                        value={workflow.name}
-                                        onChange={(event) =>
-                                            setWorkflowAndAutosave({
-                                                ...workflow,
-                                                name: event.target.value,
-                                            })
-                                        }
-                                        onBlur={(event) => {
-                                            if (!event.currentTarget.value.trim()) {
-                                                setWorkflowAndAutosave({
-                                                    ...workflow,
-                                                    name: "Untitled workflow",
-                                                });
-                                            }
-                                        }}
-                                        onKeyDown={(event) => {
-                                            if (event.key === "Enter") {
-                                                event.currentTarget.blur();
-                                            }
-                                        }}
-                                        aria-label="Workflow name"
-                                    />
-                                </div>
-
-                                <div className={styles.canvasTopActions}>
-                                    <button
-                                        type="button"
-                                        className={styles.aiToolbarLauncher}
-                                        aria-label={aiPanelCollapsed ? "Open OpenClaw assistant" : "Close OpenClaw assistant"}
-                                        title={aiPanelCollapsed ? "Open OpenClaw assistant" : "Close OpenClaw assistant"}
-                                        aria-controls="workflow-ai-chat"
-                                        aria-expanded={!aiPanelCollapsed}
-                                        onClick={() => setAiPanelCollapsed((collapsed) => !collapsed)}
-                                    >
-                                        <StarterAiProviderLogo provider="openclaw" size={30} />
-                                    </button>
-                                    <span
-                                        className={`${styles.canvasStatusChip} ${styles[`canvasStatus_${workflow.status}`] ?? ""}`}
-                                        title={
-                                            workflow.status === "active"
-                                                ? "Live: the trigger is enrolling contacts"
-                                                : workflow.status === "paused"
-                                                    ? "Paused: no new enrollments; runs in progress are on hold"
-                                                    : "Draft: not running"
-                                        }
-                                    >
-                                        <CircleDot size={12} />
-                                        {workflow.status === "active"
-                                            ? "Live"
-                                            : workflow.status === "paused"
-                                                ? "Paused"
-                                                : "Draft"}
-                                    </span>
-                                    <button
-                                        type="button"
-                                        className={styles.canvasTestButton}
-                                        aria-pressed={runsPanel === "history"}
-                                        aria-label="Runs"
-                                        onClick={() => setRunsPanel((open) => open === "history" ? null : "history")}
-                                    >
-                                        <History size={14} />
-                                        <span className={styles.canvasButtonLabel}>Runs</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={styles.canvasTestButton}
-                                        aria-pressed={runsPanel === "test"}
-                                        aria-label="Test"
-                                        onClick={() => {
-                                            if (validationIssues.length > 0) {
-                                                showNotice(validationIssues[0]);
-                                                return;
-                                            }
-                                            setRunsPanel((open) => open === "test" ? null : "test");
-                                        }}
-                                    >
-                                        <Play size={14} />
-                                        <span className={styles.canvasButtonLabel}>Test</span>
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={styles.canvasPublishButton}
-                                        disabled={statusSaving}
-                                        onClick={() =>
-                                            void setWorkflowStatus(
-                                                workflow.status === "active" ? "paused" : "active",
-                                            )
-                                        }
-                                    >
-                                        {workflow.status === "active"
-                                            ? "Pause"
-                                            : workflow.status === "paused"
-                                                ? "Resume"
-                                                : "Publish"}
-                                    </button>
-                                </div>
-                            </>
-                        )}
-                        {starterActive && (
-                            <div className={styles.workflowStarter}>
-                                <div className={styles.workflowStarterInner}>
-                                    {isAiBuilding ? (
-                                        <div className={styles.starterBuilding} aria-live="polite">
-                                            <div className={styles.starterOrb} aria-hidden="true">
-                                                <WorkflowAiOrb size={176} hero />
-                                            </div>
-
-                                            <div className={styles.starterBuildingHeading}>
-                                                <h1>Creating your workflow</h1>
-                                                <p>OpenClaw is turning your request into connected steps.</p>
-                                            </div>
-
-                                            <div className={styles.starterBuildingPrompt}>
-                                                <span>{aiMessages[aiMessages.length - 1]?.text || "Creating workflow..."}</span>
-                                                <span className={styles.starterBuildingDots} aria-hidden="true">
-                                                    <span />
-                                                    <span />
-                                                    <span />
-                                                </span>
-                                            </div>
-                                        </div>
-                                    ) : (
-                                        <>
-                                            <div
-                                                style={{
-                                                    position: "fixed",
-                                                    top: 22,
-                                                    right: 28,
-                                                    zIndex: 90,
-                                                    display: "flex",
-                                                    alignItems: "center",
-                                                    gap: 8,
-                                                }}
-                                            >
-                                                <span
-                                                    ref={starterIntegrationsMenuRef}
-                                                    style={{
-                                                        position: "relative",
-                                                        display: "inline-flex",
-                                                        alignItems: "center",
-                                                    }}
-                                                >
-                                                    <button
-                                                        type="button"
-                                                        aria-haspopup="menu"
-                                                        aria-expanded={starterIntegrationsMenuOpen}
-                                                        aria-label="Choose integrations"
-                                                        title="Choose integrations"
-                                                        onClick={() => {
-                                                            setStarterIntegrationsMenuOpen((current) => !current);
-                                                        }}
-                                                        style={{
-                                                            height: 34,
-                                                            padding: "0 11px",
-                                                            display: "inline-flex",
-                                                            alignItems: "center",
-                                                            gap: 7,
-                                                            border: "1px solid #e4e7eb",
-                                                            borderRadius: 9,
-                                                            background: "#ffffff",
-                                                            color: "#666d77",
-                                                            font: "inherit",
-                                                            fontSize: 10.5,
-                                                            fontWeight: 500,
-                                                            cursor: "pointer",
-                                                            boxShadow: "0 2px 8px rgba(24, 30, 40, 0.03)",
-                                                        }}
-                                                    >
-                                                        <Plug size={14} aria-hidden="true" />
-                                                        <strong
-                                                            style={{
-                                                                color: "#555c66",
-                                                                fontSize: 10.5,
-                                                                fontWeight: 600,
-                                                            }}
-                                                        >
-
-                                                        </strong>
-                                                        {starterConnectedIntegrationCount > 0 ? (
-                                                            <span
-                                                                aria-label={`${starterConnectedIntegrationCount} connected integrations`}
-                                                                style={{
-                                                                    minWidth: 18,
-                                                                    height: 18,
-                                                                    padding: "0 5px",
-                                                                    display: "inline-flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    borderRadius: 999,
-                                                                    background: "#f3f5f7",
-                                                                    color: "#7b818b",
-                                                                    fontSize: 8.5,
-                                                                    fontWeight: 700,
-                                                                }}
-                                                            >
-                                                                {starterConnectedIntegrationCount}
-                                                            </span>
-                                                        ) : null}
-                                                        <ChevronDown
-                                                            size={12}
-                                                            aria-hidden="true"
-                                                            style={{
-                                                                transition: "transform 140ms ease",
-                                                                transform: starterIntegrationsMenuOpen
-                                                                    ? "rotate(180deg)"
-                                                                    : "rotate(0deg)",
-                                                            }}
-                                                        />
-                                                    </button>
-
-                                                    {starterIntegrationsMenuOpen && (
-                                                        <div
-                                                            role="menu"
-                                                            aria-label="Integrations"
-                                                            style={{
-                                                                position: "fixed",
-                                                                top: 64,
-                                                                right: 28,
-                                                                zIndex: 100,
-                                                                width: 340,
-                                                                maxHeight: "calc(100vh - 84px)",
-                                                                padding: 7,
-                                                                overflow: "hidden",
-                                                                border: "1px solid #e6e8ec",
-                                                                borderRadius: 14,
-                                                                background: "#ffffff",
-                                                                boxShadow: "0 14px 36px rgba(24, 30, 40, 0.10)",
-                                                            }}
-                                                        >
-                                                            <div
-                                                                style={{
-                                                                    padding: "4px 6px 5px",
-                                                                }}
-                                                            >
-                                                                <strong
-                                                                    style={{
-                                                                        display: "block",
-                                                                        color: "#30343a",
-                                                                        fontSize: 10.8,
-                                                                        lineHeight: 1.2,
-                                                                        fontWeight: 550,
-                                                                    }}
-                                                                >
-                                                                    Connect all your tools
-                                                                </strong>
-                                                                <span
-                                                                    style={{
-                                                                        display: "block",
-                                                                        marginTop: 2,
-                                                                        color: "#9aa0a8",
-                                                                        fontSize: 8.4,
-                                                                        lineHeight: 1.3,
-                                                                    }}
-                                                                >
-
-                                                                </span>
-                                                            </div>
-
-                                                            <div
-                                                                style={{
-                                                                    maxHeight: "calc(100vh - 160px)",
-                                                                    overflowY: "auto",
-                                                                    overscrollBehavior: "contain",
-                                                                    padding: "1px 0",
-                                                                }}
-                                                            >
-                                                                {starterVisibleIntegrationsSorted.map((integration) => {
-                                                                    const isLoading =
-                                                                        starterIntegrationLoadingProvider === integration.provider;
-                                                                    const isAvailable =
-                                                                        integration.connected ||
-                                                                        integration.status === "Available";
-
-                                                                    return (
-                                                                        <button
-                                                                            key={integration.provider}
-                                                                            type="button"
-                                                                            role="menuitem"
-                                                                            disabled={isLoading || !isAvailable}
-                                                                            onClick={() => {
-                                                                                void toggleStarterIntegration(integration);
-                                                                            }}
-                                                                            style={{
-                                                                                width: "100%",
-                                                                                minHeight: 56,
-                                                                                padding: "9px 10px",
-                                                                                display: "flex",
-                                                                                alignItems: "center",
-                                                                                justifyContent: "space-between",
-                                                                                gap: 10,
-                                                                                border: 0,
-                                                                                borderRadius: 8,
-                                                                                background: "transparent",
-                                                                                color: "#343840",
-                                                                                font: "inherit",
-                                                                                textAlign: "left",
-                                                                                cursor:
-                                                                                    isLoading || !isAvailable
-                                                                                        ? "default"
-                                                                                        : "pointer",
-                                                                                opacity: !isAvailable ? 0.5 : 1,
-                                                                            }}
-                                                                        >
-                                                                            <span
-                                                                                style={{
-                                                                                    minWidth: 0,
-                                                                                    display: "flex",
-                                                                                    alignItems: "center",
-                                                                                    gap: 8,
-                                                                                }}
-                                                                            >
-                                                                                <span
-                                                                                    style={{
-                                                                                        width: 36,
-                                                                                        height: 36,
-                                                                                        flex: "0 0 36px",
-                                                                                        display: "inline-flex",
-                                                                                        alignItems: "center",
-                                                                                        justifyContent: "center",
-                                                                                        border: "1px solid #eceef1",
-                                                                                        borderRadius: 10,
-                                                                                        background: "#fff",
-                                                                                    }}
-                                                                                >
-                                                                                    <StarterIntegrationLogo
-                                                                                        integration={integration}
-                                                                                        size={22}
-                                                                                    />
-                                                                                </span>
-
-                                                                                <span
-                                                                                    style={{
-                                                                                        minWidth: 0,
-                                                                                        display: "flex",
-                                                                                        flexDirection: "column",
-                                                                                        gap: 2,
-                                                                                    }}
-                                                                                >
-                                                                                    <strong
-                                                                                        style={{
-                                                                                            overflow: "hidden",
-                                                                                            color: "#343840",
-                                                                                            fontSize: 12,
-                                                                                            lineHeight: 1.2,
-                                                                                            fontWeight: 500,
-                                                                                            whiteSpace: "nowrap",
-                                                                                            textOverflow: "ellipsis",
-                                                                                        }}
-                                                                                    >
-                                                                                        {integration.name}
-                                                                                    </strong>
-                                                                                </span>
-                                                                            </span>
-
-                                                                            <span
-                                                                                aria-hidden="true"
-                                                                                style={{
-                                                                                    position: "relative",
-                                                                                    width: 38,
-                                                                                    height: 22,
-                                                                                    flex: "0 0 38px",
-                                                                                    borderRadius: 999,
-                                                                                    background: integration.connected
-                                                                                        ? "#22c55e"
-                                                                                        : "#e2e5e9",
-                                                                                    boxShadow: integration.connected
-                                                                                        ? "inset 0 0 0 1px rgba(21,128,61,.10)"
-                                                                                        : "inset 0 0 0 1px rgba(114,121,132,.08)",
-                                                                                    transition: "background 140ms ease",
-                                                                                }}
-                                                                            >
-                                                                                <span
-                                                                                    style={{
-                                                                                        position: "absolute",
-                                                                                        top: 2,
-                                                                                        left: integration.connected ? 18 : 2,
-                                                                                        width: 18,
-                                                                                        height: 18,
-                                                                                        borderRadius: "50%",
-                                                                                        background: "#fff",
-                                                                                        boxShadow: "0 1px 3px rgba(24,30,40,.18)",
-                                                                                        transition: "left 140ms ease",
-                                                                                    }}
-                                                                                />
-                                                                            </span>
-                                                                        </button>
-                                                                    );
-                                                                })}
-                                                            </div>
-
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setStarterIntegrationsMenuOpen(false);
-                                                                    router.push("/dashboard/integrations");
-                                                                }}
-                                                                style={{
-                                                                    width: "100%",
-                                                                    height: 34,
-                                                                    marginTop: 6,
-                                                                    display: "inline-flex",
-                                                                    alignItems: "center",
-                                                                    justifyContent: "center",
-                                                                    gap: 6,
-                                                                    border: "1px solid #e6e8ec",
-                                                                    borderRadius: 9,
-                                                                    background: "#fff",
-                                                                    color: "#676e78",
-                                                                    font: "inherit",
-                                                                    fontSize: 9.5,
-                                                                    fontWeight: 600,
-                                                                    cursor: "pointer",
-                                                                }}
-                                                            >
-                                                                <Plug size={12} aria-hidden="true" />
-                                                                Manage integrations
-                                                            </button>
-                                                        </div>
-                                                    )}
-                                                </span>
-
-                                            </div>
-
-                                            <div
-                                                style={{
-                                                    width: "100%",
-                                                    maxWidth: starterIntegrationsMenuOpen ? 620 : 940,
-                                                    margin: "0 auto",
-                                                    transform: starterIntegrationsMenuOpen
-                                                        ? "translateX(-150px)"
-                                                        : "translateX(0)",
-                                                    transition:
-                                                        "max-width 180ms ease, transform 180ms ease",
-                                                }}
-                                            >
-                                                <div className={styles.starterOrb} aria-hidden="true">
-                                                    <WorkflowAiOrb size={176} hero />
-                                                </div>
-
-                                                <div className={styles.starterHeading}>
-                                                    <h1>{starterGreeting}</h1>
-                                                </div>
-
-                                                <div className={styles.starterComposer}>
-                                                    <textarea
-                                                        aria-label="Describe what you want to automate"
-                                                        value={aiPrompt}
-                                                        onChange={(event) => setAiPrompt(event.target.value)}
-                                                        onKeyDown={(event) => {
-                                                            if (event.key === "Enter" && !event.shiftKey) {
-                                                                event.preventDefault();
-                                                                void buildWorkflowWithAI();
-                                                            }
-                                                        }}
-                                                        placeholder="Describe what you want to automate..."
-                                                        rows={2}
-                                                        autoFocus
-                                                    />
-
-                                                    {starterAttachments.length > 0 && (
-                                                        <div
-                                                            aria-label="Attached files"
-                                                            className={styles.starterAttachmentRow}
-                                                        >
-                                                            {starterAttachments.map((attachment) => (
-                                                                <span
-                                                                    key={attachment.id}
-                                                                    style={{
-                                                                        maxWidth: 190,
-                                                                        height: 28,
-                                                                        padding: "0 8px",
-                                                                        display: "inline-flex",
-                                                                        alignItems: "center",
-                                                                        gap: 6,
-                                                                        flex: "0 0 auto",
-                                                                        border: "1px solid #e6e8ec",
-                                                                        borderRadius: 8,
-                                                                        background: "#fff",
-                                                                        color: "#666d77",
-                                                                        fontSize: 10.5,
-                                                                        lineHeight: 1,
-                                                                    }}
-                                                                >
-                                                                    <Paperclip size={11} aria-hidden="true" />
-                                                                    <span
-                                                                        style={{
-                                                                            overflow: "hidden",
-                                                                            textOverflow: "ellipsis",
-                                                                            whiteSpace: "nowrap",
-                                                                        }}
-                                                                    >
-                                                                        {attachment.name}
-                                                                    </span>
-                                                                    <span style={{ color: "#a1a6ae" }}>
-                                                                        {formatStarterAttachmentSize(attachment.size)}
-                                                                    </span>
-                                                                    <button
-                                                                        type="button"
-                                                                        aria-label={`Remove ${attachment.name}`}
-                                                                        title={`Remove ${attachment.name}`}
-                                                                        onClick={() =>
-                                                                            removeStarterAttachment(attachment.id)
-                                                                        }
-                                                                        style={{
-                                                                            width: 16,
-                                                                            height: 16,
-                                                                            padding: 0,
-                                                                            display: "inline-flex",
-                                                                            alignItems: "center",
-                                                                            justifyContent: "center",
-                                                                            border: 0,
-                                                                            background: "transparent",
-                                                                            color: "#9aa0a8",
-                                                                            cursor: "pointer",
-                                                                        }}
-                                                                    >
-                                                                        <X size={11} />
-                                                                    </button>
-                                                                </span>
-                                                            ))}
-                                                        </div>
-                                                    )}
-
-                                                    <input
-                                                        ref={starterFileInputRef}
-                                                        type="file"
-                                                        multiple
-                                                        accept=".txt,.md,.csv,.json,.html,.css,.js,.jsx,.ts,.tsx,.xml,.yaml,.yml,text/*,application/json,application/xml"
-                                                        onChange={(event) => {
-                                                            void addStarterAttachments(event.target.files);
-                                                        }}
-                                                        style={{ display: "none" }}
-                                                    />
-
-                                                    <div className={styles.starterComposerFooter}>
-                                                        <div className={styles.starterComposerActions}>
-                                                            <button
-                                                                type="button"
-                                                                className={styles.starterComposerActionButton}
-                                                                aria-label="Attach files"
-                                                                title="Attach files"
-                                                                onClick={openStarterFilePicker}
-                                                            >
-                                                                <Paperclip size={18} aria-hidden="true" />
-                                                            </button>
-
-                                                            <span
-                                                                className={styles.starterOpenClawBadge}
-                                                                aria-label="Powered by OpenClaw"
-                                                            >
-                                                                <StarterAiProviderLogo provider="openclaw" size={18} />
-                                                                <span>OpenClaw</span>
-                                                            </span>
-                                                        </div>
-
-                                                        <button
-                                                            type="button"
-                                                            className={styles.starterComposerSendButton}
-                                                            aria-label="Send prompt"
-                                                            title="Send prompt"
-                                                            onClick={() => {
-                                                                void buildWorkflowWithAI();
-                                                            }}
-                                                            disabled={
-                                                                (!aiPrompt.trim() && starterAttachments.length === 0) ||
-                                                                isAiBuilding
-                                                            }
-                                                        >
-                                                            {isAiBuilding ? (
-                                                                <span className={styles.loadingDot} />
-                                                            ) : (
-                                                                <ArrowUp size={16} />
-                                                            )}
-                                                        </button>
-                                                    </div>
-
-                                                </div>
-
-                                                {unfinishedWorkflow && (
-                                                    <div className={styles.continueWorkflowCard}>
-                                                        <div className={styles.continueWorkflowCardHeader}>
-                                                            <span className={styles.continueWorkflowIcon}>
-                                                                <GitBranch size={15} />
-                                                            </span>
-                                                            <div className={styles.continueWorkflowCopy}>
-                                                                <strong>Continue building your workflow</strong>
-                                                                <span>
-                                                                    Last edited {new Date(unfinishedWorkflow.updatedAt).toLocaleDateString([], {
-                                                                        day: "numeric",
-                                                                        month: "short",
-                                                                    })}
-                                                                    {" · "}
-                                                                    {unfinishedWorkflow.stepCount} {unfinishedWorkflow.stepCount === 1 ? "step" : "steps"}
-                                                                </span>
-                                                            </div>
-                                                        </div>
-
-                                                        <button
-                                                            type="button"
-                                                            className={styles.continueWorkflowButton}
-                                                            onClick={() =>
-                                                                router.push(
-                                                                    `/dashboard/automations/${unfinishedWorkflow.id}`,
-                                                                )
-                                                            }
-                                                        >
-                                                            Continue building
-                                                            <ChevronRight size={14} />
-                                                        </button>
-                                                    </div>
-                                                )}
-
-                                                {starterSuggestions.length > 0 && (
-                                                    <div className={styles.starterTemplates}>
-                                                        <div className={styles.starterTemplatesHeader}>
-                                                            <span>Start with a popular template ✧</span>
-                                                        </div>
-
-                                                        <div className={styles.starterTemplateGrid}>
-                                                            {starterSuggestions.map((suggestion) => (
-                                                                <button
-                                                                    key={suggestion.id}
-                                                                    type="button"
-                                                                    className={styles.starterTemplateCard}
-                                                                    onClick={() => setAiPrompt(suggestion.prompt)}
-                                                                >
-                                                                    <span className={styles.starterTemplateIcons}>
-                                                                        {suggestion.tools.map((provider, index) => {
-                                                                            const integration = suggestion.integrations[index];
-                                                                            const logo = providerLogoUrl(provider, integration);
-
-                                                                            return (
-                                                                                <span
-                                                                                    key={`${suggestion.id}-${provider}-${index}`}
-                                                                                    className={styles.starterTemplateIcon}
-                                                                                >
-                                                                                    {provider === "slack" ? (
-                                                                                        <SlackLogo />
-                                                                                    ) : logo ? (
-                                                                                        <img
-                                                                                            src={logo}
-                                                                                            alt={integration?.name ?? provider}
-                                                                                            className={styles.starterTemplateLogo}
-                                                                                        />
-                                                                                    ) : (
-                                                                                        <Plug size={14} />
-                                                                                    )}
-                                                                                </span>
-                                                                            );
-                                                                        })}
-                                                                    </span>
-                                                                    <span className={styles.starterTemplateCopy}>
-                                                                        <strong>{suggestion.title}</strong>
-                                                                        <span>{suggestion.description}</span>
-                                                                    </span>
-                                                                    <ChevronRight
-                                                                        size={14}
-                                                                        className={styles.starterTemplateArrow}
-                                                                        aria-hidden="true"
-                                                                    />
-                                                                </button>
-                                                            ))}
-                                                        </div>
-                                                    </div>
-                                                )}
-                                            </div>
-                                        </>
-                                    )}
-                                </div>
-                            </div>
-                        )}
-
+    const aiAside = (
                         <aside
                             id="workflow-ai-chat"
                             aria-label="OpenClaw assistant"
@@ -5323,6 +4210,27 @@ export default function WorkflowBuilderPage() {
 
                             <div className={styles.chatArea}>
                                 <div className={styles.chatTranscript}>
+                                    {aiMessages.length === 0 && !isAiBuilding && (
+                                        <div className={styles.aiEmptyState}>
+                                            <span className={styles.aiEmptyIcon} aria-hidden="true">
+                                                <Sparkles size={16} />
+                                            </span>
+                                            <strong>Ask OpenClaw to change this workflow</strong>
+                                            <p>Describe what you want and it edits the steps on the canvas for you.</p>
+                                            <div className={styles.aiSuggestions}>
+                                                {AI_PANEL_SUGGESTIONS.map((suggestion) => (
+                                                    <button
+                                                        key={suggestion}
+                                                        type="button"
+                                                        className={styles.aiSuggestion}
+                                                        onClick={() => setAiPrompt(suggestion)}
+                                                    >
+                                                        {suggestion}
+                                                    </button>
+                                                ))}
+                                            </div>
+                                        </div>
+                                    )}
                                     {aiMessages.map((message) => (
                                         <div
                                             key={message.id}
@@ -5501,7 +4409,10 @@ export default function WorkflowBuilderPage() {
                                             >
                                                 <Paperclip size={15} />
                                             </button>
-
+                                            <span className={styles.aiModelPill}>
+                                                <StarterAiProviderLogo provider="openclaw" size={14} />
+                                                OpenClaw
+                                            </span>
                                         </div>
 
                                         <button
@@ -5523,519 +4434,371 @@ export default function WorkflowBuilderPage() {
                                 </p>
                             </div>
                         </aside>
+    );
 
-                        <section className={styles.previewPanel}>
-                            <div className={styles.previewHeader}>
-                                <div>
-                                    <span>WORKFLOW CANVAS</span>
-                                    <h2>Your automation</h2>
-                                </div>
-
-                                <div className={styles.previewActions}>
+    return (
+        <>
+            <style>{`
+                @keyframes miloOrbFloat {
+                    0%, 100% { transform: translateY(0) scale(1); }
+                    50% { transform: translateY(-1px) scale(1.035); }
+                }
+                @keyframes miloOrbGlow {
+                    0%, 100% { opacity: 0.65; transform: rotate(0deg) scale(1); }
+                    50% { opacity: 1; transform: rotate(10deg) scale(1.08); }
+                }
+                @keyframes miloHeroOrbFloat {
+                    0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+                    50% { transform: translate3d(0, -8px, 0) scale(1.018); }
+                }
+                @keyframes miloHeroOrbGlow {
+                    0%, 100% { opacity: 0.72; transform: rotate(0deg) scale(1); }
+                    50% { opacity: 1; transform: rotate(12deg) scale(1.08); }
+                }
+            `}</style>
+            <main
+                ref={pageRef}
+                className={`${styles.page} ${starterActive ? styles.pageStarter : styles.pageCanvas}`}
+            >
+                <div
+                    className={`${styles.pageInner} ${starterActive ? styles.pageInnerStarter : styles.pageInnerCanvas}`}
+                >
+                    {!starterActive && (
+                        <header className={styles.topbar}>
+                            <div className={styles.titleGroup}>
+                                <div className={styles.eyebrow}>AUTOMATION</div>
+                                <div className={styles.workflowNameEditor}>
+                                    <input
+                                        ref={workflowNameRef}
+                                        className={styles.workflowNameInput}
+                                        value={workflow.name}
+                                        readOnly={!isEditingWorkflowName}
+                                        size={Math.max(workflow.name.length, 1)}
+                                        onChange={(event) =>
+                                            setWorkflowAndAutosave({
+                                                ...workflow,
+                                                name: event.target.value,
+                                            })
+                                        }
+                                        onBlur={() => setIsEditingWorkflowName(false)}
+                                        onKeyDown={(event) => {
+                                            if (event.key === "Enter" || event.key === "Escape") {
+                                                event.currentTarget.blur();
+                                            }
+                                        }}
+                                        aria-label="Workflow name"
+                                    />
                                     <button
                                         type="button"
-                                        className={styles.iconButton}
-                                        aria-label="Recenter workflow"
-                                        title="Recenter workflow"
-                                        onClick={recenterWorkflow}
-                                    >
-                                        <Maximize2 size={14} />
-                                    </button>
-                                </div>
-                            </div>
-
-                            <div className={styles.workflowToolbar}>
-                                <button
-                                    type="button"
-                                    className={styles.workflowToolbarButton}
-                                    onClick={() => {
-                                        const triggerDefinition = triggerDefinitions[0];
-                                        addNode("trigger", null, triggerDefinition?.id);
-                                    }}
-                                >
-                                    <Zap size={12} />
-                                    Trigger
-                                </button>
-                                <button
-                                    type="button"
-                                    className={styles.workflowToolbarButton}
-                                    onClick={() => addNode("action", selectedNodeId || null)}
-                                >
-                                    <Tag size={12} />
-                                    Action
-                                </button>
-                                <button
-                                    type="button"
-                                    className={styles.workflowToolbarButton}
-                                    onClick={() => addNode("condition", selectedNodeId || null)}
-                                >
-                                    <GitBranch size={12} />
-                                    Condition
-                                </button>
-                                <button
-                                    type="button"
-                                    className={styles.workflowToolbarButton}
-                                    onClick={() => addNode("delay", selectedNodeId || null)}
-                                >
-                                    <Clock3 size={12} />
-                                    Wait
-                                </button>
-                                <button
-                                    type="button"
-                                    className={styles.workflowToolbarButton}
-                                    onClick={() => {
-                                        setAddFromNodeId(selectedNodeId || workflow.nodes[workflow.nodes.length - 1]?.id || null);
-                                        setInspectorOpen(false);
-                                        setLibraryOpen(true);
-                                    }}
-                                >
-                                    <Plus size={12} />
-                                    More
-                                </button>
-                            </div>
-
-                            <div className={styles.toolsRail}>
-                                <div className={styles.toolsRailLabel}>
-                                    <Plug size={12} />
-                                    <span>Tools</span>
-                                </div>
-
-                                <div className={styles.toolsRailItems}>
-                                    {workflowTools.length > 0 ? (
-                                        workflowTools.map((tool) => (
-                                            <span
-                                                key={tool.id}
-                                                className={styles.toolPill}
-                                                title={tool.description || tool.name}
-                                            >
-                                                <span className={styles.toolPillLogoWrap}>
-                                                    {tool.iconUrl ? (
-                                                        <img
-                                                            src={tool.iconUrl}
-                                                            alt={`${tool.name} logo`}
-                                                            className={styles.toolPillLogo}
-                                                        />
-                                                    ) : (
-                                                        <span
-                                                            className={styles.toolPillFallback}
-                                                            aria-label={tool.name}
-                                                        >
-                                                            {tool.name
-                                                                .trim()
-                                                                .charAt(0)
-                                                                .toUpperCase()}
-                                                        </span>
-                                                    )}
-                                                </span>
-                                                {tool.name}
-                                            </span>
-                                        ))
-                                    ) : (
-                                        <span className={styles.noToolsText}>
-                                            No connected tools used yet
-                                        </span>
-                                    )}
-
-                                    <button
-                                        type="button"
-                                        className={styles.addToolButton}
+                                        className={styles.workflowNameEditButton}
+                                        aria-label="Edit workflow name"
+                                        onMouseDown={(event) => event.preventDefault()}
                                         onClick={() => {
-                                            setAddFromNodeId(
-                                                workflow.nodes[
-                                                    workflow.nodes.length - 1
-                                                ]?.id ?? null,
-                                            );
-                                            setLibrarySearch("");
-                                            setInspectorOpen(false);
-                                            setLibraryOpen(true);
+                                            setIsEditingWorkflowName(true);
+                                            window.requestAnimationFrame(() => {
+                                                workflowNameRef.current?.focus();
+                                                workflowNameRef.current?.select();
+                                            });
                                         }}
                                     >
-                                        <Plus size={11} />
-                                        Add tool
+                                        <Pencil size={12} />
                                     </button>
                                 </div>
                             </div>
 
-                            <div className={styles.previewBody}>
-                                <div
-                                    ref={canvasShellRef}
-                                    className={styles.canvasShell}
-                                    onWheel={(event) => {
-                                        const shell = canvasShellRef.current;
-                                        if (!shell) return;
-
-                                        if (event.shiftKey) {
-                                            shell.scrollLeft += event.deltaY;
-                                            return;
-                                        }
-
-                                        shell.scrollTop += event.deltaY;
-                                        shell.scrollLeft += event.deltaX;
-                                    }}
+                            <div className={styles.topActions}>
+                                <button
+                                    type="button"
+                                    className={styles.newWorkflowButton}
+                                    onClick={() => void startNewWorkflow()}
                                 >
-                                    <div
-                                        className={styles.canvasViewport}
-                                        style={{
-                                            width: CANVAS_WIDTH * zoom,
-                                            height: CANVAS_HEIGHT * zoom,
-                                            backgroundColor: "#ffffff",
-                                            backgroundImage:
-                                                "radial-gradient(circle, rgba(148, 163, 184, 0.28) 1px, transparent 1px)",
-                                            backgroundSize: "20px 20px",
-                                        }}
-                                    >
-                                        <div
-                                            ref={canvasRef}
-                                            className={`${styles.canvas} ${isDragging ? styles.canvasDragging : ""
-                                                } ${isPanning ? styles.canvasPanning : ""}`}
-                                            style={{
-                                                transform: `scale(${zoom})`,
-                                                backgroundColor: "transparent",
-                                                backgroundImage: "none",
-                                            }}
-                                            onPointerDown={handleCanvasPointerDown}
-                                            onPointerMove={handleCanvasPointerMove}
-                                            onPointerUp={handleCanvasPointerUp}
-                                            onPointerCancel={handleCanvasPointerUp}
-                                        >
-                                            {workflow.nodes.length === 0 && (
-                                                <div className={styles.emptyWorkflowState}>
-                                                    <span className={styles.emptyWorkflowIcon}>
-                                                        <Sparkles size={22} />
-                                                    </span>
-                                                    <strong>Your workflow will appear here</strong>
-                                                    <p>
-                                                        Describe an automation in the AI assistant on the left and it will appear here.
-                                                    </p>
+                                    <Plus size={13} />
+                                    New workflow
+                                </button>
 
-                                                </div>
-                                            )}
+                                <Link href="/dashboard/automations/all" className={styles.backButton}>
+                                    All automations
+                                </Link>
 
-                                            <svg
-                                                className={styles.connections}
-                                                viewBox={`0 0 ${CANVAS_WIDTH} ${CANVAS_HEIGHT}`}
-                                                preserveAspectRatio="none"
-                                                aria-hidden="true"
-                                            >
-                                                {connections.map((connection) => {
-                                                    const { fromNode, toNode } = connection;
-                                                    const fromX = fromNode.position.x + NODE_WIDTH / 2;
-                                                    const fromY = fromNode.position.y + NODE_HEIGHT;
-                                                    const toX = toNode.position.x + NODE_WIDTH / 2;
-                                                    const toY = toNode.position.y;
-                                                    const curve = Math.max(70, Math.abs(toY - fromY) * 0.45);
-                                                    const direction = toY >= fromY ? 1 : -1;
-
-                                                    const branchLabel =
-                                                        fromNode.type === "condition"
-                                                            ? getConditionBranch(connection.id)
-                                                            : null;
-                                                    const labelX = fromX + (toX - fromX) * 0.5;
-                                                    const labelY = fromY + (toY - fromY) * 0.32;
-
-                                                    return (
-                                                        <g key={connection.id}>
-                                                            <path
-                                                                className={
-                                                                    branchLabel === "YES"
-                                                                        ? styles.branchPathYes
-                                                                        : branchLabel === "NO"
-                                                                            ? styles.branchPathNo
-                                                                            : undefined
-                                                                }
-                                                                d={`M ${fromX} ${fromY} C ${fromX} ${fromY + curve * direction
-                                                                    }, ${toX} ${toY - curve * direction
-                                                                    }, ${toX} ${toY}`}
-                                                            />
-                                                            {branchLabel && (
-                                                                <g
-                                                                    className={
-                                                                        branchLabel === "YES"
-                                                                            ? styles.branchBadgeYes
-                                                                            : styles.branchBadgeNo
-                                                                    }
-                                                                >
-                                                                    <rect
-                                                                        x={labelX - 21}
-                                                                        y={labelY - 11}
-                                                                        width="42"
-                                                                        height="22"
-                                                                        rx="8"
-                                                                    />
-                                                                    <text
-                                                                        x={labelX}
-                                                                        y={labelY + 3.5}
-                                                                        textAnchor="middle"
-                                                                    >
-                                                                        {branchLabel}
-                                                                    </text>
-                                                                </g>
-                                                            )}
-                                                        </g>
-                                                    );
-                                                })}
-                                            </svg>
-
-                                            {workflow.nodes.map((node, index) => {
-                                                const Icon = iconByType[node.type];
-                                                const integration = integrationForNode(node);
-                                                const displayCopy = nodeDisplayCopy(node, integration);
-                                                const selected = selectedNodeId === node.id;
-                                                const nodeIssues = validateWorkflowNode(node);
-                                                const hasWarning = node.status === "warning" || nodeIssues.length > 0;
-
-                                                return (
-                                                    <div
-                                                        key={node.id}
-                                                        className={styles.nodeWrapper}
-                                                        style={{
-                                                            left: node.position.x,
-                                                            top: node.position.y,
-                                                        }}
-                                                    >
-                                                        <button
-                                                            type="button"
-                                                            className={`${styles.workflowNode} ${selected ? styles.workflowNodeSelected : ""
-                                                                } ${node.type === "condition" ? styles.conditionNode : ""}`}
-                                                            onClick={() => editNode(node.id)}
-                                                            onPointerDown={(event) =>
-                                                                handleDragPointerDown(event, node)
-                                                            }
-                                                            onPointerMove={handleDragPointerMove}
-                                                            onPointerUp={handleDragPointerUp}
-                                                            onPointerCancel={handleDragPointerUp}
-                                                        >
-                                                            <span className={styles.dragHandle}>
-                                                                <GripVertical size={13} />
-                                                            </span>
-                                                            <span className={styles.stepNumber}>{index + 1}</span>
-                                                            <span
-                                                                className={`${styles.nodeIcon} ${styles[node.type]} ${integration ? styles.integrationNodeIcon : ""
-                                                                    }`}
-                                                            >
-                                                                {integration && /slack/i.test(`${integration.id} ${integration.name}`) ? (
-                                                                    <SlackLogo />
-                                                                ) : integration?.iconUrl ? (
-                                                                    <img
-                                                                        src={integration.iconUrl}
-                                                                        alt={`${integration.name} logo`}
-                                                                        className={styles.integrationLogo}
-                                                                    />
-                                                                ) : integration ? (
-                                                                    <span
-                                                                        className={styles.integrationFallback}
-                                                                        aria-label={integration.name}
-                                                                    >
-                                                                        {integration.name
-                                                                            .trim()
-                                                                            .charAt(0)
-                                                                            .toUpperCase()}
-                                                                    </span>
-                                                                ) : (
-                                                                    <Icon size={14} />
-                                                                )}
-                                                            </span>
-                                                            <span className={styles.nodeCopy}>
-                                                                <small>{nodeDisplayLabel(node)}</small>
-                                                                <strong title={displayCopy.title}>
-                                                                    {displayCopy.title}
-                                                                </strong>
-                                                                {displayCopy.subtitle && (
-                                                                    <span
-                                                                        className={styles.nodeDescription}
-                                                                        title={displayCopy.subtitle}
-                                                                    >
-                                                                        {displayCopy.subtitle}
-                                                                    </span>
-                                                                )}
-                                                            </span>
-                                                            <span
-                                                                className={
-                                                                    hasWarning
-                                                                        ? styles.nodeWarning
-                                                                        : styles.nodeReady
-                                                                }
-                                                                title={nodeIssues.join(" ") || node.warningText || "Configure step"}
-                                                            >
-                                                                {hasWarning ? (
-                                                                    <AlertCircle size={12} />
-                                                                ) : (
-                                                                    <MoreHorizontal size={15} />
-                                                                )}
-                                                            </span>
-                                                        </button>
-
-                                                        <button
-                                                            type="button"
-                                                            className={styles.addChildButton}
-                                                            aria-label={`Add next step after ${node.title}`}
-                                                            onPointerDown={(event) => event.stopPropagation()}
-                                                            onClick={(event) => {
-                                                                event.stopPropagation();
-                                                                setSelectedNodeId(node.id);
-                                                                setAddFromNodeId(node.id);
-                                                                setInspectorOpen(false);
-                                                                setLibraryOpen(true);
-                                                            }}
-                                                        >
-                                                            <Plus size={12} />
-                                                        </button>
-                                                    </div>
-                                                );
-                                            })}
-                                        </div>
-                                    </div>
-                                </div>
-
-                                <div className={styles.canvasControls}>
-                                    <button
-                                        type="button"
-                                        aria-label="Recenter workflow"
-                                        title="Recenter workflow"
-                                        onClick={recenterWorkflow}
-                                    >
-                                        <Maximize2 size={14} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        aria-label="Zoom out"
-                                        onClick={() =>
-                                            setZoom((current) =>
-                                                Math.max(0.7, Math.round((current - 0.1) * 10) / 10),
-                                            )
-                                        }
-                                    >
-                                        <Minus size={13} />
-                                    </button>
-                                    <span>{Math.round(zoom * 100)}%</span>
-                                    <button
-                                        type="button"
-                                        aria-label="Zoom in"
-                                        onClick={() =>
-                                            setZoom((current) =>
-                                                Math.min(1.3, Math.round((current + 0.1) * 10) / 10),
-                                            )
-                                        }
-                                    >
-                                        <Plus size={13} />
-                                    </button>
-                                </div>
-
-                                {libraryOpen && (
-                                    <div className={styles.drawerBackdrop} onMouseDown={() => setLibraryOpen(false)}>
-                                        <aside className={styles.stepDrawer} onMouseDown={(event) => event.stopPropagation()}>
-                                            <div className={styles.drawerHeader}>
-                                                <div>
-                                                    <span>ADD STEP</span>
-                                                    <h3>Choose a step</h3>
-                                                </div>
-                                                <button
-                                                    type="button"
-                                                    className={styles.iconButton}
-                                                    aria-label="Close step library"
-                                                    onClick={() => setLibraryOpen(false)}
-                                                >
-                                                    <X size={15} />
-                                                </button>
-                                            </div>
-
-                                            <label className={styles.stepLibrarySearch}>
-                                                <Search size={14} />
-                                                <input
-                                                    value={librarySearch}
-                                                    onChange={(event) => setLibrarySearch(event.target.value)}
-                                                    placeholder="Search steps..."
-                                                    autoFocus
-                                                />
-                                            </label>
-
-                                            <div className={styles.stepLibraryCompact}>
-                                                {filteredNodeLibrary.map((item) => {
-                                                    const Icon = iconByType[item.type];
-
-                                                    return (
-                                                        <button
-                                                            type="button"
-                                                            key={item.id}
-                                                            className={styles.stepLibraryItem}
-                                                            onClick={() => {
-                                                                addNode(item.type, addFromNodeId, item.id);
-                                                                setLibraryOpen(false);
-                                                            }}
-                                                        >
-                                                            <span className={`${styles.libraryIcon} ${styles[item.type]}`}>
-                                                                <Icon size={14} />
-                                                            </span>
-                                                            <span>
-                                                                <strong>{item.title}</strong>
-                                                                <small>{item.description}</small>
-                                                            </span>
-                                                            <Plus size={13} />
-                                                        </button>
-                                                    );
-                                                })}
-
-                                                {filteredAvailableIntegrations.map((integration) => (
-                                                    <button
-                                                        type="button"
-                                                        key={integration.id}
-                                                        className={styles.stepLibraryItem}
-                                                        onClick={() => {
-                                                            addIntegrationNode(integration);
-                                                            setLibraryOpen(false);
-                                                        }}
-                                                    >
-                                                        <span
-                                                            className={`${styles.libraryIcon} ${styles.action} ${styles.integrationNodeIcon}`}
-                                                        >
-                                                            {integration.iconUrl ? (
-                                                                <img
-                                                                    src={integration.iconUrl}
-                                                                    alt={`${integration.name} logo`}
-                                                                    className={styles.integrationLogo}
-                                                                />
-                                                            ) : (
-                                                                <span
-                                                                    className={styles.integrationFallback}
-                                                                    aria-label={integration.name}
-                                                                >
-                                                                    {integration.name
-                                                                        .trim()
-                                                                        .charAt(0)
-                                                                        .toUpperCase()}
-                                                                </span>
-                                                            )}
-                                                        </span>
-                                                        <span>
-                                                            <strong>{integration.name}</strong>
-                                                            <small>
-                                                                {integration.connected
-                                                                    ? integration.description || "Run an integration action."
-                                                                    : "Connect this integration first."}
-                                                            </small>
-                                                        </span>
-                                                        {integration.connected ? (
-                                                            <Plus size={13} />
-                                                        ) : (
-                                                            <span className={styles.connectLabel}>Connect</span>
-                                                        )}
-                                                    </button>
-                                                ))}
-
-                                                {filteredNodeLibrary.length === 0 &&
-                                                    filteredAvailableIntegrations.length === 0 && (
-                                                        <div className={styles.drawerEmpty}>No matching steps.</div>
-                                                    )}
-                                            </div>
-                                        </aside>
-                                    </div>
+                                {validationIssues.length > 0 && (
+                                    <span className={styles.warningSummary}>
+                                        <AlertCircle size={13} />
+                                        {validationIssues.length} {validationIssues.length === 1 ? "issue" : "issues"}
+                                    </span>
                                 )}
 
-                                {inspectorOpen && selectedNode && (
-                                    <div
-                                        className={styles.drawerBackdrop}
-                                        onMouseDown={() => setInspectorOpen(false)}
-                                    >
+                                <span
+                                    className={`${styles.statusBadge} ${workflow.status === "active" ? styles.statusActive : styles.statusDraft
+                                        }`}
+                                >
+                                    <CircleDot size={12} />
+                                    {workflow.status === "active"
+                                        ? "Active"
+                                        : workflow.status === "paused"
+                                            ? "Paused"
+                                            : "Draft"}
+                                </span>
+
+                                <button
+                                    type="button"
+                                    className={styles.secondaryButton}
+                                    disabled={statusSaving}
+                                    onClick={() =>
+                                        void setWorkflowStatus(
+                                            workflow.status === "active" ? "paused" : "active",
+                                        )
+                                    }
+                                >
+                                    {workflow.status === "active"
+                                        ? "Pause"
+                                        : workflow.status === "paused"
+                                            ? "Resume"
+                                            : "Publish"}
+                                </button>
+
+                                <button
+                                    type="button"
+                                    className={styles.primaryButton}
+                                    onClick={persistWorkflow}
+                                >
+                                    <Save size={14} />
+                                    Save
+                                </button>
+                            </div>
+                        </header>
+                    )}
+
+                    {notice && (
+                        <div className={styles.notice} role="status">
+                            <Check size={14} />
+                            {notice}
+                        </div>
+                    )}
+
+                    {runsPanel && (
+                        <AutomationRunsPanel
+                            workflowId={workflow.id}
+                            workflowStatus={workflow.status === "active" || workflow.status === "paused" ? workflow.status : "draft"}
+                            nodeTitles={Object.fromEntries(workflow.nodes.map((node) => [node.id, node.title]))}
+                            tab={runsPanel}
+                            onTabChange={setRunsPanel}
+                            onClose={() => setRunsPanel(null)}
+                            onPublish={() => void setWorkflowStatus("active")}
+                        />
+                    )}
+
+                    <section
+                        className={`${styles.builderCard} ${aiPanelCollapsed ? styles.builderCardAiCollapsed : ""
+                            } ${starterActive ? styles.builderCardStarter : ""
+                            }`}
+                    >
+                        {starterActive && (
+                            <div className={styles.workflowStarter}>
+                                <div className={styles.workflowStarterInner}>
+                                    {isAiBuilding ? (
+                                        <div className={styles.starterBuilding} aria-live="polite">
+                                            <div className={styles.starterOrb} aria-hidden="true">
+                                                <WorkflowAiOrb size={176} hero />
+                                            </div>
+
+                                            <div className={styles.starterBuildingHeading}>
+                                                <h1>Creating your workflow</h1>
+                                                <p>OpenClaw is turning your request into connected steps.</p>
+                                            </div>
+
+                                            <div className={styles.starterBuildingPrompt}>
+                                                <span>{aiMessages[aiMessages.length - 1]?.text || "Creating workflow..."}</span>
+                                                <span className={styles.starterBuildingDots} aria-hidden="true">
+                                                    <span />
+                                                    <span />
+                                                    <span />
+                                                </span>
+                                            </div>
+                                        </div>
+                                    ) : (
+                                        <>
+                                            <input
+                                                ref={starterFileInputRef}
+                                                type="file"
+                                                multiple
+                                                accept=".txt,.md,.csv,.json,.html,.css,.js,.jsx,.ts,.tsx,.xml,.yaml,.yml,text/*,application/json,application/xml"
+                                                onChange={(event) => {
+                                                    void addStarterAttachments(event.target.files);
+                                                }}
+                                                style={{ display: "none" }}
+                                            />
+                                            <WorkflowStarter
+                                                greeting={starterGreeting}
+                                                prompt={aiPrompt}
+                                                onPromptChange={setAiPrompt}
+                                                onSubmit={() => void buildWorkflowWithAI()}
+                                                building={isAiBuilding}
+                                                providerName="OpenClaw"
+                                                providerLogo={<StarterAiProviderLogo provider="openclaw" size={18} />}
+                                                attachments={starterAttachments}
+                                                formatSize={formatStarterAttachmentSize}
+                                                onAttach={openStarterFilePicker}
+                                                onRemoveAttachment={removeStarterAttachment}
+                                                integrations={starterVisibleIntegrationsSorted}
+                                                connectedCount={starterConnectedIntegrationCount}
+                                                loadingProvider={starterIntegrationLoadingProvider}
+                                                renderIntegrationLogo={(integration, size) => {
+                                                    const item = starterVisibleIntegrationsSorted.find(
+                                                        (candidate) => candidate.provider === integration.provider,
+                                                    );
+                                                    return item ? <StarterIntegrationLogo integration={item} size={size} /> : null;
+                                                }}
+                                                onToggleIntegration={(integration) => {
+                                                    const item = starterVisibleIntegrationsSorted.find(
+                                                        (candidate) => candidate.provider === integration.provider,
+                                                    );
+                                                    if (item) void toggleStarterIntegration(item);
+                                                }}
+                                                onManageIntegrations={() => router.push("/dashboard/integrations")}
+                                                integrationsMenuOpen={starterIntegrationsMenuOpen}
+                                                onIntegrationsMenuOpenChange={setStarterIntegrationsMenuOpen}
+                                                integrationsMenuRef={starterIntegrationsMenuRef}
+                                                onStartFromScratch={() => {
+                                                    // Same state as deleting the last step: empty canvas
+                                                    // with the step library open to pick a trigger.
+                                                    setShowCanvasStart(false);
+                                                    setSidebarTab("triggers");
+                                                }}
+                                                unfinishedWorkflow={unfinishedWorkflow}
+                                                onContinueWorkflow={(id) => router.push(`/dashboard/automations/${id}`)}
+                                                templates={starterSuggestions}
+                                                renderTemplateIcons={(template) => {
+                                                    const suggestion = starterSuggestions.find((item) => item.id === template.id);
+                                                    if (!suggestion) return null;
+                                                    return suggestion.tools.map((provider, index) => {
+                                                        const integration = suggestion.integrations[index];
+                                                        const logo = providerLogoUrl(provider, integration);
+                                                        return (
+                                                            <span
+                                                                key={`${suggestion.id}-${provider}-${index}`}
+                                                                className={styles.starterTemplateIcon}
+                                                            >
+                                                                {provider === "slack" ? (
+                                                                    <SlackLogo />
+                                                                ) : logo ? (
+                                                                    <img
+                                                                        src={logo}
+                                                                        alt={integration?.name ?? provider}
+                                                                        className={styles.starterTemplateLogo}
+                                                                    />
+                                                                ) : (
+                                                                    <Plug size={14} />
+                                                                )}
+                                                            </span>
+                                                        );
+                                                    });
+                                                }}
+                                            />
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                        )}
+
+                        {starterActive && aiAside}
+
+                        {!starterActive && (
+                            <FlowBuilder
+                                name={workflow.name}
+                                onRename={(name) => setWorkflowAndAutosave({ ...workflow, name })}
+                                status={workflow.status === "active" || workflow.status === "paused" ? workflow.status : "draft"}
+                                saveState={saveState}
+                                nodes={workflow.nodes}
+                                connections={workflow.connections}
+                                branchOf={(connection) => getConditionBranch(connection)}
+                                describe={(flowNode) => {
+                                    const copy = describeStep(flowNode, titleOf);
+                                    return flowNode.type === "email" ? { ...copy, app: emailToolFor(flowNode.id).name } : copy;
+                                }}
+                                iconFor={(flowNode) => nodeIcon(flowNode.type as NodeType, flowNode.id)}
+                                issuesFor={(flowNode) => {
+                                    const node = workflow.nodes.find((item) => item.id === flowNode.id);
+                                    return node ? validateWorkflowNode(node) : [];
+                                }}
+                                selectedNodeId={inspectorOpen ? selectedNodeId || null : null}
+                                onSelectNode={(nodeId) => {
+                                    setSettingsOpen(false);
+                                    if (!nodeId) {
+                                        setInspectorOpen(false);
+                                        return;
+                                    }
+                                    editNode(nodeId);
+                                }}
+                                onInsert={({ fromId, branch }) => {
+                                    const hasTrigger = workflow.nodes.some((item) => item.type === "trigger");
+                                    setAddFromNodeId(fromId);
+                                    setAddFromBranch(branch);
+                                    setInspectorOpen(false);
+                                    setSettingsOpen(false);
+                                    setSidebarTab(hasTrigger ? "steps" : "triggers");
+                                }}
+                                renderEditor={(flowNode) => (
+                                    <StepEditor
+                                        node={flowNode}
+                                        nodes={workflow.nodes}
+                                        icon={nodeIcon(flowNode.type as NodeType, flowNode.id)}
+                                        appName={flowNode.type === "email" ? emailToolFor(flowNode.id).name : undefined}
+                                        issues={selectedNode ? validateWorkflowNode(selectedNode) : []}
+                                        triggerOptions={triggerOptions}
+                                        onChange={(patch) => updateSelectedNode(patch as Partial<WorkflowNode>)}
+                                        onClose={() => {
+                                            setInspectorOpen(false);
+                                            setSettingsOpen(false);
+                                        }}
+                                        onDelete={() => deleteNodeById(flowNode.id)}
+                                        onAddAfter={(type) => addNode(type, flowNode.id, type)}
+                                        onMoreSettings={() => setSettingsOpen(true)}
+                                    />
+                                )}
+                                onTest={() => {
+                                    if (validationIssues.length > 0) {
+                                        showNotice(validationIssues[0]);
+                                        return;
+                                    }
+                                    setRunsPanel((open) => (open === "test" ? null : "test"));
+                                }}
+                                onPrimary={() =>
+                                    void setWorkflowStatus(workflow.status === "active" ? "paused" : "active")
+                                }
+                                primaryBusy={statusSaving}
+                                renderSidebar={(zoom) => (
+                                    <BuilderSidebar
+                                        zoom={zoom}
+                                        // The assistant's own close button collapses it; treat that as closing the tab.
+                                        tab={sidebarTab === "ai" && aiPanelCollapsed ? null : sidebarTab}
+                                        onTabChange={(tab) => {
+                                            setSidebarTab(tab);
+                                            setAiPanelCollapsed(tab !== "ai");
+                                            if (!tab) {
+                                                setAddFromNodeId(null);
+                                                setAddFromBranch(null);
+                                            }
+                                        }}
+                                        hasTrigger={workflow.nodes.some((item) => item.type === "trigger")}
+                                        targetLabel={insertTargetId ? titleOf(insertTargetId) : null}
+                                        onAdd={(type, presetId) => {
+                                            addNode(type, insertTargetId, presetId, addFromBranch);
+                                            setSettingsOpen(false);
+                                        }}
+                                        integrations={starterVisibleIntegrationsSorted.slice(0, 10).map((integration) => ({
+                                            provider: integration.provider,
+                                            name: integration.name,
+                                            connected: integration.connected,
+                                            logo: <StarterIntegrationLogo integration={integration} size={18} />,
+                                        }))}
+                                        onManageIntegrations={() => router.push("/dashboard/integrations")}
+                                        aiPanel={aiChat}
+                                        runsOpen={runsPanel === "history"}
+                                        onToggleRuns={() => setRunsPanel((open) => (open === "history" ? null : "history"))}
+                                    />
+                                )}
+                                panel={
+                                    settingsOpen && inspectorOpen && selectedNode ? (
                                         <aside
                                             className={`${styles.settingsDrawer} ${styles.compactSettingsDrawer}`}
                                             onMouseDown={(event) => event.stopPropagation()}
@@ -6814,14 +5577,10 @@ export default function WorkflowBuilderPage() {
                                                 </button>
                                             </div>
                                         </aside>
-                                    </div>
-                                )}
-                            </div>
-
-                            <div className={styles.previewFooter}>
-                                <p>Click a step to edit it. Use + to extend the workflow.</p>
-                            </div>
-                        </section>
+                                    ) : null
+                                }
+                            />
+                        )}
                     </section>
                 </div>
             </main>

@@ -1,0 +1,777 @@
+/* Empty-workflow starter screen. Self-contained so it does not depend on the
+   builder stylesheet's override layers. */
+
+.starter {
+    --ink: #111827;
+    --ink-2: #4b5563;
+    --ink-3: #8a919c;
+    --line: #e7e9ee;
+    --line-strong: #d9dde4;
+    --tray: #f6f7f9;
+    --accent: #2f6bff;
+    --accent-soft: #eef3ff;
+    --accent-line: #c7d7ff;
+
+    position: relative;
+    width: 100%;
+    max-width: 680px;
+    margin: 0 auto;
+    padding: clamp(48px, 12vh, 120px) 0 64px;
+    color: var(--ink);
+    /* The builder's starter wrapper centres text; this design is left-aligned. */
+    text-align: left;
+    /* Keep the glow from making the page scroll sideways. */
+    overflow-x: clip;
+}
+
+.glow {
+    position: absolute;
+    top: clamp(140px, 22vh, 230px);
+    left: 50%;
+    width: 120%;
+    height: 340px;
+    transform: translateX(-50%);
+    background:
+        radial-gradient(50% 55% at 50% 50%, rgba(77, 132, 255, 0.16), transparent 70%),
+        radial-gradient(35% 40% at 30% 60%, rgba(140, 180, 255, 0.12), transparent 70%);
+    filter: blur(8px);
+    pointer-events: none;
+    z-index: 0;
+}
+
+.starter > *:not(.glow) {
+    position: relative;
+    z-index: 1;
+}
+
+/* The Connect apps menu opens from the tray and must sit above the blocks
+   that follow it. */
+.starter > .tray {
+    z-index: 5;
+}
+
+/* ---- Heading ---------------------------------------------------------- */
+
+.intro {
+    margin-bottom: 24px;
+}
+
+.intro h1 {
+    margin: 0;
+    font-size: clamp(30px, 4.2vw, 40px);
+    line-height: 1.12;
+    letter-spacing: -0.01em;
+    font-weight: 500;
+    color: var(--ink);
+}
+
+.intro p {
+    margin: 10px 0 0;
+    color: var(--ink-3);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+/* ---- Quick-start chips ------------------------------------------------ */
+
+.chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin: 28px 0 12px;
+}
+
+.chip {
+    height: 32px;
+    padding: 0 13px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: border-color 120ms ease, background 120ms ease, color 120ms ease;
+}
+
+.chip:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+}
+
+.chipActive,
+.chipActive:hover {
+    border-color: var(--accent-line);
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+/* ---- Composer + tray ------------------------------------------------- */
+
+.tray {
+    padding: 4px;
+    border: 1px solid var(--line);
+    border-radius: 18px;
+    background: var(--tray);
+}
+
+.composer {
+    padding: 14px 14px 12px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 8px 24px rgba(47, 107, 255, 0.05);
+    transition: border-color 140ms ease, box-shadow 140ms ease;
+}
+
+.composer:focus-within {
+    border-color: var(--accent-line);
+    box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.1), 0 8px 24px rgba(47, 107, 255, 0.08);
+}
+
+.composerBody {
+    display: grid;
+    grid-template-columns: 18px 1fr;
+    gap: 8px;
+    align-items: start;
+}
+
+.sparkle {
+    margin-top: 3px;
+    color: var(--accent);
+}
+
+.composerBody textarea {
+    width: 100%;
+    min-height: 66px;
+    max-height: 220px;
+    padding: 0;
+    border: 0;
+    outline: 0;
+    resize: none;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 14px;
+    line-height: 1.55;
+    field-sizing: content;
+}
+
+.composerBody textarea::placeholder {
+    color: #a3a9b3;
+}
+
+.composerFooter {
+    margin-top: 10px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 10px;
+}
+
+.composerTags {
+    min-width: 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+
+.tag,
+.fileTag {
+    height: 24px;
+    padding: 0 4px 0 9px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 7px;
+    font-size: 11.5px;
+    font-weight: 500;
+}
+
+.tag {
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.fileTag {
+    max-width: 220px;
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--ink-2);
+}
+
+.tag button,
+.fileTag button {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: inherit;
+    opacity: 0.65;
+    cursor: pointer;
+}
+
+.tag button:hover,
+.fileTag button:hover {
+    opacity: 1;
+    background: rgba(17, 24, 39, 0.06);
+}
+
+.fileName {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.fileSize {
+    color: var(--ink-3);
+}
+
+.send {
+    flex: none;
+    width: 34px;
+    height: 34px;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #ffffff;
+    cursor: pointer;
+    transition: transform 120ms ease, background 120ms ease, opacity 120ms ease;
+}
+
+.send:hover:not(:disabled) {
+    background: #000000;
+    transform: translateY(-1px);
+}
+
+.send:disabled {
+    background: #d6d9df;
+    cursor: not-allowed;
+}
+
+.sendSpinner {
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.35);
+    border-top-color: #ffffff;
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+.trayBar {
+    padding: 8px 6px 4px 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.provider {
+    height: 28px;
+    padding: 0 10px 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    font-weight: 600;
+}
+
+.trayActions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.trayButton {
+    white-space: nowrap;
+    height: 28px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.trayButton:hover,
+.trayButtonOpen {
+    border-color: var(--line-strong);
+    color: var(--ink);
+}
+
+.count {
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--accent-soft);
+    color: var(--accent);
+    font-size: 10.5px;
+    font-weight: 700;
+}
+
+/* ---- Connect apps dropdown ------------------------------------------ */
+
+.menuAnchor {
+    position: relative;
+    display: inline-flex;
+}
+
+.menu {
+    position: absolute;
+    top: calc(100% + 8px);
+    right: 0;
+    z-index: 40;
+    width: 272px;
+    padding: 6px;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 18px 48px rgba(17, 24, 39, 0.14), 0 2px 6px rgba(17, 24, 39, 0.05);
+    animation: menuIn 120ms ease-out;
+}
+
+@keyframes menuIn {
+    from {
+        opacity: 0;
+        transform: translateY(-4px);
+    }
+}
+
+.menuSearch {
+    height: 34px;
+    margin: 2px 2px 6px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border-bottom: 1px solid #f0f1f4;
+    color: var(--ink-3);
+}
+
+.menuSearch input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.menuScroll {
+    max-height: min(320px, 50vh);
+    overflow-y: auto;
+    overscroll-behavior: contain;
+}
+
+.menuSection + .menuSection {
+    margin-top: 6px;
+}
+
+.menuSectionLabel {
+    display: block;
+    padding: 6px 10px 4px;
+    color: var(--ink-3);
+    font-size: 11px;
+    font-weight: 500;
+}
+
+.menuItem {
+    width: 100%;
+    height: 34px;
+    padding: 0 8px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menuItem:hover:not(:disabled) {
+    background: #f5f7fa;
+}
+
+.menuItem:disabled {
+    cursor: default;
+    opacity: 0.5;
+}
+
+.menuItemLogo {
+    width: 18px;
+    height: 18px;
+    display: inline-grid;
+    place-items: center;
+    flex: none;
+}
+
+.menuItemLabel {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menuItemBadge {
+    color: var(--accent);
+    font-size: 9.5px;
+    font-style: italic;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+}
+
+.toggle {
+    position: relative;
+    width: 28px;
+    height: 16px;
+    flex: none;
+    border-radius: 999px;
+    background: #e3e6eb;
+    transition: background 140ms ease;
+}
+
+.toggle::after {
+    content: "";
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.2);
+    transition: transform 140ms ease;
+}
+
+.toggleOn {
+    background: var(--accent);
+}
+
+.toggleOn::after {
+    transform: translateX(12px);
+}
+
+.menuEmpty {
+    margin: 0;
+    padding: 12px 10px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.menuFooter {
+    width: 100%;
+    height: 36px;
+    margin-top: 6px;
+    padding: 0 8px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-top: 1px solid #f0f1f4;
+    border-radius: 0 0 8px 8px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.menuFooter:hover {
+    background: #f5f7fa;
+}
+
+.menuFooterChevron {
+    margin-left: auto;
+    color: var(--ink-3);
+}
+
+/* ---- Connect strip ---------------------------------------------------- */
+
+.connectStrip {
+    width: 100%;
+    margin-top: 10px;
+    padding: 10px 12px 10px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.7);
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.connectStrip:hover {
+    border-color: var(--line-strong);
+    color: var(--ink);
+}
+
+.connectStrip > span:first-child {
+    flex: 1;
+    min-width: 0;
+}
+
+.logoStack {
+    display: inline-flex;
+    align-items: center;
+}
+
+.logoStack > span {
+    width: 22px;
+    height: 22px;
+    margin-left: -6px;
+    display: inline-grid;
+    place-items: center;
+    border: 2px solid #ffffff;
+    border-radius: 50%;
+    background: #f3f4f6;
+    overflow: hidden;
+}
+
+.logoStack > span:first-child {
+    margin-left: 0;
+}
+
+.logoStack em {
+    margin-left: 6px;
+    color: var(--ink-3);
+    font-size: 11px;
+    font-style: normal;
+    font-weight: 600;
+}
+
+/* ---- Manual start ----------------------------------------------------- */
+
+.manualRow {
+    margin-top: 14px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 12.5px;
+}
+
+.manualButton {
+    height: 28px;
+    padding: 0 6px 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.manualButton:hover {
+    border-color: var(--line-strong);
+}
+
+/* ---- Continue + templates ------------------------------------------- */
+
+.continueCard {
+    margin-top: 28px;
+    padding: 12px 12px 12px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.continueIcon {
+    width: 32px;
+    height: 32px;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 9px;
+    background: var(--accent-soft);
+    color: var(--accent);
+}
+
+.continueCopy {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.continueCopy strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.continueCopy span {
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.continueButton {
+    height: 30px;
+    padding: 0 10px 0 12px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 0;
+    border-radius: 8px;
+    background: var(--ink);
+    color: #ffffff;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+}
+
+.continueButton:hover {
+    background: #000000;
+}
+
+.templates {
+    margin-top: 32px;
+    scroll-margin-top: 24px;
+}
+
+.templates h2 {
+    margin: 0 0 10px;
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.templateList {
+    display: grid;
+    gap: 8px;
+}
+
+.template {
+    width: 100%;
+    padding: 11px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease, box-shadow 120ms ease;
+}
+
+.template:hover {
+    border-color: var(--line-strong);
+    box-shadow: 0 4px 14px rgba(17, 24, 39, 0.05);
+}
+
+.templateActive,
+.templateActive:hover {
+    border-color: var(--accent-line);
+    background: #fbfcff;
+}
+
+.templateIcons {
+    display: inline-flex;
+    align-items: center;
+}
+
+.templateCopy {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.templateCopy strong {
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.templateCopy span {
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.templateArrow {
+    color: #b3b9c2;
+}
+
+.templateCheck {
+    color: var(--accent);
+}
+
+/* ---- Small screens --------------------------------------------------- */
+
+@media (max-width: 560px) {
+    .starter {
+        padding-top: 32px;
+    }
+
+    .trayBar,
+    .trayActions {
+        flex-wrap: wrap;
+    }
+
+    .menu {
+        right: auto;
+        left: 50%;
+        translate: -50% 0;
+        width: min(300px, calc(100vw - 32px));
+    }
+
+    .connectStrip > span:first-child {
+        font-size: 12px;
+    }
+
+    /* Logos are decorative; give the words the room on phones. */
+    .logoStack,
+    .templateIcons {
+        display: none;
+    }
+}

@@ -1,0 +1,319 @@
+/* Step card expanded in place for editing (modelled on the Gmail example). */
+
+.editor {
+    --tone: #374151;
+    --tone-soft: #f4f5f7;
+
+    width: 380px;
+    border: 1px solid #c9ced6;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 18px 40px rgba(17, 24, 39, 0.1);
+    color: #111827;
+    text-align: left;
+    cursor: default;
+}
+
+
+.head {
+    padding: 12px 12px 11px 14px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-bottom: 1px solid #eef0f3;
+}
+
+.icon {
+    width: 34px;
+    height: 34px;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    box-sizing: border-box;
+    border: 1px solid #e8eaee;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #4b5563;
+    overflow: hidden;
+}
+
+.icon img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.headCopy {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.titleInput {
+    width: 100%;
+    padding: 1px 4px;
+    margin-left: -4px;
+    border: 1px solid transparent;
+    border-radius: 6px;
+    background: transparent;
+    color: #111827;
+    font: inherit;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.titleInput:hover {
+    border-color: #e5e7eb;
+}
+
+.titleInput:focus {
+    outline: none;
+    border-color: #c9ced6;
+}
+
+.appLine {
+    color: #8a919c;
+    font-size: 12px;
+}
+
+.badgeOk,
+.badgeWarn {
+    flex: none;
+    padding: 3px 9px;
+    border-radius: 999px;
+    font-size: 11.5px;
+    font-weight: 600;
+}
+
+.badgeOk {
+    background: #f4f5f7;
+    color: #9097a1;
+}
+
+.badgeWarn {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #e8eaee;
+    background: #ffffff;
+    color: #4b5563;
+}
+
+.badgeWarn::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: #f59e0b;
+}
+
+.iconButton {
+    box-sizing: border-box;
+    width: 28px;
+    height: 28px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #8a919c;
+    cursor: pointer;
+}
+
+.iconButton:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.body {
+    padding: 12px 14px 4px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.field {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.field > span {
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 500;
+}
+
+.field input,
+.field select,
+.field textarea,
+.readOnly {
+    box-sizing: border-box;
+    width: 100%;
+    padding: 8px 10px;
+    border: 1px solid #e3e6ea;
+    border-radius: 9px;
+    background: #ffffff;
+    color: #111827;
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.45;
+}
+
+.field textarea {
+    resize: vertical;
+    min-height: 120px;
+}
+
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+    outline: none;
+    border-color: #9097a1;
+    box-shadow: 0 0 0 3px rgba(17, 24, 39, 0.06);
+}
+
+.field small {
+    color: #8a919c;
+    font-size: 11.5px;
+    line-height: 1.4;
+}
+
+.readOnly {
+    background: #f7f8fa;
+    color: #4b5563;
+}
+
+.row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+}
+
+.variables {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px;
+    margin-top: -4px;
+}
+
+.variables > span {
+    color: #8a919c;
+    font-size: 11.5px;
+}
+
+.variables button {
+    height: 24px;
+    padding: 0 8px;
+    border: 1px dashed #d6dae0;
+    border-radius: 6px;
+    background: #fafbfc;
+    color: #4b5563;
+    font: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.variables button:hover {
+    border-color: var(--tone);
+    color: var(--tone);
+}
+
+.note {
+    margin: 0;
+    padding: 9px 11px;
+    border-radius: 9px;
+    background: #f7f8fa;
+    color: #4b5563;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.issues {
+    margin: 0;
+    padding: 8px 12px 8px 28px;
+    border-radius: 9px;
+    background: #f7f8fa;
+    color: #4b5563;
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.foot {
+    margin-top: 10px;
+    padding: 10px 10px 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-top: 1px solid #eef0f3;
+}
+
+.chip,
+.ghost {
+    height: 30px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.chip {
+    border: 1px solid #e3e6ea;
+    background: #ffffff;
+    color: #374151;
+}
+
+.chip:hover {
+    border-color: #c9ced6;
+    background: #f7f8fa;
+}
+
+.ghost {
+    border: 0;
+    background: transparent;
+    color: #6b7280;
+}
+
+.ghost:hover {
+    background: #f3f4f6;
+    color: #111827;
+}
+
+.danger {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: #b42318;
+    cursor: pointer;
+}
+
+.danger:hover {
+    background: #fef3f2;
+}
+
+.spacer {
+    flex: 1;
+}
+
+@media (max-width: 720px) {
+    .editor {
+        width: min(380px, calc(100vw - 48px));
+    }
+}

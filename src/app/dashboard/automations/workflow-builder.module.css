@@ -15364,3 +15364,214 @@
         padding: 0 11px !important;
     }
 }
+
+/* =========================================================================
+   Category colours shared by the step library groups below.
+   ========================================================================= */
+
+.pageCanvas {
+    --wf-ink: #111827;
+    --wf-ink-2: #4b5563;
+    --wf-ink-3: #8a919c;
+    --wf-line: #e5e7eb;
+    --wf-line-strong: #d1d5db;
+    --wf-accent: #2f6bff;
+    --wf-trigger: #2f6bff;
+    --wf-trigger-soft: #eef3ff;
+    --wf-email: #f97316;
+    --wf-email-soft: #fff4ec;
+    --wf-flow: #16a34a;
+    --wf-flow-soft: #edfaf1;
+    --wf-action: #8b5cf6;
+    --wf-action-soft: #f4f0ff;
+}
+
+/* Step library: grouped like the canvas categories */
+.libraryGroupLabel {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin: 12px 0 4px;
+    padding: 0 10px;
+    color: #8a919c;
+    font-size: 10.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.libraryGroupLabel:first-child {
+    margin-top: 4px;
+}
+
+.libraryGroupLabel::before {
+    content: "";
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: currentColor;
+}
+
+.libraryGroupLabel[data-node-type="trigger"] { color: var(--wf-trigger); }
+.libraryGroupLabel[data-node-type="email"] { color: var(--wf-email); }
+.libraryGroupLabel[data-node-type="delay"],
+.libraryGroupLabel[data-node-type="condition"] { color: var(--wf-flow); }
+.libraryGroupLabel[data-node-type="action"] { color: var(--wf-action); }
+
+.pageCanvas .stepDrawer .libraryIcon:not(.integrationNodeIcon) {
+    border: 0 !important;
+    border-radius: 9px !important;
+}
+
+.pageCanvas .stepDrawer .libraryIcon.trigger:not(.integrationNodeIcon) {
+    background: var(--wf-trigger-soft) !important;
+    color: var(--wf-trigger) !important;
+}
+
+.pageCanvas .stepDrawer .libraryIcon.email:not(.integrationNodeIcon) {
+    background: var(--wf-email-soft) !important;
+    color: var(--wf-email) !important;
+}
+
+.pageCanvas .stepDrawer .libraryIcon.delay:not(.integrationNodeIcon),
+.pageCanvas .stepDrawer .libraryIcon.condition:not(.integrationNodeIcon) {
+    background: var(--wf-flow-soft) !important;
+    color: var(--wf-flow) !important;
+}
+
+.pageCanvas .stepDrawer .libraryIcon.action:not(.integrationNodeIcon) {
+    background: var(--wf-action-soft) !important;
+    color: var(--wf-action) !important;
+}
+
+/* =========================================================================
+   AI assistant panel (inspired by the Golo "AI Chat" design)
+   ========================================================================= */
+
+.aiEmptyState {
+    margin: auto 0;
+    padding: 28px 8px 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    text-align: left;
+}
+
+.aiEmptyIcon {
+    width: 32px;
+    height: 32px;
+    margin-bottom: 4px;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 10px;
+    background: #eef3ff;
+    color: #2f6bff;
+}
+
+.aiEmptyState strong {
+    color: #111827;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.aiEmptyState p {
+    margin: 0 0 8px;
+    color: #8a919c;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.aiSuggestions {
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.aiSuggestion {
+    width: 100%;
+    padding: 9px 12px;
+    border: 1px solid #e7e9ee;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #4b5563;
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+    transition: border-color 120ms ease, color 120ms ease;
+}
+
+.aiSuggestion:hover {
+    border-color: #c7d7ff;
+    color: #111827;
+}
+
+.aiModelPill {
+    height: 26px;
+    padding: 0 9px 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 8px;
+    background: #f4f5f7;
+    color: #4b5563;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+/* Chat bubbles: the user's message as a soft grey bubble, replies plain. */
+.pageCanvas .aiPanel .chatBubble.userBubble {
+    border: 0 !important;
+    border-radius: 14px 14px 4px 14px !important;
+    background: #f3f4f6 !important;
+    color: #111827 !important;
+    box-shadow: none !important;
+}
+
+.pageCanvas .aiPanel .chatBubble.assistantBubble {
+    border: 0 !important;
+    background: transparent !important;
+    box-shadow: none !important;
+    color: #1f2937 !important;
+}
+
+/* Composer */
+.pageCanvas .aiPanel .promptComposer {
+    border: 1px solid #e7e9ee !important;
+    border-radius: 16px !important;
+    background: #ffffff !important;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.04), 0 8px 24px rgba(47, 107, 255, 0.05) !important;
+    transition: border-color 140ms ease, box-shadow 140ms ease !important;
+}
+
+.pageCanvas .aiPanel .promptComposer:focus-within {
+    border-color: #c7d7ff !important;
+    box-shadow: 0 0 0 3px rgba(47, 107, 255, 0.1), 0 8px 24px rgba(47, 107, 255, 0.08) !important;
+}
+
+.pageCanvas .aiPanel .aiComposerTools {
+    display: flex !important;
+    align-items: center !important;
+    gap: 6px !important;
+}
+
+.pageCanvas .aiPanel .promptSendButton {
+    width: 32px !important;
+    height: 32px !important;
+    border: 0 !important;
+    border-radius: 50% !important;
+    background: #2f6bff !important;
+    color: #ffffff !important;
+    opacity: 1 !important;
+}
+
+.pageCanvas .aiPanel .promptSendButton:hover:not(:disabled) {
+    background: #1f57e6 !important;
+}
+
+.pageCanvas .aiPanel .promptSendButton:disabled {
+    background: #d6dcea !important;
+    color: #ffffff !important;
+}
