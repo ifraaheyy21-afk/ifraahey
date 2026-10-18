@@ -44,6 +44,7 @@ import {
     PenSquare,
     Redo2,
     Reply,
+    RotateCcw,
     Search,
     Signature,
     Send,
@@ -67,6 +68,7 @@ import {
 } from "react";
 
 import { CHAT_CHANNELS, isChatChannel, type InboxChannel } from "../../../lib/inbox-data";
+import { threadInFolder } from "../../../lib/inbox-folders";
 import type {
     InboxFolder,
     InboxPayload,
@@ -75,9 +77,17 @@ import type {
 
 import ChatSidePanel, { type ContactEdits } from "./ChatSidePanel";
 import InboxChat from "./InboxChat";
+import { escapeHtml, safeLinkUrl } from "../../../lib/email-html";
+import ThreadHistory, { MessageBody } from "./ThreadHistory";
 import SummaryCard from "./SummaryCard";
 import { CHANNEL_META, channelOf, UPCOMING_CHANNELS } from "./channels";
 import styles from "./inbox-page.module.css";
+import {
+    applyDemoThreadState,
+    applyThreadAction,
+    saveDemoThreadAction,
+    type ThreadAction,
+} from "./thread-actions";
 
 type DateRange = "24h" | "7d" | "30d" | "60d";
 
@@ -708,14 +718,11 @@ export default function InboxPage() {
 
             setError("");
 
-            const workspaceId = getStoredWorkspaceId();
-            const response = await fetch(
-                `/api/dashboard/inbox?workspaceId=${encodeURIComponent(workspaceId)}`,
-                {
-                    method: "GET",
-                    cache: "no-store",
-                },
-            );
+            const response = await fetch("/api/dashboard/inbox", {
+                method: "GET",
+                cache: "no-store",
+                credentials: "include",
+            });
 
             const result = (await response.json()) as InboxPayload & {
                 error?: string;
@@ -725,8 +732,9 @@ export default function InboxPage() {
                 throw new Error(result.error || "Failed to load the inbox.");
             }
 
-            setPayload(result);
-            return result;
+            const withDemoState = applyDemoThreadState(result);
+            setPayload(withDemoState);
+            return withDemoState;
         } catch (loadError) {
             setError(
                 loadError instanceof Error
@@ -931,10 +939,7 @@ export default function InboxPage() {
 
         const filtered = (payload?.threads ?? []).filter((thread) => {
             if (channelOf(thread) !== activeChannel) return false;
-            const belongsToFolder =
-                activeFolder === "starred"
-                    ? thread.folder === "starred" || thread.starred
-                    : thread.folder === activeFolder;
+            const belongsToFolder = threadInFolder(thread, activeFolder);
             const lastMessageTime = new Date(thread.lastMessageAt).getTime();
             const belongsToDateRange =
                 !Number.isNaN(lastMessageTime) && lastMessageTime >= rangeStart;
@@ -1004,27 +1009,7 @@ export default function InboxPage() {
         }
         setSelectedThreadId(thread.id);
 
-        if (!thread.unread) {
-            return;
-        }
-
-        setPayload((current) => {
-            if (!current) {
-                return current;
-            }
-
-            return {
-                ...current,
-                threads: current.threads.map((currentThread) =>
-                    currentThread.id === thread.id
-                        ? {
-                            ...currentThread,
-                            unread: false,
-                        }
-                        : currentThread,
-                ),
-            };
-        });
+        if (thread.unread) saveThreadAction(thread, { read: true });
     };
 
     const unreadInboxCount = useMemo(
@@ -1115,29 +1100,53 @@ export default function InboxPage() {
         };
     }, [replyAttachmentUrl]);
 
-    const updateSelectedThread = (updates: Partial<InboxThread>) => {
-        if (!selectedThread) return;
-
+    const replaceThread = (threadId: string, next: (thread: InboxThread) => InboxThread) => {
         setPayload((current) =>
             current
                 ? {
                     ...current,
-                    threads: current.threads.map((thread) =>
-                        thread.id === selectedThread.id
-                            ? { ...thread, ...updates }
-                            : thread,
-                    ),
+                    threads: current.threads.map((thread) => (thread.id === threadId ? next(thread) : thread)),
                 }
                 : current,
         );
     };
 
+    /**
+     * Apply a star/read/folder/tag change at once and save it. Sample threads
+     * are saved in this browser; real ones on the server, undone if that fails.
+     */
+    const saveThreadAction = (thread: InboxThread, action: ThreadAction) => {
+        const previous = thread;
+        replaceThread(thread.id, (current) => applyThreadAction(current, action));
+
+        if (thread.demo) {
+            saveDemoThreadAction(thread.id, action);
+            return;
+        }
+
+        void fetch(`/api/dashboard/inbox/threads/${encodeURIComponent(thread.id)}`, {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(action),
+        })
+            .then(async (response) => {
+                if (response.ok) return;
+                const result = (await response.json().catch(() => ({}))) as { error?: string };
+                throw new Error(result.error || "Could not save that change.");
+            })
+            .catch((saveError: unknown) => {
+                replaceThread(thread.id, () => previous);
+                setError(saveError instanceof Error ? saveError.message : "Could not save that change.");
+            });
+    };
+
     const markSelectedThreadUnread = () => {
-        updateSelectedThread({ unread: true });
+        if (selectedThread) saveThreadAction(selectedThread, { read: false });
     };
 
     const setSelectedThreadLabels = (labels: string[]) => {
-        updateSelectedThread({ labels });
+        if (selectedThread) saveThreadAction(selectedThread, { labels });
     };
 
     const editContact = (threadId: string, patch: ContactEdits) => {
@@ -1153,27 +1162,19 @@ export default function InboxPage() {
     };
 
     const archiveSelectedThread = () => {
-        updateSelectedThread({ folder: "archived" });
+        if (selectedThread) saveThreadAction(selectedThread, { folder: "archived" });
     };
 
     const deleteSelectedThread = () => {
-        if (!selectedThread) return;
+        if (selectedThread) saveThreadAction(selectedThread, { folder: "deleted" });
+    };
 
-        updateSelectedThread({
-            folder: "deleted",
-            unread: false,
-            archived: false,
-        });
+    const restoreSelectedThread = () => {
+        if (selectedThread) saveThreadAction(selectedThread, { folder: null });
     };
 
     const toggleSelectedThreadStar = () => {
-        if (!selectedThread) return;
-
-        const nextStarred = !selectedThread.starred;
-
-        updateSelectedThread({
-            starred: nextStarred,
-        });
+        if (selectedThread) saveThreadAction(selectedThread, { starred: !selectedThread.starred });
     };
 
     const openCompose = () => {
@@ -1369,9 +1370,15 @@ export default function InboxPage() {
 
         if (!url?.trim()) return;
 
+        const href = safeLinkUrl(url);
+        if (!href) {
+            setSendError("Links must start with http://, https:// or mailto:.");
+            return;
+        }
+
         const label = window.prompt("Link text", "Open link")?.trim() || url.trim();
         insertHtmlIntoReply(
-            `<a href="${url.trim()}" target="_blank" rel="noreferrer">${label}</a>`,
+            `<a href="${escapeHtml(href)}" target="_blank" rel="noopener noreferrer">${escapeHtml(label)}</a>`,
         );
         setReplyOptionsOpen(false);
     };
@@ -1799,7 +1806,7 @@ export default function InboxPage() {
         const formattedReply = aiReply
             .trim()
             .split(/\n{2,}/)
-            .map((paragraph) => `<p>${paragraph.replace(/\n/g, "<br />")}</p>`)
+            .map((paragraph) => `<p>${escapeHtml(paragraph).replace(/\n/g, "<br />")}</p>`)
             .join("");
 
         setReplyBody(formattedReply);
@@ -1835,8 +1842,7 @@ export default function InboxPage() {
         : null;
     /** Counts for the chosen channel only. */
     const folderCount = (folder: InboxFolder) =>
-        channelThreads(activeChannel).filter((thread) =>
-            folder === "starred" ? thread.folder === "starred" || thread.starred : thread.folder === folder).length;
+        channelThreads(activeChannel).filter((thread) => threadInFolder(thread, folder)).length;
     const toggleSection = (name: string) =>
         setClosedSections((current) => (current.includes(name) ? current.filter((item) => item !== name) : [...current, name]));
     const viewTitle = listFilter === "unread"
@@ -2246,11 +2252,22 @@ export default function InboxPage() {
                             {!composeOpen && selectedThread && !selectedIsChat && (
                                 <div className={styles.toolbar}>
                                     <div className={styles.toolbarGroup}>
-                                        <button type="button" className={styles.iconButton} aria-label="Archive conversation" title="Archive" onClick={archiveSelectedThread}>
-                                            <Archive size={15} />
-                                        </button>
-                                        <button type="button" className={styles.iconButton} aria-label="Delete conversation" title="Delete" onClick={deleteSelectedThread}>
-                                            <Trash2 size={15} />
+                                        {selectedThread.folder === "archived" || selectedThread.folder === "deleted" ? (
+                                            <button type="button" className={styles.iconButton} aria-label="Move back to the inbox" title="Restore" onClick={restoreSelectedThread}>
+                                                <RotateCcw size={15} />
+                                            </button>
+                                        ) : (
+                                            <>
+                                                <button type="button" className={styles.iconButton} aria-label="Archive conversation" title="Archive" onClick={archiveSelectedThread}>
+                                                    <Archive size={15} />
+                                                </button>
+                                                <button type="button" className={styles.iconButton} aria-label="Delete conversation" title="Delete" onClick={deleteSelectedThread}>
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            </>
+                                        )}
+                                        <button type="button" className={styles.iconButton} aria-label="Mark as unread" title="Mark unread" onClick={markSelectedThreadUnread}>
+                                            <MailOpen size={15} />
                                         </button>
                                     </div>
                                     {selectedIsChat && (
@@ -2313,10 +2330,10 @@ export default function InboxPage() {
                                         draft={chatDraft}
                                         setDraft={setChatDraft}
                                         onSend={(text, file) => appendChatMessage(chatThread.id, text, file)}
-                                        onOpenAssistant={() => setSidePanel({ open: true, tab: "ai" })}
                                         onToggleStar={toggleSelectedThreadStar}
                                         onMarkUnread={markSelectedThreadUnread}
                                         onArchive={archiveSelectedThread}
+                                        onRestore={restoreSelectedThread}
                                         onDelete={deleteSelectedThread}
                                         onSetLabels={setSelectedThreadLabels}
                                     />
@@ -2381,12 +2398,19 @@ export default function InboxPage() {
                                         )}
                                         </div>
 
-                                        <div className={styles.body}>
-                                            {displayedMessage.html ? (
-                                                <div dangerouslySetInnerHTML={{ __html: displayedMessage.html }} />
-                                            ) : (
-                                                <p>{displayedMessage.plainText}</p>
+                                        <ThreadHistory
+                                            key={selectedThread.id}
+                                            messages={selectedThread.messages.slice(0, -1)}
+                                            formatDate={formatFullDate}
+                                            avatar={(name) => (
+                                                <span className={styles.avatarSmall} style={avatarStyle(name)}>
+                                                    {getInitials(name)}
+                                                </span>
                                             )}
+                                        />
+
+                                        <div className={styles.body}>
+                                            <MessageBody message={displayedMessage} />
                                         </div>
 
                                         {displayedMessage.attachments && displayedMessage.attachments.length > 0 && (

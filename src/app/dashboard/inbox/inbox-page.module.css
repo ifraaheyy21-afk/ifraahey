@@ -1630,6 +1630,124 @@ button.personChip {
     height: auto;
 }
 
+.plainBody {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.emailFrame {
+    display: block;
+    width: 100%;
+    border: 0;
+    background: #ffffff;
+}
+
+.authWarning {
+    margin: 0 0 12px;
+    padding: 8px 10px;
+    border: 1px solid #f3e1c4;
+    border-radius: 8px;
+    background: #fffbf3;
+    color: #8a5a12;
+    font-size: 12px;
+    line-height: 1.5;
+    white-space: normal;
+}
+
+/* ---- Earlier messages in an email thread ---- */
+
+.history {
+    padding-top: 12px;
+    display: flex;
+    flex-direction: column;
+}
+
+.historyItem,
+.historyItemOpen {
+    border-bottom: 1px solid var(--line);
+}
+
+.historyRow {
+    width: 100%;
+    min-width: 0;
+    padding: 9px 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 0;
+    background: none;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.historyRow:hover .historyName {
+    color: var(--ink);
+}
+
+.historyName {
+    flex: none;
+    max-width: 180px;
+    overflow: hidden;
+    color: var(--ink);
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.historySnippet {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-3);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.historyRow time {
+    flex: none;
+    margin-left: auto;
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.historyChevron,
+.historyChevronOpen {
+    flex: none;
+    color: var(--ink-3);
+    transition: transform 0.15s ease;
+}
+
+.historyChevronOpen {
+    transform: rotate(180deg);
+}
+
+.historyBody {
+    padding: 2px 0 14px 38px;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.65;
+}
+
+.historyMore {
+    width: 100%;
+    padding: 7px 0;
+    border: 0;
+    border-bottom: 1px solid var(--line);
+    background: none;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 12px;
+    text-align: center;
+    cursor: pointer;
+}
+
+.historyMore:hover {
+    color: var(--ink);
+}
+
 .attachmentGrid {
     padding-top: 6px;
     display: flex;

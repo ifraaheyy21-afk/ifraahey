@@ -12,9 +12,9 @@ import {
     MoreHorizontal,
     Paperclip,
     Phone,
+    RotateCcw,
     Search,
     Smile,
-    Sparkles,
     Star,
     Tag,
     Trash2,
@@ -33,10 +33,10 @@ type Props = {
     draft: string;
     setDraft: (value: string) => void;
     onSend: (text: string, attachment: File | null) => void;
-    onOpenAssistant: () => void;
     onToggleStar: () => void;
     onMarkUnread: () => void;
     onArchive: () => void;
+    onRestore: () => void;
     onDelete: () => void;
     onSetLabels: (labels: string[]) => void;
 };
@@ -88,7 +88,8 @@ type Popover = "menu" | "emoji" | "quick" | "tag" | null;
 
 /** A conversation from a messaging channel: header actions, bubbles and a chat composer. */
 export default function InboxChat(props: Props) {
-    const { thread, avatarStyle, initials, draft, setDraft, onSend, onOpenAssistant, onToggleStar, onMarkUnread, onArchive, onDelete, onSetLabels } = props;
+    const { thread, avatarStyle, initials, draft, setDraft, onSend, onToggleStar, onMarkUnread, onArchive, onRestore, onDelete, onSetLabels } = props;
+    const movedAway = thread.folder === "archived" || thread.folder === "deleted";
     const [popover, setPopover] = useState<Popover>(null);
     const [searchOpen, setSearchOpen] = useState(false);
     const [query, setQuery] = useState("");
@@ -194,9 +195,6 @@ export default function InboxChat(props: Props) {
                 )}
                 <span className={styles.spacer} />
 
-                <button type="button" className={styles.iconButtonAi} aria-label="Open AI assistant" title="AI assistant" onClick={onOpenAssistant}>
-                    <Sparkles size={15} />
-                </button>
                 {phone && (
                     <a className={styles.iconButton} href={`tel:${phone.replace(/\s+/g, "")}`} aria-label={`Call ${phone}`} title={`Call ${phone}`}>
                         <Phone size={15} />
@@ -232,15 +230,24 @@ export default function InboxChat(props: Props) {
                                 <MailOpen size={14} />
                                 Mark unread
                             </button>
-                            <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onArchive(); }}>
-                                <Archive size={14} />
-                                Archive
-                            </button>
-                            <div className={styles.menuDivider} />
-                            <button type="button" role="menuitem" className={styles.menuItemDanger} onClick={() => { setPopover(null); onDelete(); }}>
-                                <Trash2 size={14} />
-                                Delete
-                            </button>
+                            {movedAway ? (
+                                <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onRestore(); }}>
+                                    <RotateCcw size={14} />
+                                    Move to inbox
+                                </button>
+                            ) : (
+                                <>
+                                    <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onArchive(); }}>
+                                        <Archive size={14} />
+                                        Archive
+                                    </button>
+                                    <div className={styles.menuDivider} />
+                                    <button type="button" role="menuitem" className={styles.menuItemDanger} onClick={() => { setPopover(null); onDelete(); }}>
+                                        <Trash2 size={14} />
+                                        Delete
+                                    </button>
+                                </>
+                            )}
                         </div>
                     )}
                 </div>
@@ -343,11 +350,6 @@ export default function InboxChat(props: Props) {
                 />
 
                 <div className={styles.chatTools}>
-                    <button type="button" className={styles.aiButton} onClick={onOpenAssistant}>
-                        <Sparkles size={13} />
-                        Use AI
-                    </button>
-
                     <div className={styles.moreWrap}>
                         <button type="button" className={styles.formatButton} aria-label="Emoji" title="Emoji" aria-expanded={popover === "emoji"} onClick={() => openPopover("emoji")}>
                             <Smile size={15} />
