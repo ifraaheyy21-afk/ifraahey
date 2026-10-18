@@ -716,6 +716,9 @@ export default function InboxPage() {
     const replyOptionsRef = useRef<HTMLDivElement>(null);
     const composeAccountPickerRef = useRef<HTMLDivElement>(null);
 
+    // When the inbox was last loaded; the date filter counts back from here.
+    const [loadedAt, setLoadedAt] = useState(() => Date.now());
+
     const loadInbox = useCallback(async ({ silent = false } = {}) => {
         try {
             if (!silent) setLoading(true);
@@ -737,6 +740,7 @@ export default function InboxPage() {
             }
 
             const withDemoState = applyDemoThreadState(result);
+            setLoadedAt(Date.now());
             setPayload(withDemoState);
             return withDemoState;
         } catch (loadError) {
@@ -859,17 +863,20 @@ export default function InboxPage() {
         }
     }, []);
 
+    // Load once on mount. The loaders set state, so start them just after the
+    // effect returns instead of synchronously inside it.
     useEffect(() => {
-        loadInbox();
-    }, [loadInbox]);
-
-    useEffect(() => {
-        void loadComposeAccounts();
-    }, [loadComposeAccounts]);
-
-    useEffect(() => {
-        void loadSavedEmails();
-    }, [loadSavedEmails]);
+        let active = true;
+        void Promise.resolve().then(() => {
+            if (!active) return;
+            void loadInbox();
+            void loadComposeAccounts();
+            void loadSavedEmails();
+        });
+        return () => {
+            active = false;
+        };
+    }, [loadInbox, loadComposeAccounts, loadSavedEmails]);
 
     useEffect(() => {
         const loadBuilderPreferences = () => {
@@ -884,14 +891,15 @@ export default function InboxPage() {
             window.removeEventListener("storage", loadBuilderPreferences);
     }, []);
 
-    useEffect(() => {
-        if (
-            requestedFolder &&
-            folderOptions.some((folder) => folder.value === requestedFolder)
-        ) {
+    // Follow ?folder= when the URL changes (back/forward, links), adjusting
+    // state during render rather than in an effect.
+    const [syncedFolderParam, setSyncedFolderParam] = useState(requestedFolder);
+    if (requestedFolder !== syncedFolderParam) {
+        setSyncedFolderParam(requestedFolder);
+        if (requestedFolder && folderOptions.some((folder) => folder.value === requestedFolder)) {
             setActiveFolder(requestedFolder as InboxFolder);
         }
-    }, [requestedFolder]);
+    }
 
     useEffect(() => {
         const handlePointerDown = (event: MouseEvent) => {
@@ -943,7 +951,7 @@ export default function InboxPage() {
         const selectedRange = dateRangeOptions.find(
             (option) => option.value === dateRange,
         );
-        const rangeStart = Date.now() - (selectedRange?.days ?? 30) * 24 * 60 * 60 * 1000;
+        const rangeStart = loadedAt - (selectedRange?.days ?? 30) * 24 * 60 * 60 * 1000;
 
         const filtered = (payload?.threads ?? []).filter((thread) => {
             if (channelOf(thread) !== activeChannel) return false;
@@ -972,24 +980,21 @@ export default function InboxPage() {
                 new Date(second.lastMessageAt).getTime() -
                 new Date(first.lastMessageAt).getTime(),
         );
-    }, [activeChannel, activeFolder, dateRange, payload, search]);
+    }, [activeChannel, activeFolder, dateRange, loadedAt, payload, search]);
 
-    useEffect(() => {
-        if (visibleThreads.length === 0) {
-            setSelectedThreadId("");
-            return;
-        }
+    // Keep a visible thread selected: fall back to the first one when the
+    // selection leaves the list (folder change, search, delete).
+    const fallbackThreadId = visibleThreads.some((thread) => thread.id === selectedThreadId)
+        ? selectedThreadId
+        : visibleThreads[0]?.id ?? "";
+    if (fallbackThreadId !== selectedThreadId) {
+        setSelectedThreadId(fallbackThreadId);
+    }
 
-        const selectedThreadStillVisible = visibleThreads.some(
-            (thread) => thread.id === selectedThreadId,
-        );
-
-        if (!selectedThreadStillVisible) {
-            setSelectedThreadId(visibleThreads[0].id);
-        }
-    }, [selectedThreadId, visibleThreads]);
-
-    useEffect(() => {
+    // A different thread starts with a clean reply box.
+    const [composerThreadId, setComposerThreadId] = useState(selectedThreadId);
+    if (composerThreadId !== selectedThreadId) {
+        setComposerThreadId(selectedThreadId);
         setReplySubject("");
         setReplyBody("");
         setAiReply("");
@@ -1005,7 +1010,7 @@ export default function InboxPage() {
         setReplyFooterIncluded(false);
         setAttachmentPreviewOpen(false);
         setSendError("");
-    }, [selectedThreadId]);
+    }
 
     const selectThread = (thread: InboxThread) => {
         setComposeOpen(false);
@@ -1352,19 +1357,9 @@ export default function InboxPage() {
         }
     };
 
-    const focusReplyEditor = () => {
-        requestAnimationFrame(() => replyRef.current?.focus());
-    };
-
     const runEditorCommand = (command: string, value?: string) => {
         replyRef.current?.focus();
         document.execCommand(command, false, value);
-        setReplyBody(replyRef.current?.innerHTML ?? "");
-    };
-
-    const insertEditorText = (text: string) => {
-        replyRef.current?.focus();
-        document.execCommand("insertText", false, text);
         setReplyBody(replyRef.current?.innerHTML ?? "");
     };
 
@@ -1700,21 +1695,6 @@ export default function InboxPage() {
         }
 
         requestAnimationFrame(() => replyRef.current?.focus());
-    };
-
-    const selectReplyText = () => {
-        setReplyOptionsOpen(false);
-        requestAnimationFrame(() => {
-            const editor = replyRef.current;
-            if (!editor) return;
-
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-            editor.focus();
-        });
     };
 
     const removeReplyAttachment = () => {
