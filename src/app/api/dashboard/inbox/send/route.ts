@@ -8,7 +8,11 @@ import {
     sendInboxEmail,
     sentRecordToMessage,
 } from "../../../../../lib/inbox-send";
-import { prismaInboxSentStore } from "../../../../../lib/inbox-sent-store";
+import {
+    findPendingRfcMessages,
+    prismaInboxSentStore,
+    saveRfcMessageId,
+} from "../../../../../lib/inbox-sent-store";
 import { prisma } from "../../../../../lib/prisma";
 import { getWorkspaceResendClient } from "../../../../../lib/resendIntegration";
 
@@ -36,6 +40,8 @@ export async function POST(request: Request) {
                 store: prismaInboxSentStore,
                 getClient: getWorkspaceResendClient,
                 loadThreads: loadInboxThreads,
+                findPendingRfcMessages,
+                saveRfcMessageId,
                 isSuppressed: async (id, email) => Boolean(
                     await prisma.suppression.findUnique({
                         where: { workspaceId_email: { workspaceId: id, email } },
@@ -49,7 +55,8 @@ export async function POST(request: Request) {
         return NextResponse.json(
             {
                 threadId: record.threadId,
-                sentThreadId: `sent_thread_${record.id}`,
+                // A new email from Compose is its own thread (see inbox-threads.ts).
+                sentThreadId: record.threadId ?? `ism_${record.id}`,
                 message: sentRecordToMessage(record),
             },
             { status: 200, headers: noStore },

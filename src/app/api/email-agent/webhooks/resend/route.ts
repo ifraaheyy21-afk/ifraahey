@@ -126,6 +126,13 @@ function rfcId(value: unknown) {
     return /^<[^<>\s]+@[^<>\s]+>$/.test(candidate) ? candidate : "";
 }
 
+// Resend puts the Message-ID in every email webhook. Prefer it: looking it up
+// again needs a full-access API key, and sending-only keys are common.
+function payloadRfcId(data: Record<string, unknown>) {
+    const value = text(data.message_id);
+    return rfcId(value) || (value && !/[<>\s]/.test(value) ? rfcId(`<${value}>`) : "");
+}
+
 function firstDate(existing: Date | null, incoming: Date) {
     return existing && existing.getTime() < incoming.getTime() ? existing : incoming;
 }
@@ -195,7 +202,8 @@ async function handleInboxSentOutbound(
 
     let messageId = sent.providerRfcMessageId;
     if (!messageId && ["email.sent", "email.delivered", "email.opened", "email.clicked"].includes(type)) {
-        messageId = rfcId((await providerEmail(apiKey, providerMessageId)).message_id) || null;
+        messageId = payloadRfcId(data) ||
+            rfcId((await providerEmail(apiKey, providerMessageId)).message_id) || null;
         if (!messageId) throw new WebhookError("EMAIL_MESSAGE_ID_PENDING");
     }
 
@@ -255,8 +263,7 @@ async function handleOutbound(
     // Bounces/complaints must still suppress recipients if enrichment is unavailable.
     const enrichMessageId = ["email.sent", "email.delivered", "email.opened", "email.clicked"].includes(type);
     if (!messageId && enrichMessageId) {
-        const sent = await providerEmail(apiKey, providerMessageId);
-        messageId = rfcId(sent.message_id);
+        messageId = payloadRfcId(data) || rfcId((await providerEmail(apiKey, providerMessageId)).message_id);
         if (!messageId) throw new WebhookError("EMAIL_MESSAGE_ID_PENDING");
     }
 

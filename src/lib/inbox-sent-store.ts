@@ -1,5 +1,5 @@
 import { prisma } from "./prisma";
-import type { InboxSentRecord, InboxSentStore } from "./inbox-send";
+import type { InboxSentRecord, InboxSentStore, PendingRfcMessage } from "./inbox-send";
 
 // Prisma-backed store for messages sent from the dashboard inbox.
 export const prismaInboxSentStore: InboxSentStore = {
@@ -46,5 +46,45 @@ export async function listInboxSentMessages(workspaceId: string): Promise<InboxS
     } catch (error) {
         console.error("Failed to load sent inbox messages", error instanceof Error ? error.message : error);
         return [];
+    }
+}
+
+// Inbox message ids are sent_<InboxSentMessage id> or se_msg_<ScheduledEmail id>.
+function splitMessageIds(messageIds: string[]) {
+    const sent: string[] = [];
+    const scheduled: string[] = [];
+    for (const messageId of messageIds) {
+        if (messageId.startsWith("sent_")) sent.push(messageId.slice("sent_".length));
+        else if (messageId.startsWith("se_msg_")) scheduled.push(messageId.slice("se_msg_".length));
+    }
+    return { sent, scheduled };
+}
+
+/** Earlier outbound messages that Resend accepted but whose Message-ID isn't stored. */
+export async function findPendingRfcMessages(workspaceId: string, messageIds: string[]): Promise<PendingRfcMessage[]> {
+    const { sent, scheduled } = splitMessageIds(messageIds);
+    const where = { workspaceId, providerRfcMessageId: null, providerMessageId: { not: null } };
+    const [sentRows, scheduledRows] = await Promise.all([
+        sent.length
+            ? prisma.inboxSentMessage.findMany({ where: { ...where, id: { in: sent } }, select: { id: true, providerMessageId: true } })
+            : [],
+        scheduled.length
+            ? prisma.scheduledEmail.findMany({ where: { ...where, id: { in: scheduled } }, select: { id: true, providerMessageId: true } })
+            : [],
+    ]);
+    return [
+        ...sentRows.map((row) => ({ messageId: `sent_${row.id}`, providerMessageId: row.providerMessageId! })),
+        ...scheduledRows.map((row) => ({ messageId: `se_msg_${row.id}`, providerMessageId: row.providerMessageId! })),
+    ];
+}
+
+/** Store a Message-ID unless the webhook already did. */
+export async function saveRfcMessageId(workspaceId: string, messageId: string, rfcMessageId: string) {
+    const { sent, scheduled } = splitMessageIds([messageId]);
+    const data = { providerRfcMessageId: rfcMessageId };
+    if (sent[0]) {
+        await prisma.inboxSentMessage.updateMany({ where: { id: sent[0], workspaceId, providerRfcMessageId: null }, data });
+    } else if (scheduled[0]) {
+        await prisma.scheduledEmail.updateMany({ where: { id: scheduled[0], workspaceId, providerRfcMessageId: null }, data });
     }
 }

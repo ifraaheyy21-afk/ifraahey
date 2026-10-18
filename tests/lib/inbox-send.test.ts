@@ -283,3 +283,113 @@ test("sanitiseEmailHtml keeps ordinary formatting", () => {
     const html = '<p><strong>Hi</strong><br><a href="https://cobrai.test">link</a></p>';
     assert.equal(sanitiseEmailHtml(html), html);
 });
+
+describe("RFC Message-ID lookup", () => {
+    // Adds Resend's emails.get and the two optional store hooks to setup().
+    function withLookup(lookup: (id: string) => Promise<{ data?: { message_id?: string } | null; error?: unknown }>) {
+        const base = setup();
+        const saved: Array<[string, string]> = [];
+        const pendingAsked: string[][] = [];
+        const getClient = base.deps.getClient;
+        base.deps.getClient = async (id) => {
+            const client = await getClient(id);
+            client.resend.emails.get = lookup;
+            return client;
+        };
+        base.deps.findPendingRfcMessages = async (_workspaceId, messageIds) => {
+            pendingAsked.push(messageIds);
+            return messageIds.filter((id) => id === "sent_earlier").map((messageId) => ({ messageId, providerMessageId: "re_earlier" }));
+        };
+        base.deps.saveRfcMessageId = async (_workspaceId, messageId, rfc) => {
+            saved.push([messageId, rfc]);
+        };
+        return { ...base, saved, pendingAsked };
+    }
+
+    const earlierReply = {
+        id: "sent_earlier",
+        direction: "outbound" as const,
+        fromName: "Cobrai",
+        fromEmail: "team@cobrai.test",
+        toName: "Sofia Reyes",
+        toEmail: "sofia@example.com",
+        sentAt: "2026-10-17T09:30:00.000Z",
+        status: "sent" as const,
+        html: null,
+        plainText: "On it",
+    };
+
+    test("stores the new email's Message-ID right after sending", async () => {
+        const { deps, saved } = withLookup(async (id) => ({ data: { message_id: `<${id}@resend.dev>` } }));
+        const record = await sendInboxEmail(deps, input());
+        assert.deepEqual(saved, [[`sent_${record.id}`, "<re_123@resend.dev>"]]);
+        assert.equal(record.providerRfcMessageId, "<re_123@resend.dev>");
+    });
+
+    test("a reply fetches a missing Message-ID so it threads under our earlier message", async () => {
+        const { deps, calls, saved, pendingAsked } = withLookup(async (id) => ({ data: { message_id: `<${id}@resend.dev>` } }));
+        deps.loadThreads = async () => [thread({ messages: [...thread().messages, earlierReply] })];
+
+        await sendInboxEmail(deps, input());
+
+        assert.deepEqual(pendingAsked, [["sent_earlier"]]);
+        assert.deepEqual(saved[0], ["sent_earlier", "<re_earlier@resend.dev>"]);
+        assert.deepEqual(calls[0].payload.headers, {
+            "X-Workspace-ID": WORKSPACE,
+            "In-Reply-To": "<re_earlier@resend.dev>",
+            References: "<abc123@mail.example.com> <re_earlier@resend.dev>",
+        });
+    });
+
+    test("a failed lookup never blocks the send", async () => {
+        const { deps, calls, saved } = withLookup(async () => {
+            throw new Error("network");
+        });
+        deps.loadThreads = async () => [thread({ messages: [...thread().messages, earlierReply] })];
+
+        const record = await sendInboxEmail(deps, input());
+        assert.equal(record.status, "sent");
+        assert.equal(saved.length, 0);
+        // Falls back to the customer's message, which already had an id.
+        assert.equal(calls[0].payload.headers?.["In-Reply-To" as never], "<abc123@mail.example.com>");
+    });
+
+    test("ignores a Message-ID that isn't a real address-style id", async () => {
+        const { deps, saved } = withLookup(async () => ({ data: { message_id: "not-an-id" } }));
+        await sendInboxEmail(deps, input());
+        assert.equal(saved.length, 0);
+    });
+});
+
+test("a sending-only Resend key stops further Message-ID lookups", async () => {
+    let lookups = 0;
+    const memory = memoryStore();
+    const earlier = (id: string) => ({
+        id, direction: "outbound" as const, fromName: "Cobrai", fromEmail: "team@cobrai.test",
+        toName: "Sofia", toEmail: "sofia@example.com", sentAt: "2026-10-17T09:30:00.000Z",
+        status: "sent" as const, html: null, plainText: "x",
+    });
+    const record = await sendInboxEmail({
+        workspaceId: WORKSPACE,
+        store: memory.store,
+        loadThreads: async () => [thread({ messages: [...thread().messages, earlier("sent_a"), earlier("sent_b")] })],
+        isSuppressed: async () => false,
+        findPendingRfcMessages: async (_ws, ids) => ids.map((messageId) => ({ messageId, providerMessageId: `re_${messageId}` })),
+        saveRfcMessageId: async () => assert.fail("nothing should be saved"),
+        getClient: async () => ({
+            metadata: { senderEmail: "team@cobrai.test" },
+            resend: {
+                emails: {
+                    send: async () => ({ data: { id: "re_new" }, error: null }),
+                    get: async () => {
+                        lookups += 1;
+                        return { data: null, error: { name: "restricted_api_key", message: "This API key is restricted to only send emails" } };
+                    },
+                },
+            },
+        }),
+    }, input());
+    assert.equal(record.status, "sent");
+    // One failed lookup for the thread, one after sending; not one per message.
+    assert.equal(lookups, 2);
+});

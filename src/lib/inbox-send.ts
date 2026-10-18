@@ -100,10 +100,18 @@ export type InboxResendClient = {
                 },
                 options: { idempotencyKey: string },
             ): Promise<ResendLikeResult>;
+            // Resend's GET /emails/:id; its message_id is the RFC Message-ID.
+            get?(id: string): Promise<{
+                data?: { message_id?: string | null } | null;
+                error?: unknown;
+            }>;
         };
     };
     metadata: unknown;
 };
+
+/** An earlier outbound inbox message whose RFC Message-ID isn't known yet. */
+export type PendingRfcMessage = { messageId: string; providerMessageId: string };
 
 export type InboxSendDeps = {
     workspaceId: string;
@@ -111,7 +119,66 @@ export type InboxSendDeps = {
     getClient(workspaceId: string): Promise<InboxResendClient>;
     loadThreads(workspaceId: string): Promise<InboxThread[]>;
     isSuppressed(workspaceId: string, email: string): Promise<boolean>;
+    // Optional: let replies thread before Resend's email.sent webhook arrives.
+    // messageIds are inbox message ids such as sent_<id> or se_msg_<id>.
+    findPendingRfcMessages?(workspaceId: string, messageIds: string[]): Promise<PendingRfcMessage[]>;
+    saveRfcMessageId?(workspaceId: string, messageId: string, rfcMessageId: string): Promise<void>;
 };
+
+const MAX_RFC_LOOKUPS = 10;
+
+/**
+ * Ask Resend for an email's RFC Message-ID; null if it isn't known yet.
+ * "restricted" means the key can only send, so no lookup will ever work.
+ */
+async function lookupRfcMessageId(client: InboxResendClient, providerMessageId: string) {
+    if (!client.resend.emails.get) return null;
+    try {
+        const result = await client.resend.emails.get(providerMessageId);
+        if (result.error) {
+            const name = (result.error as { name?: unknown }).name;
+            return name === "restricted_api_key" ? "restricted" : null;
+        }
+        return formatMessageIdHeader(result.data?.message_id ?? undefined);
+    } catch {
+        return null;
+    }
+}
+
+/**
+ * Fill in Message-IDs Resend knows but the webhook hasn't delivered yet, so
+ * In-Reply-To/References can point at our own earlier messages. Best effort.
+ */
+async function withRfcMessageIds(deps: InboxSendDeps, client: InboxResendClient, thread: InboxThread) {
+    if (!deps.findPendingRfcMessages || !deps.saveRfcMessageId) return thread;
+    const missing = thread.messages
+        .filter((message) => message.direction === "outbound" && !formatMessageIdHeader(message.providerMessageId) &&
+            message.status !== "scheduled" && message.status !== "failed")
+        .slice(-MAX_RFC_LOOKUPS)
+        .map((message) => message.id);
+    if (missing.length === 0) return thread;
+
+    let pending: PendingRfcMessage[];
+    try {
+        pending = await deps.findPendingRfcMessages(deps.workspaceId, missing);
+    } catch {
+        return thread;
+    }
+    const found = new Map<string, string>();
+    for (const item of pending) {
+        const rfcMessageId = await lookupRfcMessageId(client, item.providerMessageId);
+        if (rfcMessageId === "restricted") break;
+        if (!rfcMessageId) continue;
+        found.set(item.messageId, rfcMessageId);
+        await deps.saveRfcMessageId(deps.workspaceId, item.messageId, rfcMessageId).catch(() => undefined);
+    }
+    if (found.size === 0) return thread;
+    return {
+        ...thread,
+        messages: thread.messages.map((message) =>
+            found.has(message.id) ? { ...message, providerMessageId: found.get(message.id) } : message),
+    };
+}
 
 function text(value: FormDataEntryValue | null, maxLength: number) {
     return typeof value === "string" ? value.trim().slice(0, maxLength) : "";
@@ -266,6 +333,7 @@ export async function sendInboxEmail(deps: InboxSendDeps, input: InboxSendInput)
         );
     }
     const sender = senderFrom(client.metadata);
+    if (thread) thread = await withRfcMessageIds(deps, client, thread);
 
     const html = sanitiseEmailHtml(input.html);
     const plainText = htmlToPlainText(html);
@@ -343,7 +411,18 @@ export async function sendInboxEmail(deps: InboxSendDeps, input: InboxSendInput)
         throw new InboxSendError(reason, 502);
     }
 
-    return store.markSent(record.id, providerId);
+    const sentRecord = await store.markSent(record.id, providerId);
+
+    // Usually the webhook fills this in; asking now lets the next reply thread
+    // even when it can't reach us (local development, a missed event).
+    if (deps.saveRfcMessageId) {
+        const rfcMessageId = await lookupRfcMessageId(client, providerId);
+        if (rfcMessageId && rfcMessageId !== "restricted") {
+            await deps.saveRfcMessageId(workspaceId, `sent_${sentRecord.id}`, rfcMessageId).catch(() => undefined);
+            return { ...sentRecord, providerRfcMessageId: rfcMessageId };
+        }
+    }
+    return sentRecord;
 }
 
 function formatSize(bytes: number) {
