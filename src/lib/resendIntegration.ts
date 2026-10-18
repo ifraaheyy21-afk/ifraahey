@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { Resend } from "resend";
 import { prisma } from "../lib/prisma";
 import { decryptIntegrationSecret } from "../lib/integrationEncryption";
+import { friendlyResendError } from "./resend-errors";
 
 type ResendApiError = {
     name?: string;
@@ -95,9 +96,9 @@ export async function validateResendApiKey(
 
         return {
             valid: false,
-            error:
-                payload?.message ||
-                "Resend rejected this API key. Check the key and try again.",
+            error: payload
+                ? friendlyResendError({ ...payload, statusCode: response.status }, "connect")
+                : "Resend rejected this API key. Check the key and try again.",
         };
     } catch (error) {
         console.error("Resend key validation failed:", error);
@@ -167,7 +168,5 @@ export function getResendErrorMessage(error: unknown): string {
         return "An unknown Resend error occurred.";
     }
 
-    const resendError = error as ResendApiError;
-
-    return resendError.message || "Resend could not process this request.";
+    return friendlyResendError(error as ResendApiError);
 }

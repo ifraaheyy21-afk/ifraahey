@@ -7,6 +7,7 @@ import {
     encryptIntegrationSecret,
 } from "../../../../../lib/integrationEncryption";
 import { validateResendApiKey } from "../../../../../lib/resendIntegration";
+import { FREE_SENDER_MESSAGE, isFreeEmailDomain } from "../../../../../lib/resend-errors";
 import {
     configureWorkspaceResendWebhook,
     getResendWebhookUrl,
@@ -58,6 +59,10 @@ export async function POST(req: Request) {
         }
         if (!/^[^\s@<>]+@[^\s@<>]+\.[^\s@<>]+$/.test(senderEmail)) {
             return json({ error: "Enter a valid sender email address." }, 400);
+        }
+
+        if (isFreeEmailDomain(senderEmail)) {
+            return json({ error: FREE_SENDER_MESSAGE, code: "FREE_EMAIL_SENDER" }, 400);
         }
 
         const validation = await validateResendApiKey(apiKey);

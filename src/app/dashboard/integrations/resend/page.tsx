@@ -3,6 +3,7 @@
 import "@fontsource/inter";
 import Link from "next/link";
 import { FormEvent, useEffect, useState } from "react";
+import { FREE_SENDER_MESSAGE, isFreeEmailDomain } from "../../../../lib/resend-errors";
 import "./page.css";
 
 type ResendConnection = {
@@ -104,6 +105,11 @@ export default function ResendIntegrationPage() {
 
         if (!senderEmail.trim()) {
             setError("Enter your verified sender email.");
+            return;
+        }
+
+        if (isFreeEmailDomain(senderEmail)) {
+            setError(FREE_SENDER_MESSAGE);
             return;
         }
 
@@ -281,6 +287,12 @@ export default function ResendIntegrationPage() {
                                     </button>
                                 </div>
 
+                                {connection.senderEmail && isFreeEmailDomain(connection.senderEmail) && (
+                                    <div className="notice errorNotice" role="alert">
+                                        Emails won&apos;t send from {connection.senderEmail}. {FREE_SENDER_MESSAGE} Replace the connection below.
+                                    </div>
+                                )}
+
                                 <dl className="connectionDetails">
                                     <div>
                                         <dt>Sender</dt>
@@ -402,8 +414,14 @@ export default function ResendIntegrationPage() {
                                             )
                                         }
                                         placeholder="hello@acme.com"
+                                        aria-invalid={isFreeEmailDomain(senderEmail) || undefined}
                                         required
                                     />
+                                    <span>
+                                        {isFreeEmailDomain(senderEmail)
+                                            ? "Free email addresses like Gmail can't send through Resend. Use an address on your own verified domain."
+                                            : "An address on a domain you've verified in Resend."}
+                                    </span>
                                 </div>
                             </div>
 

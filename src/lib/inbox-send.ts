@@ -4,6 +4,7 @@
 // route at /api/dashboard/inbox/send wires in the real store and client.
 import { createHash } from "node:crypto";
 
+import { friendlyResendError } from "./resend-errors";
 import type {
     InboxMessage,
     InboxThread,
@@ -337,7 +338,7 @@ export async function sendInboxEmail(deps: InboxSendDeps, input: InboxSendInput)
 
     const providerId = result.data?.id;
     if (result.error || !providerId) {
-        const reason = result.error?.message || "Resend did not accept the email.";
+        const reason = result.error ? friendlyResendError(result.error) : "Resend did not accept the email.";
         await store.markFailed(record.id, reason);
         throw new InboxSendError(reason, 502);
     }
