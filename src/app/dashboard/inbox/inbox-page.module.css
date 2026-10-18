@@ -2304,8 +2304,63 @@ button.attachment {
 }
 
 @media (max-width: 860px) {
+    /* Phones and small tablets: one column. Folders become a scrolling row
+       above the list instead of disappearing, so Sent, Drafts and Trash
+       stay reachable. */
+    .header {
+        flex-wrap: wrap;
+    }
+
+    .headerSearch {
+        order: 3;
+        width: 100%;
+        margin-left: 0;
+    }
+
+    .header > :last-child {
+        margin-left: auto;
+    }
+
     .folderPane {
+        grid-row: auto;
+        flex-direction: row;
+        align-items: center;
+        gap: 4px;
+        overflow-x: auto;
+        overflow-y: visible;
+        padding: 8px;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .folderSection {
+        flex: none;
+        flex-direction: row;
+        gap: 2px;
+    }
+
+    .folderSection + .folderSection {
+        margin-top: 0;
+        padding-top: 0;
+        padding-left: 6px;
+        border-top: 0;
+        border-left: 1px solid var(--line);
+    }
+
+    .sectionHead {
         display: none;
+    }
+
+    .folderLink,
+    .folderActive {
+        width: auto;
+        flex: none;
+        white-space: nowrap;
+    }
+
+    .channelSwitch {
+        flex: none;
+        margin-bottom: 0;
     }
 
     .topBar {
@@ -2317,7 +2372,8 @@ button.attachment {
     }
 
     .shell {
-        grid-template-columns: 1fr;
+        grid-template-columns: minmax(0, 1fr);
+        grid-template-rows: none;
     }
 
     .listPane {
@@ -2332,6 +2388,36 @@ button.attachment {
 
     .replyBar {
         flex-wrap: wrap;
+    }
+
+    /* Formatting buttons scroll sideways rather than spilling off-screen. */
+    .format {
+        min-width: 0;
+        flex: 1 1 100%;
+        overflow-x: auto;
+    }
+
+    .toolbar {
+        gap: 6px;
+        padding: 6px 8px;
+    }
+
+    .toolbar > * {
+        min-width: 0;
+    }
+
+    .toolbarGroup {
+        flex-wrap: wrap;
+    }
+
+    /* The date drops under the sender so the name has room. */
+    .sender {
+        flex-wrap: wrap;
+    }
+
+    .sender time {
+        flex-basis: 100%;
+        margin-left: 0;
     }
 }
 
