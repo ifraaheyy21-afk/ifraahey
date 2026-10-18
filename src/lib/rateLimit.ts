@@ -1,5 +1,3 @@
-import { NextResponse } from "next/server";
-
 import { prisma } from "./prisma";
 
 type Window = { limit: number; windowMs: number; label: string };
@@ -17,7 +15,15 @@ const AI_WINDOWS: Window[] = [
     { limit: positiveInt("AI_RATE_LIMIT_PER_DAY", 500), windowMs: 24 * 60 * 60_000, label: "day" },
 ];
 
-let warnedUnavailable = false;
+// Sending from the inbox goes to real recipients and spends the workspace's
+// Resend quota and sender reputation. Override with
+// INBOX_SEND_RATE_LIMIT_PER_MINUTE and INBOX_SEND_RATE_LIMIT_PER_DAY.
+const INBOX_SEND_WINDOWS: Window[] = [
+    { limit: positiveInt("INBOX_SEND_RATE_LIMIT_PER_MINUTE", 10), windowMs: 60_000, label: "minute" },
+    { limit: positiveInt("INBOX_SEND_RATE_LIMIT_PER_DAY", 300), windowMs: 24 * 60 * 60_000, label: "day" },
+];
+
+const warnedUnavailable = new Set<string>();
 
 /**
  * Count one request against `key` in a fixed window and report whether it
@@ -45,23 +51,28 @@ export async function rateLimit(key: string, limit: number, windowMs: number) {
     };
 }
 
+type Counter = (key: string, limit: number, windowMs: number) => Promise<{ allowed: boolean; retryAfterSeconds: number }>;
+
 /**
- * Enforce the AI limits for a workspace. Returns a 429 response to send, or
+ * Check every window for one workspace. Returns a 429 response to send, or
  * null when the request may proceed.
  *
  * Fails open if the counter table is unavailable (for example before the
- * migration is applied) so AI features keep working; the problem is logged.
+ * migration is applied) so the feature keeps working; the problem is logged.
  */
-export async function limitAiRequest(workspaceId: string): Promise<NextResponse | null> {
+export async function limitWorkspaceRequests(
+    scope: string,
+    workspaceId: string,
+    windows: Window[],
+    message: (window: Window) => string,
+    counter: Counter = rateLimit,
+): Promise<Response | null> {
     try {
-        for (const window of AI_WINDOWS) {
-            const result = await rateLimit(`ai:${window.label}:${workspaceId}`, window.limit, window.windowMs);
+        for (const window of windows) {
+            const result = await counter(`${scope}:${window.label}:${workspaceId}`, window.limit, window.windowMs);
             if (!result.allowed) {
-                return NextResponse.json(
-                    {
-                        error: `AI request limit reached (${window.limit} per ${window.label}). Try again shortly.`,
-                        code: "RATE_LIMITED",
-                    },
+                return Response.json(
+                    { error: message(window), code: "RATE_LIMITED" },
                     {
                         status: 429,
                         headers: {
@@ -74,10 +85,23 @@ export async function limitAiRequest(workspaceId: string): Promise<NextResponse 
         }
         return null;
     } catch (error) {
-        if (!warnedUnavailable) {
-            warnedUnavailable = true;
-            console.error("AI rate limiting is unavailable; requests are not being limited.", error);
+        if (!warnedUnavailable.has(scope)) {
+            warnedUnavailable.add(scope);
+            console.error(`Rate limiting for ${scope} is unavailable; requests are not being limited.`, error);
         }
         return null;
     }
+}
+
+/** Enforce the AI limits for a workspace. */
+export function limitAiRequest(workspaceId: string): Promise<Response | null> {
+    return limitWorkspaceRequests("ai", workspaceId, AI_WINDOWS,
+        (window) => `AI request limit reached (${window.limit} per ${window.label}). Try again shortly.`);
+}
+
+/** Enforce the inbox sending limits for a workspace. */
+export function limitInboxSend(workspaceId: string, counter?: Counter): Promise<Response | null> {
+    return limitWorkspaceRequests("inbox-send", workspaceId, INBOX_SEND_WINDOWS,
+        (window) => `You've reached the sending limit (${window.limit} emails per ${window.label}). Try again ${window.label === "minute" ? "in a minute" : "tomorrow"}.`,
+        counter);
 }

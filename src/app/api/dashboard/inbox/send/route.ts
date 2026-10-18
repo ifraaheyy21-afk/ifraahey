@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
+import { limitInboxSend } from "../../../../../lib/rateLimit";
 import { loadInboxThreads } from "../../../../../lib/inbox-store";
 import {
     InboxSendError,
@@ -24,6 +25,8 @@ export async function POST(request: Request) {
     const auth = await requireWorkspace(request);
     if (auth instanceof NextResponse) return auth;
     const { workspaceId } = auth;
+    const limited = await limitInboxSend(workspaceId);
+    if (limited) return limited;
 
     try {
         let form: FormData;
