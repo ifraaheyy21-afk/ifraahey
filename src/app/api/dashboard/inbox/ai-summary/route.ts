@@ -2,6 +2,7 @@ import OpenAI from "openai";
 import { NextResponse } from "next/server";
 import { requireWorkspace } from "../../../../../lib/auth/requireWorkspace";
 import { limitAiRequest } from "../../../../../lib/rateLimit";
+import { isRecord, normaliseText, serialiseMessage, type InboxThreadLike } from "../../../../../lib/inbox-ai";
 
 export const runtime = "nodejs";
 
@@ -11,74 +12,10 @@ type SummaryRequestBody = {
     message?: unknown;
 };
 
-type InboxMessageLike = {
-    fromName?: unknown;
-    fromEmail?: unknown;
-    toName?: unknown;
-    toEmail?: unknown;
-    subject?: unknown;
-    plainText?: unknown;
-    html?: unknown;
-    sentAt?: unknown;
-    status?: unknown;
-};
-
-type InboxThreadLike = {
-    customerName?: unknown;
-    customerEmail?: unknown;
-    customerCompany?: unknown;
-    subject?: unknown;
-    preview?: unknown;
-    messages?: unknown;
-};
-
 const openai = new OpenAI({
     apiKey: process.env.OPENAI_API_KEY,
 });
 
-function normaliseText(value: unknown, maxLength = 8_000) {
-    return typeof value === "string"
-        ? value.trim().slice(0, maxLength)
-        : "";
-}
-
-function stripHtml(value: unknown) {
-    return normaliseText(value)
-        .replace(/<style[\s\S]*?<\/style>/gi, " ")
-        .replace(/<script[\s\S]*?<\/script>/gi, " ")
-        .replace(/<[^>]+>/g, " ")
-        .replace(/&nbsp;/gi, " ")
-        .replace(/&amp;/gi, "&")
-        .replace(/&lt;/gi, "<")
-        .replace(/&gt;/gi, ">")
-        .replace(/&quot;/gi, '"')
-        .replace(/&#39;/gi, "'")
-        .replace(/\s+/g, " ")
-        .trim();
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-    return Boolean(value) && typeof value === "object" && !Array.isArray(value);
-}
-
-function serialiseMessage(value: unknown) {
-    if (!isRecord(value)) return null;
-
-    const message = value as InboxMessageLike;
-    const plainText = normaliseText(message.plainText);
-    const htmlText = stripHtml(message.html);
-
-    return {
-        fromName: normaliseText(message.fromName, 180),
-        fromEmail: normaliseText(message.fromEmail, 320),
-        toName: normaliseText(message.toName, 180),
-        toEmail: normaliseText(message.toEmail, 320),
-        subject: normaliseText(message.subject, 500),
-        body: (plainText || htmlText).slice(0, 8_000),
-        sentAt: normaliseText(message.sentAt, 100),
-        status: normaliseText(message.status, 80),
-    };
-}
 
 export async function POST(request: Request) {
     const auth = await requireWorkspace(request);
@@ -120,6 +57,7 @@ export async function POST(request: Request) {
         }
 
         const context = {
+            channel: normaliseText(thread.channel, 30) || "email",
             account: {
                 name: normaliseText(thread.customerName, 180),
                 email: normaliseText(thread.customerEmail, 320),
@@ -137,7 +75,7 @@ export async function POST(request: Request) {
                 process.env.OPENAI_MODEL ||
                 "gpt-5-mini",
             instructions: [
-                "You summarise customer emails for a B2B SaaS retention inbox.",
+                "You summarise customer conversations for a B2B SaaS retention inbox. The channel field says whether it is an email thread or a chat (WhatsApp, Telegram, Instagram, Messenger); for chats, summarise the whole recent conversation, not just the last message.",
                 "Write like a sharp human customer-success teammate, not a chatbot.",
                 "Use the actual details in the email. Do not repeat the subject or pad the answer with generic wording.",
                 "Keep the main summary to one or two natural sentences.",
