@@ -42,7 +42,6 @@ type SidebarInboxPayload = {
   threads?: SidebarInboxThread[];
 };
 
-type SidebarInboxCounts = Record<string, number>;
 
 type InboxUnreadChangeEvent = CustomEvent<{
   count?: number;
@@ -110,39 +109,6 @@ const navItems = [
   },
 ];
 
-const inboxItems = [
-  {
-    label: "Sent",
-    folder: "sent",
-    href: "/dashboard/inbox?folder=sent",
-  },
-  {
-    label: "Received",
-    folder: "inbox",
-    href: "/dashboard/inbox?folder=inbox",
-  },
-  {
-    label: "Starred",
-    folder: "starred",
-    href: "/dashboard/inbox?folder=starred",
-  },
-  {
-    label: "Scheduled",
-    folder: "scheduled",
-    href: "/dashboard/scheduled-emails",
-  },
-  {
-    label: "Drafts",
-    folder: "drafts",
-    href: "/dashboard/inbox?folder=drafts",
-  },
-  {
-    label: "Deleted",
-    folder: "deleted",
-    href: "/dashboard/inbox?folder=deleted",
-  },
-];
-
 function getStoredWorkspaceId() {
   if (typeof window === "undefined") {
     return "demo-workspace";
@@ -160,27 +126,16 @@ export default function Sidebar() {
     pathname === "/dashboard/inbox" ||
     pathname.startsWith("/dashboard/inbox/");
 
-  const isScheduledPage =
-    pathname === "/dashboard/scheduled-emails" ||
-    pathname.startsWith("/dashboard/scheduled-emails/");
-
-  const isInboxSectionActive = isInboxPage || isScheduledPage;
-
   const isAutomationPage =
     pathname === "/dashboard/automations/all" ||
     pathname.startsWith("/dashboard/automations/");
 
   const automationView = searchParams.get("view");
 
-  const [inboxOpen, setInboxOpen] = useState(isInboxSectionActive);
   const [automationsOpen, setAutomationsOpen] = useState(isAutomationPage);
   const [unreadInboxCount, setUnreadInboxCount] = useState(0);
-  const [inboxFolderCounts, setInboxFolderCounts] =
-    useState<SidebarInboxCounts>({});
   const [collapsed, setCollapsed] = useState(false);
   const [sidebarReady, setSidebarReady] = useState(false);
-
-  const activeInboxFolder = searchParams.get("folder") || "inbox";
 
   useEffect(() => {
     const stored = window.localStorage.getItem(
@@ -246,31 +201,11 @@ export default function Sidebar() {
         (thread) => thread.folder === "inbox" && thread.unread,
       ).length;
 
-      const nextFolderCounts: SidebarInboxCounts = {};
-
-      if (Array.isArray(result.folders)) {
-        for (const item of result.folders) {
-          nextFolderCounts[item.folder] = item.count;
-        }
-      } else {
-        for (const thread of threads) {
-          nextFolderCounts[thread.folder] =
-            (nextFolderCounts[thread.folder] ?? 0) + 1;
-        }
-      }
-
       setUnreadInboxCount(nextUnreadCount);
-      setInboxFolderCounts(nextFolderCounts);
     } catch {
       // Keep the previous counts if the inbox request temporarily fails.
     }
   }, []);
-
-  useEffect(() => {
-    if (isInboxSectionActive && !collapsed) {
-      setInboxOpen(true);
-    }
-  }, [collapsed, isInboxSectionActive]);
 
   useEffect(() => {
     if (isAutomationPage && !collapsed) {
@@ -288,8 +223,6 @@ export default function Sidebar() {
         setUnreadInboxCount(Math.max(0, unreadEvent.detail.count));
       }
 
-      // Refresh all folder totals as well, because inbox actions can move
-      // a thread between Received, Starred, Drafts, Deleted, etc.
       loadInboxStats();
     };
 
@@ -403,89 +336,24 @@ export default function Sidebar() {
       <nav className={styles.sideNav}>
         {navItems.slice(0, 2).map(renderNavItem)}
 
-        <div className={styles.inboxNavigation}>
-          <button
-            type="button"
-            className={`${styles.sidebarLink} ${styles.inboxToggle} ${isInboxSectionActive ? styles.active : ""
-              }`}
-            aria-expanded={!collapsed && inboxOpen}
-            aria-controls="inbox-submenu"
-            aria-label={collapsed ? "Inbox" : undefined}
-            title={collapsed ? "Inbox" : undefined}
-            onClick={() => {
-              if (collapsed) {
-                setCollapsed(false);
-                window.localStorage.setItem(
-                  SIDEBAR_COLLAPSED_STORAGE_KEY,
-                  "false",
-                );
-                setInboxOpen(true);
-                return;
-              }
-
-              setInboxOpen((current) => !current);
-            }}
-          >
-            <Inbox />
-
+        {/* One inbox page; its folders are tabs on the page itself. */}
+        <Link
+          href="/dashboard/inbox"
+          className={`${styles.sidebarLink} ${styles.inboxToggle} ${isInboxPage ? styles.active : ""}`}
+          aria-label={collapsed ? "Inbox" : undefined}
+          title={collapsed ? "Inbox" : undefined}
+        >
+          <Inbox />
+          <span className={`${styles.inboxToggleLabel} ${styles.sidebarLabel}`}>Inbox</span>
+          {unreadInboxCount > 0 && (
             <span
-              className={`${styles.inboxToggleLabel} ${styles.sidebarLabel}`}
+              className={styles.inboxUnreadCount}
+              aria-label={`${unreadInboxCount} unopened ${unreadInboxCount === 1 ? "email" : "emails"}`}
             >
-              Inbox
+              {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
             </span>
-
-            {unreadInboxCount > 0 && (
-              <span
-                className={styles.inboxUnreadCount}
-                aria-label={`${unreadInboxCount} unopened ${unreadInboxCount === 1 ? "email" : "emails"
-                  }`}
-              >
-                {unreadInboxCount > 99 ? "99+" : unreadInboxCount}
-              </span>
-            )}
-
-            {!collapsed && (
-              <ChevronDown
-                className={`${styles.inboxChevron} ${inboxOpen ? styles.inboxChevronOpen : ""
-                  }`}
-              />
-            )}
-          </button>
-
-          <div
-            id="inbox-submenu"
-            className={`${styles.inboxSubmenu} ${!collapsed && inboxOpen
-                ? styles.inboxSubmenuOpen
-                : ""
-              }`}
-          >
-            <div className={styles.inboxSubmenuInner}>
-              {inboxItems.map((item) => {
-                const isActive =
-                  item.folder === "scheduled"
-                    ? isScheduledPage
-                    : isInboxPage &&
-                    activeInboxFolder === item.folder;
-
-                return (
-                  <Link
-                    key={item.folder}
-                    href={item.href}
-                    className={`${styles.inboxSubmenuLink} ${isActive
-                        ? styles.inboxSubmenuLinkActive
-                        : ""
-                      }`}
-                  >
-                    <span>{item.label}</span>
-                    <span className={styles.inboxSubmenuCount}>
-                      {inboxFolderCounts[item.folder] ?? 0}
-                    </span>
-                  </Link>
-                );
-              })}
-            </div>
-          </div>
-        </div>
+          )}
+        </Link>
 
         {navItems.slice(2, 4).map(renderNavItem)}
 
@@ -546,7 +414,7 @@ export default function Sidebar() {
                     : ""
                   }`}
               >
-                <span>All workflows</span>
+                <span>Overview</span>
               </Link>
 
               <button

@@ -1,16 +1,25 @@
 "use client";
 
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import {
     AlignCenter,
     AlignLeft,
     AlignRight,
     Archive,
+    UserRound,
+    Plus,
+    CircleAlert,
+    Pencil,
+    GripVertical,
+    SlidersHorizontal,
+    Minimize2,
+    Maximize2,
+    Mail,
+    ChevronLeft,
+    ArrowUp,
     ArrowRight,
     Bold,
-    Bot,
-    CalendarDays,
     Check,
     ChevronDown,
     ChevronRight,
@@ -32,6 +41,7 @@ import {
     MousePointerClick,
     PanelBottom,
     Paperclip,
+    PenSquare,
     Redo2,
     Reply,
     Search,
@@ -45,22 +55,29 @@ import {
     X,
 } from "lucide-react";
 import {
+    Fragment,
     useCallback,
     useEffect,
     useMemo,
     useRef,
     useState,
+    type DragEvent,
+    type FormEvent,
     type MouseEvent as ReactMouseEvent,
 } from "react";
 
+import { CHAT_CHANNELS, isChatChannel, type InboxChannel } from "../../../lib/inbox-data";
 import type {
     InboxFolder,
-    InboxMessage,
     InboxPayload,
     InboxThread,
 } from "../../../lib/inbox-data";
 
-import styles from "./inbox.module.css";
+import ChatSidePanel, { type ContactEdits } from "./ChatSidePanel";
+import InboxChat from "./InboxChat";
+import SummaryCard from "./SummaryCard";
+import { CHANNEL_META, channelOf, UPCOMING_CHANNELS } from "./channels";
+import styles from "./inbox-page.module.css";
 
 type DateRange = "24h" | "7d" | "30d" | "60d";
 
@@ -143,17 +160,6 @@ const dateRangeOptions: Array<{ value: DateRange; label: string; days: number }>
     { value: "60d", label: "Last 60 days", days: 60 },
 ];
 
-
-const folderHeadings: Record<InboxFolder, string> = {
-    inbox: "Received emails",
-    starred: "Starred emails",
-    sent: "Sent emails",
-    drafts: "Draft emails",
-    scheduled: "Scheduled emails",
-    deleted: "Deleted emails",
-    failed: "Failed emails",
-    archived: "Archived emails",
-};
 
 const folderOptions: Array<{ value: InboxFolder; label: string }> = [
     { value: "inbox", label: "Received" },
@@ -275,171 +281,46 @@ function getSavedBuilderCtas(): BuilderSavedCta[] {
     }
 }
 
+/**
+ * A saved button as email-safe HTML: one block that only holds the link.
+ * Its controls (align, edit, remove) are drawn by the page on top of it,
+ * so nothing but the button itself is ever sent.
+ */
 function buildSavedBuilderCtaHtml(cta: BuilderSavedCta) {
-    const padding =
-        cta.size === "small"
-            ? "9px 14px"
-            : cta.size === "large"
-                ? "14px 24px"
-                : "11px 18px";
-    const fontSize =
-        cta.size === "small"
-            ? "12px"
-            : cta.size === "large"
-                ? "15px"
-                : "14px";
+    const padding = cta.size === "small" ? "8px 14px" : cta.size === "large" ? "13px 22px" : "10px 18px";
+    const fontSize = cta.size === "small" ? "12px" : cta.size === "large" ? "15px" : "14px";
     const isOutline = cta.variant === "outline";
     const isText = cta.variant === "text";
     const isSecondary = cta.variant === "secondary";
-    const background =
-        isOutline || isText
-            ? "transparent"
-            : isSecondary
-                ? "#ffffff"
-                : cta.colour;
-    const border =
-        isOutline || isSecondary ? `1px solid ${cta.colour}` : "none";
-    const colour =
-        isOutline || isText || isSecondary ? cta.colour : cta.textColour;
+    const background = isOutline || isText ? "transparent" : isSecondary ? "#ffffff" : cta.colour;
+    const border = isOutline || isSecondary ? `1px solid ${cta.colour}` : "0";
+    const colour = isOutline || isText || isSecondary ? cta.colour : cta.textColour;
+    const text = escapeReplyHtml(cta.text);
+    const link = escapeReplyHtml(cta.link);
 
-    return `
-        <div
-            class="profileInboxDraggableCta"
-            data-cobrai-cta="${cta.id}"
-            data-cta-alignment="${cta.alignment}"
-            contenteditable="false"
-            style="
-                position:relative;
-                display:block;
-                width:100%;
-                height:auto;
-                min-height:0;
-                max-height:none;
-                margin:10px 0 8px;
-                padding:6px;
-                overflow:visible;
-            "
-        >
-            <div
-                class="profileInboxCtaContent"
-                contenteditable="false"
-                style="
-                    display:block;
-                    width:100%;
-                    height:auto;
-                    min-height:0;
-                    max-height:none;
-                    margin:0;
-                    padding:8px 4px;
-                    overflow:visible;
-                    text-align:${cta.alignment};
-                "
-            >
-                <a
-                    href="${cta.link}"
-                    data-cobrai-cta-link="${cta.link}"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    draggable="false"
-                    contenteditable="false"
-                    style="
-                        display:${isText ? "inline" : "inline-flex"};
-                        align-items:center;
-                        justify-content:center;
-                        max-width:100%;
-                        padding:${isText ? "0" : padding};
-                        border-radius:${Math.max(0, cta.radius)}px;
-                        background:${background};
-                        border:${border};
-                        color:${colour};
-                        font-family:Inter,Arial,sans-serif;
-                        font-size:${fontSize};
-                        font-weight:600;
-                        line-height:1.3;
-                        text-decoration:${isText ? "underline" : "none"};
-                        white-space:normal;
-                        overflow-wrap:anywhere;
-                        text-align:center;
-                        cursor:pointer;
-                    "
-                >${cta.text}</a>
-            </div>
-
-            <div
-                class="profileInboxCtaToolbar"
-                contenteditable="false"
-                role="toolbar"
-                aria-label="CTA controls"
-            >
-                <button type="button" data-cobrai-cta-action="edit" title="Edit CTA">Edit</button>
-                <button type="button" data-cobrai-cta-action="up" title="Move up">↑</button>
-                <button type="button" data-cobrai-cta-action="down" title="Move down">↓</button>
-                <button type="button" data-cobrai-cta-action="left" title="Align left">Left</button>
-                <button type="button" data-cobrai-cta-action="center" title="Align centre">Centre</button>
-                <button type="button" data-cobrai-cta-action="right" title="Align right">Right</button>
-                <button
-                    type="button"
-                    class="isDanger"
-                    data-cobrai-cta-action="remove"
-                    title="Remove CTA"
-                >Remove</button>
-            </div>
-        </div>
-    `;
+    return `<div data-cobrai-cta="${escapeReplyHtml(cta.id)}" contenteditable="false" draggable="true" style="margin:12px 0;text-align:${cta.alignment};"><a href="${link}" target="_blank" rel="noopener noreferrer" draggable="false" style="display:inline-block;padding:${isText ? "0" : padding};border:${border};border-radius:${Math.max(0, cta.radius)}px;background:${background};color:${colour};font-family:Inter,Arial,sans-serif;font-size:${fontSize};font-weight:500;line-height:1.3;text-decoration:${isText ? "underline" : "none"};">${text}</a></div>`;
 }
 
+/** The footer as one slim line under a thin divider. */
 function buildReplyFooterHtml(settings: BuilderFooterSettings) {
-    const companyLine =
-        settings.showCompanyName && settings.companyName.trim()
-            ? `<div class="profileInboxFooterCompany">${settings.companyName.trim()}</div>`
-            : "";
-
-    const copyrightLine =
-        settings.showCopyright && settings.copyrightText.trim()
-            ? `<div class="profileInboxFooterCopyright">${settings.copyrightText.trim()}</div>`
-            : "";
-
+    const linkStyle = "color:inherit;text-decoration:underline;";
     const links = [
         settings.showUnsubscribe && settings.unsubscribeText.trim()
-            ? `<a href="${settings.unsubscribeLink || "{{unsubscribe_link}}"}" contenteditable="false">${settings.unsubscribeText.trim()}</a>`
+            ? `<a href="${escapeReplyHtml(settings.unsubscribeLink || "{{unsubscribe_link}}")}" style="${linkStyle}">${escapeReplyHtml(settings.unsubscribeText.trim())}</a>`
             : "",
         settings.showPreferences && settings.preferencesText.trim()
-            ? `<a href="${settings.preferencesLink || "{{preferences_link}}"}" contenteditable="false">${settings.preferencesText.trim()}</a>`
+            ? `<a href="${escapeReplyHtml(settings.preferencesLink || "{{preferences_link}}")}" style="${linkStyle}">${escapeReplyHtml(settings.preferencesText.trim())}</a>`
             : "",
+    ].filter(Boolean).join(` ${settings.separator} `);
+
+    const parts = [
+        settings.showCompanyName && settings.companyName.trim() ? escapeReplyHtml(settings.companyName.trim()) : "",
+        settings.showCopyright && settings.copyrightText.trim() ? escapeReplyHtml(settings.copyrightText.trim()) : "",
+        links,
     ].filter(Boolean);
 
-    const linksLine = links.length
-        ? `<div class="profileInboxFooterLinks">${links.join(
-            ` <span class="profileInboxFooterSeparator">${settings.separator}</span> `,
-        )}</div>`
-        : "";
-
-    return `
-        <div
-            class="profileInboxReplyFooter"
-            data-cobrai-footer="true"
-            contenteditable="false"
-            style="
-                text-align:${settings.alignment};
-                color:${settings.textColour};
-                font-size:${settings.textSize};
-                --reply-footer-divider:${settings.dividerColour};
-            "
-        >
-            ${settings.showDivider ? '<div class="profileInboxFooterDivider"></div>' : ""}
-            ${companyLine}
-            ${copyrightLine}
-            ${linksLine}
-            <button
-                type="button"
-                class="profileInboxFooterRemove"
-                data-cobrai-footer-action="remove"
-                contenteditable="false"
-                aria-label="Remove email footer"
-                title="Remove footer"
-            >Remove footer</button>
-        </div>
-    `;
+    const divider = settings.showDivider ? `border-top:1px solid ${settings.dividerColour};` : "";
+    return `<div data-cobrai-footer="true" contenteditable="false" style="margin-top:18px;padding-top:10px;${divider}text-align:${settings.alignment};color:${settings.textColour};font-size:${settings.textSize};line-height:1.5;">${parts.join(" · ")}</div>`;
 }
 
 function escapeReplyHtml(value: string) {
@@ -503,6 +384,9 @@ function buildEditableSavedEmailHtml(email: BuilderSavedEmail) {
         <p><br></p>
     `;
 }
+
+// Mirrors MAX_ATTACHMENT_BYTES in src/lib/inbox-send.ts.
+const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 
 function getStoredWorkspaceId() {
     if (typeof window === "undefined") return "demo-workspace";
@@ -607,22 +491,80 @@ function getAttachmentIcon(mimeType: string, fileName = "") {
     return File;
 }
 
-function statusLabel(message: InboxMessage) {
-    const labels: Record<InboxMessage["status"], string> = {
-        received: "Received",
-        scheduled: "Scheduled",
-        sent: "Sent",
-        delivered: "Delivered",
-        opened: "Opened",
-        clicked: "Clicked",
-        replied: "Replied",
-        failed: "Failed",
-    };
+type ListFilter = "all" | "unread";
 
-    return labels[message.status];
+const CONTACT_EDITS_KEY = "inbox-contact-edits";
+
+/** The channel's own logo (a mail icon for email). */
+function ChannelLogo({ channel, size }: { channel: InboxChannel; size: number }) {
+    const meta = CHANNEL_META[channel];
+    // eslint-disable-next-line @next/next/no-img-element
+    return meta.logo ? <img src={meta.logo} alt="" width={size} height={size} style={{ flex: "none" }} /> : <Mail size={size} aria-hidden="true" />;
+}
+
+/** "Re: …" without stacking prefixes, matching what the server sends. */
+function replySubjectFor(subject: string) {
+    const trimmed = subject.trim();
+    return /^re:/i.test(trimmed) ? trimmed : `Re: ${trimmed}`;
+}
+
+/** Folders in the inbox sidebar: the whole inbox lives on this one page. */
+const MAIN_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof Inbox }> = [
+    { folder: "inbox", label: "Inbox", icon: Inbox },
+    { folder: "starred", label: "Starred", icon: Star },
+    { folder: "sent", label: "Sent", icon: Send },
+    { folder: "drafts", label: "Drafts", icon: FileText },
+    { folder: "deleted", label: "Trash", icon: Trash2 },
+];
+
+const OTHER_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof Inbox }> = [
+    { folder: "archived", label: "Archived", icon: Archive },
+    { folder: "failed", label: "Failed", icon: CircleAlert },
+];
+
+
+/** Groups threads under Today / Yesterday / This week / Earlier. */
+function groupThreadsByDay(threads: InboxThread[]) {
+    const startOfToday = new Date();
+    startOfToday.setHours(0, 0, 0, 0);
+    const day = 24 * 60 * 60 * 1000;
+    const labelFor = (value: string) => {
+        const time = new Date(value).getTime();
+        if (!Number.isFinite(time)) return "Earlier";
+        if (time >= startOfToday.getTime()) return "Today";
+        if (time >= startOfToday.getTime() - day) return "Yesterday";
+        if (time >= startOfToday.getTime() - 6 * day) return "This week";
+        return "Earlier";
+    };
+    const groups: Array<{ label: string; threads: InboxThread[] }> = [];
+    for (const thread of threads) {
+        const label = labelFor(thread.lastMessageAt);
+        const group = groups.find((item) => item.label === label);
+        if (group) group.threads.push(thread);
+        else groups.push({ label, threads: [thread] });
+    }
+    return groups;
+}
+
+const AVATAR_TONES = [
+    ["#eef2ff", "#4338ca"],
+    ["#ecfdf3", "#027a48"],
+    ["#fff4ed", "#b93815"],
+    ["#fdf2fa", "#c11574"],
+    ["#f0f9ff", "#026aa2"],
+    ["#fefbe8", "#a15c07"],
+];
+
+/** A soft, stable colour per name so people are easy to tell apart. */
+function avatarStyle(name: string) {
+    let hash = 0;
+    for (const character of name) hash = (hash * 31 + character.charCodeAt(0)) >>> 0;
+    const [background, color] = AVATAR_TONES[hash % AVATAR_TONES.length];
+    return { background, color };
 }
 
 export default function InboxPage() {
+    const router = useRouter();
     const searchParams = useSearchParams();
 
     const requestedFolder = searchParams.get("folder");
@@ -638,7 +580,7 @@ export default function InboxPage() {
     const [dateRange, setDateRange] = useState<DateRange>("30d");
     const [dateMenuOpen, setDateMenuOpen] = useState(false);
     const [search, setSearch] = useState("");
-    const [selectedThreadId, setSelectedThreadId] = useState("");
+    const [selectedThreadId, setSelectedThreadId] = useState(() => searchParams.get("thread") ?? "");
     const [composeOpen, setComposeOpen] = useState(false);
     const [composeAccounts, setComposeAccounts] = useState<ComposeAccount[]>([]);
     const [composeRecipient, setComposeRecipient] = useState<ComposeAccount | null>(null);
@@ -673,15 +615,96 @@ export default function InboxPage() {
         useState<BuilderFooterSettings>(defaultFooterSettings);
     const [replyFooterIncluded, setReplyFooterIncluded] = useState(false);
     const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
+    const [sending, setSending] = useState(false);
+    const [sendError, setSendError] = useState("");
+    // One key per unchanged draft, so clicking Send again after a failure
+    // cannot deliver the same email twice.
+    const sendKeyRef = useRef<{ signature: string; key: string } | null>(null);
     const replyRef = useRef<HTMLDivElement>(null);
+    const searchRef = useRef<HTMLInputElement>(null);
+    const [listFilter, setListFilter] = useState<ListFilter>("all");
+    const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
+    const [closedSections, setClosedSections] = useState<string[]>([]);
+    const [channelProviders, setChannelProviders] = useState<string[]>([]);
+    const requestedChannel = searchParams.get("channel");
+    const [activeChannel, setActiveChannel] = useState<InboxChannel>(
+        requestedChannel && (["email", ...CHAT_CHANNELS] as string[]).includes(requestedChannel)
+            ? (requestedChannel as InboxChannel)
+            : "email",
+    );
+    const [channelMenuOpen, setChannelMenuOpen] = useState(false);
+    const [chatDraft, setChatDraft] = useState("");
+    const [sidePanel, setSidePanel] = useState<{ open: boolean; tab: "profile" | "ai" }>({ open: true, tab: "profile" });
+    // Profile edits per conversation, kept in this browser until contacts
+    // from messaging channels are linked to customer records.
+    const [contactEdits, setContactEdits] = useState<Record<string, ContactEdits>>(() => {
+        if (typeof window === "undefined") return {};
+        try {
+            const stored = JSON.parse(window.localStorage.getItem(CONTACT_EDITS_KEY) ?? "{}");
+            return stored && typeof stored === "object" ? stored : {};
+        } catch {
+            return {};
+        }
+    });
+
+    // Connected messaging apps, for the Channels section of the sidebar.
+    useEffect(() => {
+        let cancelled = false;
+        void fetch("/api/integrations/status", { credentials: "include", cache: "no-store" })
+            .then((response) => (response.ok ? response.json() : { integrations: [] }))
+            .then((data: { integrations?: Array<{ provider?: string }> }) => {
+                if (cancelled) return;
+                const providers = (data.integrations ?? [])
+                    .map((item) => (item.provider ?? "").toLowerCase())
+                    .filter((provider) => provider in UPCOMING_CHANNELS);
+                setChannelProviders([...new Set(providers.map((provider) => UPCOMING_CHANNELS[provider].label))]);
+            })
+            .catch(() => undefined);
+        return () => {
+            cancelled = true;
+        };
+    }, []);
+    const [replyExpanded, setReplyExpanded] = useState(false);
+    // The button or footer selected inside the reply, and where its toolbar sits.
+    const [activeBlock, setActiveBlock] = useState<{ kind: "cta" | "footer"; top: number; left: number; side: "right" | "left" } | null>(null);
+    const [dropLineTop, setDropLineTop] = useState<number | null>(null);
+    const activeBlockRef = useRef<HTMLElement | null>(null);
+    const savedRangeRef = useRef<Range | null>(null);
+    const draggedCtaRef = useRef<HTMLElement | null>(null);
+    const dropBeforeRef = useRef<Element | null>(null);
+
+    // Remember the caret inside the reply, so inserts land where you were typing.
+    useEffect(() => {
+        const rememberCaret = () => {
+            const editor = replyRef.current;
+            const selection = window.getSelection();
+            if (!editor || !selection || selection.rangeCount === 0) return;
+            const range = selection.getRangeAt(0);
+            if (editor.contains(range.startContainer)) savedRangeRef.current = range.cloneRange();
+        };
+        document.addEventListener("selectionchange", rememberCaret);
+        return () => document.removeEventListener("selectionchange", rememberCaret);
+    }, []);
+
+    // ⌘K / Ctrl+K jumps to search, as the hint in the header says.
+    useEffect(() => {
+        const onKey = (event: KeyboardEvent) => {
+            if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "k") {
+                event.preventDefault();
+                searchRef.current?.focus();
+            }
+        };
+        window.addEventListener("keydown", onKey);
+        return () => window.removeEventListener("keydown", onKey);
+    }, []);
     const attachmentInputRef = useRef<HTMLInputElement>(null);
     const dateFilterRef = useRef<HTMLDivElement>(null);
     const replyOptionsRef = useRef<HTMLDivElement>(null);
     const composeAccountPickerRef = useRef<HTMLDivElement>(null);
 
-    const loadInbox = useCallback(async () => {
+    const loadInbox = useCallback(async ({ silent = false } = {}) => {
         try {
-            setLoading(true);
+            if (!silent) setLoading(true);
 
             setError("");
 
@@ -703,6 +726,7 @@ export default function InboxPage() {
             }
 
             setPayload(result);
+            return result;
         } catch (loadError) {
             setError(
                 loadError instanceof Error
@@ -906,6 +930,7 @@ export default function InboxPage() {
         const rangeStart = Date.now() - (selectedRange?.days ?? 30) * 24 * 60 * 60 * 1000;
 
         const filtered = (payload?.threads ?? []).filter((thread) => {
+            if (channelOf(thread) !== activeChannel) return false;
             const belongsToFolder =
                 activeFolder === "starred"
                     ? thread.folder === "starred" || thread.starred
@@ -934,7 +959,7 @@ export default function InboxPage() {
                 new Date(second.lastMessageAt).getTime() -
                 new Date(first.lastMessageAt).getTime(),
         );
-    }, [activeFolder, dateRange, payload, search]);
+    }, [activeChannel, activeFolder, dateRange, payload, search]);
 
     useEffect(() => {
         if (visibleThreads.length === 0) {
@@ -966,11 +991,17 @@ export default function InboxPage() {
         setSavedEmailSearch("");
         setReplyFooterIncluded(false);
         setAttachmentPreviewOpen(false);
+        setSendError("");
     }, [selectedThreadId]);
 
     const selectThread = (thread: InboxThread) => {
         setComposeOpen(false);
         setComposeAccountPickerOpen(false);
+        if (thread.id !== selectedThreadId) {
+            setReplySubject("");
+            setSummaryOpen(false);
+            setChatDraft("");
+        }
         setSelectedThreadId(thread.id);
 
         if (!thread.unread) {
@@ -1101,6 +1132,26 @@ export default function InboxPage() {
         );
     };
 
+    const markSelectedThreadUnread = () => {
+        updateSelectedThread({ unread: true });
+    };
+
+    const setSelectedThreadLabels = (labels: string[]) => {
+        updateSelectedThread({ labels });
+    };
+
+    const editContact = (threadId: string, patch: ContactEdits) => {
+        setContactEdits((current) => {
+            const next = { ...current, [threadId]: { ...current[threadId], ...patch } };
+            try {
+                window.localStorage.setItem(CONTACT_EDITS_KEY, JSON.stringify(next));
+            } catch {
+                // Edits still apply for this session.
+            }
+            return next;
+        });
+    };
+
     const archiveSelectedThread = () => {
         updateSelectedThread({ folder: "archived" });
     };
@@ -1126,6 +1177,7 @@ export default function InboxPage() {
     };
 
     const openCompose = () => {
+        setSendError("");
         setComposeOpen(true);
         setComposeRecipient(null);
         setComposeAccountSearch("");
@@ -1150,6 +1202,7 @@ export default function InboxPage() {
     };
 
     const closeCompose = () => {
+        setSendError("");
         setComposeOpen(false);
         setComposeRecipient(null);
         setComposeAccountSearch("");
@@ -1167,12 +1220,85 @@ export default function InboxPage() {
         }
     };
 
-    const sendReply = () => {
-        if (!replyRef.current?.innerText.trim()) return;
-        if (composeOpen && !composeRecipient) {
-            setComposeAccountPickerOpen(true);
+    const sendReply = async () => {
+        if (sending) return;
+
+        const html = replyRef.current?.innerHTML ?? "";
+        if (!replyRef.current?.innerText.trim()) {
+            setSendError("Write a message before sending.");
             return;
         }
+        if (composeOpen && !composeRecipient) {
+            setComposeAccountPickerOpen(true);
+            setSendError("Choose a recipient before sending.");
+            return;
+        }
+        if (!composeOpen && !selectedThread) return;
+        if (composeOpen && !replySubject.trim()) {
+            setSendError("Add a subject before sending.");
+            return;
+        }
+        if (replyAttachment && replyAttachment.size > MAX_ATTACHMENT_BYTES) {
+            setSendError("Attachments must be 10 MB or smaller.");
+            return;
+        }
+
+        const threadId = composeOpen ? "" : selectedThread?.id ?? "";
+        const signature = JSON.stringify([
+            threadId,
+            composeRecipient?.email ?? "",
+            replySubject,
+            html,
+            replyAttachment ? [replyAttachment.name, replyAttachment.size, replyAttachment.lastModified] : null,
+        ]);
+        if (sendKeyRef.current?.signature !== signature) {
+            sendKeyRef.current = { signature, key: crypto.randomUUID() };
+        }
+
+        const form = new FormData();
+        form.set("sendKey", sendKeyRef.current.key);
+        form.set("subject", replySubject.trim());
+        form.set("html", html);
+        if (threadId) {
+            form.set("threadId", threadId);
+        } else if (composeRecipient) {
+            form.set("to", composeRecipient.email);
+            form.set("toName", composeRecipient.name);
+        }
+        if (replyAttachment) form.set("attachment", replyAttachment);
+
+        const wasCompose = composeOpen;
+        let sentThreadId = "";
+
+        try {
+            setSending(true);
+            setSendError("");
+
+            const response = await fetch("/api/dashboard/inbox/send", {
+                method: "POST",
+                body: form,
+            });
+            const result = (await response.json().catch(() => ({}))) as {
+                sentThreadId?: string;
+                error?: string;
+            };
+
+            if (!response.ok) {
+                throw new Error(result.error || "The email could not be sent.");
+            }
+            sentThreadId = result.sentThreadId ?? "";
+        } catch (sendFailure) {
+            setSendError(
+                sendFailure instanceof Error
+                    ? sendFailure.message
+                    : "The email could not be sent.",
+            );
+            return;
+        } finally {
+            setSending(false);
+        }
+
+        sendKeyRef.current = null;
         setReplySubject("");
         setReplyBody("");
         if (replyRef.current) {
@@ -1192,6 +1318,14 @@ export default function InboxPage() {
             setComposeRecipient(null);
             setComposeAccountSearch("");
             setComposeAccountPickerOpen(false);
+        }
+
+        // Pull the sent message into the thread and the Sent folder.
+        await loadInbox({ silent: true });
+        if (wasCompose && sentThreadId) {
+            setActiveFolder("sent");
+            setSelectedThreadId(sentThreadId);
+            router.replace("/dashboard/inbox?folder=sent", { scroll: false });
         }
     };
 
@@ -1271,29 +1405,92 @@ export default function InboxPage() {
         }
     };
 
-    const insertSavedCtaIntoReply = (cta: BuilderSavedCta) => {
-        const editor = replyRef.current;
-        if (!editor) return;
+    const replyFooter = (editor: HTMLElement) =>
+        Array.from(editor.children).find((child) => child.hasAttribute("data-cobrai-footer")) as HTMLElement | undefined;
 
-        removeTrailingEmptyReplyNodes(editor);
-        editor.insertAdjacentHTML(
-            "beforeend",
-            buildSavedBuilderCtaHtml(cta),
-        );
+    /** The footer always closes the email, even if text is typed after it. */
+    const keepFooterLast = (editor: HTMLElement) => {
+        const footer = replyFooter(editor);
+        if (footer && editor.lastChild !== footer) editor.appendChild(footer);
+    };
+
+    /**
+     * Where the selected block's toolbar sits, relative to the editor
+     * wrapper: beside the button (right, or left when there's no room) so it
+     * never covers the text around it; inside the footer's right edge.
+     */
+    const blockToolbarPosition = (block: HTMLElement) => {
+        const editor = replyRef.current;
+        const scroll = editor?.scrollTop ?? 0;
+        const top = block.offsetTop + block.offsetHeight / 2 - scroll;
+        const link = block.hasAttribute("data-cobrai-cta") ? block.querySelector<HTMLElement>("a") : null;
+        if (!link) return { top, left: block.offsetLeft + block.offsetWidth - 4, side: "left" as const };
+
+        const toolbarWidth = 200;
+        const right = link.offsetLeft + link.offsetWidth + 10;
+        return right + toolbarWidth <= (editor?.clientWidth ?? 0)
+            ? { top, left: right, side: "right" as const }
+            : { top, left: link.offsetLeft - 10, side: "left" as const };
+    };
+
+    const selectBlock = (block: HTMLElement | null) => {
+        const editor = replyRef.current;
+        editor?.querySelectorAll("[data-selected]").forEach((element) => element.removeAttribute("data-selected"));
+        activeBlockRef.current = block;
+        if (!block) {
+            setActiveBlock(null);
+            return;
+        }
+        block.setAttribute("data-selected", "true");
+        setActiveBlock({
+            kind: block.hasAttribute("data-cobrai-footer") ? "footer" : "cta",
+            ...blockToolbarPosition(block),
+        });
+    };
+
+    /** Inserts a block where the caret was, never below the footer. */
+    const insertBlockAtCaret = (html: string) => {
+        const editor = replyRef.current;
+        if (!editor) return null;
+        const template = document.createElement("template");
+        template.innerHTML = html.trim();
+        const block = template.content.firstElementChild as HTMLElement | null;
+        if (!block) return null;
+
+        const footer = replyFooter(editor);
+        const range = savedRangeRef.current;
+        let reference: ChildNode | null = null;
+
+        if (range && editor.contains(range.startContainer)) {
+            if (range.startContainer === editor) {
+                reference = editor.childNodes[range.startOffset] ?? null;
+            } else {
+                let node: Node | null = range.startContainer;
+                while (node && node.parentNode !== editor) node = node.parentNode;
+                reference = node ? node.nextSibling : null;
+            }
+        }
+        if (!reference || (footer && footer.compareDocumentPosition(reference) & Node.DOCUMENT_POSITION_FOLLOWING)) {
+            reference = footer ?? null;
+        }
+        editor.insertBefore(block, reference);
+
+        // Leave a line to keep typing on after a button at the end.
+        if (!block.nextSibling || block.nextSibling === footer) {
+            const line = document.createElement("p");
+            line.innerHTML = "<br>";
+            block.after(line);
+        }
+
         syncReplyEditor();
+        return block;
+    };
+
+    const insertSavedCtaIntoReply = (cta: BuilderSavedCta) => {
+        const block = insertBlockAtCaret(buildSavedBuilderCtaHtml(cta));
         setReplyOptionsOpen(false);
         setCtaPickerOpen(false);
-
-        requestAnimationFrame(() => {
-            editor.focus();
-
-            const selection = window.getSelection();
-            const range = document.createRange();
-            range.selectNodeContents(editor);
-            range.collapse(false);
-            selection?.removeAllRanges();
-            selection?.addRange(range);
-        });
+        if (block) requestAnimationFrame(() => selectBlock(block));
     };
 
     const insertSavedEmailIntoReply = (email: BuilderSavedEmail) => {
@@ -1301,7 +1498,9 @@ export default function InboxPage() {
         if (!editor) return;
 
         removeTrailingEmptyReplyNodes(editor);
-        editor.insertAdjacentHTML("beforeend", buildEditableSavedEmailHtml(email));
+        const footer = replyFooter(editor);
+        if (footer) footer.insertAdjacentHTML("beforebegin", buildEditableSavedEmailHtml(email));
+        else editor.insertAdjacentHTML("beforeend", buildEditableSavedEmailHtml(email));
 
         if (!replySubject.trim()) {
             setReplySubject(email.subject);
@@ -1327,209 +1526,129 @@ export default function InboxPage() {
     const toggleReplyFooter = () => {
         const editor = replyRef.current;
         if (!editor) return;
+        setReplyOptionsOpen(false);
 
-        const existingFooter =
-            editor.querySelector<HTMLElement>("[data-cobrai-footer]");
-
+        const existingFooter = replyFooter(editor);
         if (existingFooter) {
-            const spacer = existingFooter.nextElementSibling;
+            if (activeBlockRef.current === existingFooter) selectBlock(null);
             existingFooter.remove();
-
-            if (
-                spacer instanceof HTMLElement &&
-                spacer.innerHTML === "<br>"
-            ) {
-                spacer.remove();
-            }
-
             setReplyFooterIncluded(false);
             syncReplyEditor();
-            setReplyOptionsOpen(false);
             return;
         }
 
         const latestSettings = getSavedFooterSettings();
         setFooterSettings(latestSettings);
+        if (!latestSettings.enabled) return;
 
-        if (!latestSettings.enabled) {
-            setReplyOptionsOpen(false);
-            return;
-        }
-
-        editor.focus();
         removeTrailingEmptyReplyNodes(editor);
-        editor.insertAdjacentHTML(
-            "beforeend",
-            buildReplyFooterHtml(latestSettings),
-        );
+        editor.insertAdjacentHTML("beforeend", buildReplyFooterHtml(latestSettings));
         setReplyFooterIncluded(true);
         syncReplyEditor();
-        setReplyOptionsOpen(false);
     };
 
-    const selectReplyCta = (cta: HTMLElement | null) => {
-        const editor = replyRef.current;
-        if (!editor) return;
-
-        editor
-            .querySelectorAll(".profileInboxDraggableCta.isSelected")
-            .forEach((element) => {
-                if (element !== cta) {
-                    element.classList.remove("isSelected");
-                }
-            });
-
-        if (cta) cta.classList.add("isSelected");
-    };
-
-    const moveReplyCta = (
-        cta: HTMLElement,
-        direction: "up" | "down",
-    ) => {
-        const editor = replyRef.current;
-        if (!editor) return;
-
-        const blocks = Array.from(editor.children).filter((child) => {
-            return (
-                child instanceof HTMLElement &&
-                child.innerHTML !== "<br>"
-            );
-        }) as HTMLElement[];
-
-        const currentIndex = blocks.indexOf(cta);
-        if (currentIndex < 0) return;
-
-        if (direction === "up") {
-            const previous = blocks[currentIndex - 1];
-            if (previous) editor.insertBefore(cta, previous);
-        } else {
-            const next = blocks[currentIndex + 1];
-            if (next) editor.insertBefore(next, cta);
-        }
-
-        selectReplyCta(cta);
+    const alignActiveCta = (alignment: "left" | "center" | "right") => {
+        const block = activeBlockRef.current;
+        if (!block) return;
+        // Written as an inline style so the alignment survives sending.
+        block.style.textAlign = alignment;
         syncReplyEditor();
+        requestAnimationFrame(() => selectBlock(block));
     };
 
-    const alignReplyCta = (
-        cta: HTMLElement,
-        alignment: "left" | "center" | "right",
-    ) => {
-        cta.dataset.ctaAlignment = alignment;
-        selectReplyCta(cta);
-        syncReplyEditor();
-    };
+    const editActiveCta = () => {
+        const block = activeBlockRef.current;
+        const link = block?.querySelector<HTMLAnchorElement>("a");
+        if (!block || !link) return;
 
-    const editReplyCta = (cta: HTMLElement) => {
-        const link = cta.querySelector<HTMLAnchorElement>("a");
-        if (!link) return;
-
-        const nextText = window.prompt(
-            "Button text",
-            link.textContent?.trim() || "",
-        );
+        const nextText = window.prompt("Button text", link.textContent?.trim() || "");
         if (nextText === null) return;
-
-        const nextLink = window.prompt(
-            "Button link",
-            link.getAttribute("href") || "",
-        );
+        const nextLink = window.prompt("Button link", link.getAttribute("href") || "");
         if (nextLink === null) return;
 
-        const cleanText = nextText.trim();
-        const cleanLink = nextLink.trim();
-
-        if (cleanText) link.textContent = cleanText;
-
-        if (cleanLink) {
-            link.setAttribute("href", cleanLink);
-            link.dataset.cobraiCtaLink = cleanLink;
-        }
-
-        selectReplyCta(cta);
+        if (nextText.trim()) link.textContent = nextText.trim();
+        if (nextLink.trim()) link.setAttribute("href", nextLink.trim());
         syncReplyEditor();
+        requestAnimationFrame(() => selectBlock(block));
     };
 
-    const handleReplyEditorClick = (
-        event: ReactMouseEvent<HTMLDivElement>,
-    ) => {
-        const target = event.target as HTMLElement;
-        const footerAction =
-            target.closest<HTMLElement>("[data-cobrai-footer-action]");
-        const footer =
-            target.closest<HTMLElement>("[data-cobrai-footer]");
+    const removeActiveBlock = () => {
+        const block = activeBlockRef.current;
+        if (!block) return;
+        if (block.hasAttribute("data-cobrai-footer")) setReplyFooterIncluded(false);
+        selectBlock(null);
+        block.remove();
+        syncReplyEditor();
+        replyRef.current?.focus();
+    };
 
-        if (footerAction && footer) {
+    const handleReplyEditorClick = (event: ReactMouseEvent<HTMLDivElement>) => {
+        const block = (event.target as HTMLElement).closest<HTMLElement>("[data-cobrai-cta], [data-cobrai-footer]");
+        if (block && replyRef.current?.contains(block)) {
+            // A click selects the block; it never follows the button's link.
             event.preventDefault();
-            event.stopPropagation();
-
-            const spacer = footer.nextElementSibling;
-            footer.remove();
-
-            if (
-                spacer instanceof HTMLElement &&
-                spacer.innerHTML === "<br>"
-            ) {
-                spacer.remove();
-            }
-
-            setReplyFooterIncluded(false);
-            syncReplyEditor();
+            selectBlock(block);
             return;
         }
+        selectBlock(null);
+    };
 
-        const actionButton =
-            target.closest<HTMLElement>("[data-cobrai-cta-action]");
-        const cta = target.closest<HTMLElement>("[data-cobrai-cta]");
+    const handleReplyInput = (event: FormEvent<HTMLDivElement>) => {
+        keepFooterLast(event.currentTarget);
+        setReplyBody(event.currentTarget.innerHTML);
+        if (activeBlockRef.current) selectBlock(activeBlockRef.current.isConnected ? activeBlockRef.current : null);
+    };
 
-        if (actionButton && cta) {
-            event.preventDefault();
-            event.stopPropagation();
+    // ---- Drag a button between paragraphs ----
+    const handleReplyDragStart = (event: DragEvent<HTMLDivElement>) => {
+        const block = (event.target as HTMLElement).closest?.<HTMLElement>("[data-cobrai-cta]");
+        if (!block) return;
+        draggedCtaRef.current = block;
+        selectBlock(null);
+        event.dataTransfer.effectAllowed = "move";
+        event.dataTransfer.setData("text/plain", "");
+    };
 
-            const action = actionButton.dataset.cobraiCtaAction;
+    const handleReplyDragOver = (event: DragEvent<HTMLDivElement>) => {
+        const editor = replyRef.current;
+        const dragged = draggedCtaRef.current;
+        if (!editor || !dragged) return;
+        event.preventDefault();
+        event.dataTransfer.dropEffect = "move";
 
-            if (action === "edit") {
-                editReplyCta(cta);
-                return;
-            }
+        const blocks = Array.from(editor.children).filter(
+            (child) => child !== dragged && !child.hasAttribute("data-cobrai-footer"),
+        ) as HTMLElement[];
+        const before = blocks.find((block) => {
+            const box = block.getBoundingClientRect();
+            return event.clientY < box.top + box.height / 2;
+        }) ?? null;
 
-            if (action === "up" || action === "down") {
-                moveReplyCta(cta, action);
-                return;
-            }
+        dropBeforeRef.current = before ?? replyFooter(editor) ?? null;
+        const last = blocks[blocks.length - 1];
+        const top = before
+            ? before.offsetTop - 3
+            : last
+                ? last.offsetTop + last.offsetHeight + 1
+                : 8;
+        setDropLineTop(top - editor.scrollTop);
+    };
 
-            if (
-                action === "left" ||
-                action === "center" ||
-                action === "right"
-            ) {
-                alignReplyCta(cta, action);
-                return;
-            }
+    const endReplyDrag = () => {
+        draggedCtaRef.current = null;
+        dropBeforeRef.current = null;
+        setDropLineTop(null);
+    };
 
-            if (action === "remove") {
-                const spacer = cta.nextElementSibling;
-                cta.remove();
-
-                if (
-                    spacer instanceof HTMLElement &&
-                    spacer.innerHTML === "<br>"
-                ) {
-                    spacer.remove();
-                }
-
-                syncReplyEditor();
-                return;
-            }
-        }
-
-        if (cta) {
-            event.preventDefault();
-            selectReplyCta(cta);
-            return;
-        }
-
-        selectReplyCta(null);
+    const handleReplyDrop = (event: DragEvent<HTMLDivElement>) => {
+        const editor = replyRef.current;
+        const dragged = draggedCtaRef.current;
+        if (!editor || !dragged) return;
+        event.preventDefault();
+        editor.insertBefore(dragged, dropBeforeRef.current);
+        endReplyDrag();
+        syncReplyEditor();
+        requestAnimationFrame(() => selectBlock(dragged));
     };
 
     const insertSignature = () => {
@@ -1694,1379 +1813,1124 @@ export default function InboxPage() {
         dateRangeOptions.find((option) => option.value === dateRange) ??
         dateRangeOptions[2];
 
+    const listThreads = visibleThreads.filter((thread) => listFilter !== "unread" || thread.unread);
+    const allThreads = payload?.threads ?? [];
+    const channelThreads = (channel: InboxChannel) => allThreads.filter((thread) => channelOf(thread) === channel);
+    const channelUnread = (channel: InboxChannel) =>
+        channelThreads(channel).filter((thread) => thread.folder === "inbox" && thread.unread).length;
+    const activeMeta = CHANNEL_META[activeChannel];
+    const chatChannelActive = isChatChannel(activeChannel);
+    // Chats have no sent mail, drafts or failed sends, so those folders hide.
+    const mainFolders = chatChannelActive
+        ? MAIN_FOLDERS.filter((item) => item.folder === "inbox" || item.folder === "starred" || item.folder === "deleted")
+        : MAIN_FOLDERS;
+    const otherFolders = chatChannelActive ? OTHER_FOLDERS.filter((item) => item.folder === "archived") : OTHER_FOLDERS;
+    const selectedIsChat = Boolean(selectedThread && isChatChannel(selectedThread.channel));
+    const chatThread = selectedThread && selectedIsChat
+        ? (() => {
+            const { properties, ...fields } = contactEdits[selectedThread.id] ?? {};
+            void properties;
+            return { ...selectedThread, ...Object.fromEntries(Object.entries(fields).filter(([, value]) => value !== undefined)) } as InboxThread;
+        })()
+        : null;
+    /** Counts for the chosen channel only. */
+    const folderCount = (folder: InboxFolder) =>
+        channelThreads(activeChannel).filter((thread) =>
+            folder === "starred" ? thread.folder === "starred" || thread.starred : thread.folder === folder).length;
+    const toggleSection = (name: string) =>
+        setClosedSections((current) => (current.includes(name) ? current.filter((item) => item !== name) : [...current, name]));
+    const viewTitle = listFilter === "unread"
+        ? "Unread"
+        : [...MAIN_FOLDERS, ...OTHER_FOLDERS].find((item) => item.folder === activeFolder)?.label ?? "Inbox";
+    const inboxUrl = (folder: InboxFolder, channel: InboxChannel) => {
+        const params = new URLSearchParams();
+        if (channel !== "email") params.set("channel", channel);
+        if (folder !== "inbox") params.set("folder", folder);
+        const query = params.toString();
+        return query ? `/dashboard/inbox?${query}` : "/dashboard/inbox";
+    };
+    const openFolder = (folder: InboxFolder) => {
+        setListFilter("all");
+        if (folder === activeFolder) return;
+        if (composeOpen) closeCompose();
+        setActiveFolder(folder);
+        setSelectedThreadId("");
+        router.replace(inboxUrl(folder, activeChannel), { scroll: false });
+    };
+    const threadGroups = groupThreadsByDay(listThreads);
+    const showComposer = composeOpen || (Boolean(selectedThread) && activeFolder === "inbox" && !selectedIsChat);
+    /** Switch channel; the folder stays if that channel has it. */
+    const openChannel = (channel: InboxChannel) => {
+        setChannelMenuOpen(false);
+        if (channel === activeChannel) return;
+        if (composeOpen) closeCompose();
+        const chat = isChatChannel(channel);
+        const folder = chat && !["inbox", "starred", "deleted", "archived"].includes(activeFolder) ? "inbox" : activeFolder;
+        setActiveChannel(channel);
+        setActiveFolder(folder);
+        setListFilter("all");
+        setSelectedThreadId("");
+        setSummaryOpen(false);
+        router.replace(inboxUrl(folder, channel), { scroll: false });
+    };
+    // Chat channels aren't connected yet: a sent chat message is added to the
+    // demo conversation here. Real sending goes through each integration.
+    const appendChatMessage = (threadId: string, text: string, file: File | null = null) => {
+        const sentAt = new Date().toISOString();
+        const attachments = file
+            ? [{
+                id: `local_file_${crypto.randomUUID()}`,
+                fileName: file.name,
+                mimeType: file.type || "application/octet-stream",
+                sizeLabel: file.size >= 1024 * 1024 ? `${(file.size / (1024 * 1024)).toFixed(1)} MB` : `${Math.max(1, Math.round(file.size / 1024))} KB`,
+                url: URL.createObjectURL(file),
+            }]
+            : undefined;
+        setPayload((current) => current && ({
+            ...current,
+            threads: current.threads.map((thread) => thread.id !== threadId ? thread : {
+                ...thread,
+                preview: text || attachments?.[0]?.fileName || "",
+                lastMessageAt: sentAt,
+                messages: [...thread.messages, {
+                    id: `local_${crypto.randomUUID()}`,
+                    direction: "outbound",
+                    fromName: "You",
+                    fromEmail: "",
+                    toName: thread.customerName,
+                    toEmail: thread.customerHandle ?? "",
+                    sentAt,
+                    status: "sent",
+                    html: null,
+                    plainText: text,
+                    attachments,
+                }],
+            }),
+        }));
+    };
+    const emailContact = (thread: InboxThread) => {
+        openCompose();
+        setComposeRecipient({ id: thread.customerId ?? thread.id, name: thread.customerName, email: thread.customerEmail, company: thread.customerCompany ?? undefined });
+        setComposeAccountPickerOpen(false);
+    };
+    const canUseAi = !composeOpen && Boolean(selectedThread);
+    const selectedIndex = listThreads.findIndex((thread) => thread.id === selectedThreadId);
+    const stepThread = (offset: number) => {
+        const next = listThreads[selectedIndex + offset];
+        if (next) selectThread(next);
+    };
+
     return (
         <main className={styles.page}>
-            {error && <div className={styles.errorBanner}>{error}</div>}
+            <header className={styles.header}>
+                <h1>Inbox</h1>
+                <label className={styles.headerSearch}>
+                    <Search size={14} aria-hidden="true" />
+                    <input
+                        ref={searchRef}
+                        type="search"
+                        placeholder="Search…"
+                        value={search}
+                        onChange={(event) => setSearch(event.target.value)}
+                        aria-label="Search mail"
+                    />
+                    {search ? (
+                        <button type="button" aria-label="Clear search" onClick={() => setSearch("")}>
+                            <X size={12} />
+                        </button>
+                    ) : (
+                        <kbd>⌘K</kbd>
+                    )}
+                </label>
+                <span className={styles.spacer} />
+                {activeChannel === "email" && (
+                <button
+                    type="button"
+                    className={styles.primaryButton}
+                    onClick={composeOpen ? closeCompose : openCompose}
+                    aria-expanded={composeOpen}
+                >
+                    {composeOpen ? <X size={14} /> : <PenSquare size={14} />}
+                    {composeOpen ? "Close" : "Compose"}
+                </button>
+                )}
+            </header>
 
-            <section className={styles.inboxShell}>
-                <header className={styles.shellHeader}>
-                    <div className={styles.shellHeaderCopy}>
-                        <h1>{folderHeadings[activeFolder]}</h1>
-                        <p>
-                            Read customer replies, manage conversations and respond
-                            from one place.
-                        </p>
-                    </div>
+            {error && <div className={styles.errorBanner} role="alert">{error}</div>}
 
-                    <button
-                        type="button"
-                        className={styles.composeTopButton}
-                        onClick={composeOpen ? closeCompose : openCompose}
-                        aria-expanded={composeOpen}
+            <section className={styles.shell}>
+                {/* ---- Inbox sidebar: folders, views and channels ---- */}
+                <aside className={styles.folderPane} aria-label="Inbox navigation">
+                    {/* Pick a channel first; everything below is that channel only. */}
+                    <div
+                        className={styles.channelSwitch}
+                        onBlur={(event) => {
+                            if (!event.currentTarget.contains(event.relatedTarget as Node | null)) setChannelMenuOpen(false);
+                        }}
                     >
-                        {composeOpen ? <X size={15} /> : <Send size={15} />}
-                        {composeOpen ? "Close" : "Compose"}
-                    </button>
-                </header>
-
-                <aside className={styles.threadPanel}>
-                    <div className={styles.threadPanelHeader}>
-                        <div
-                            ref={dateFilterRef}
-                            className={styles.dateFilter}
+                        <button
+                            type="button"
+                            className={styles.channelSwitchButton}
+                            aria-haspopup="listbox"
+                            aria-expanded={channelMenuOpen}
+                            onClick={() => setChannelMenuOpen((open) => !open)}
                         >
-                            <button
-                                type="button"
-                                className={styles.dateFilterButton}
-                                aria-haspopup="listbox"
-                                aria-expanded={dateMenuOpen}
-                                onClick={() =>
-                                    setDateMenuOpen((current) => !current)
-                                }
-                            >
-                                <CalendarDays size={15} />
-                                <span>{selectedDateOption.label}</span>
-                                <ChevronDown
-                                    size={14}
-                                    className={
-                                        dateMenuOpen
-                                            ? styles.dateFilterChevronOpen
-                                            : ""
-                                    }
-                                />
-                            </button>
+                            <ChannelLogo channel={activeChannel} size={18} />
+                            <span className={styles.channelSwitchCopy}>
+                                <small>Channel</small>
+                                {activeMeta.label}
+                            </span>
+                            <ChevronDown size={14} aria-hidden="true" />
+                        </button>
 
-                            {dateMenuOpen && (
-                                <div
-                                    className={styles.dateFilterMenu}
-                                    role="listbox"
-                                    aria-label="Filter emails by date range"
-                                >
-                                    {dateRangeOptions.map((option) => {
-                                        const isSelected =
-                                            option.value === dateRange;
-
+                        {channelMenuOpen && (
+                            <div className={styles.channelMenu} role="listbox" aria-label="Channels">
+                                {(["email", ...CHAT_CHANNELS] as InboxChannel[]).map((channel) => {
+                                    const count = channelThreads(channel).length;
+                                    const unread = channelUnread(channel);
+                                    const label = CHANNEL_META[channel].label;
+                                    if (count === 0 && channel !== "email") {
                                         return (
-                                            <button
-                                                key={option.value}
-                                                type="button"
-                                                role="option"
-                                                aria-selected={isSelected}
-                                                className={
-                                                    isSelected
-                                                        ? styles.dateFilterOptionActive
-                                                        : styles.dateFilterOption
-                                                }
-                                                onClick={() => {
-                                                    setDateRange(option.value);
-                                                    setDateMenuOpen(false);
-                                                }}
-                                            >
-                                                <span>{option.label}</span>
-                                                {isSelected && <Check size={14} />}
-                                            </button>
+                                            <div key={channel} className={styles.channelOptionSoon} title={`Connect ${label} to bring its conversations into the inbox.`}>
+                                                <ChannelLogo channel={channel} size={16} />
+                                                <span>{label}</span>
+                                                <small className={styles.soonBadge}>Soon</small>
+                                            </div>
                                         );
-                                    })}
-                                </div>
-                            )}
-                        </div>
-                    </div>
-
-                    <div className={styles.threadTotal}>
-                        <strong>
-                            {visibleThreads.length} messages
-                        </strong>
-
-                    </div>
-
-
-                    <label className={styles.searchBox}>
-                        <Search size={15} />
-                        <input
-                            type="search"
-                            placeholder="Search mail"
-                            value={search}
-                            onChange={(event) => setSearch(event.target.value)}
-                        />
-                        {search && (
-                            <button
-                                type="button"
-                                aria-label="Clear search"
-                                onClick={() => setSearch("")}
-                            >
-                                <X size={13} />
-                            </button>
+                                    }
+                                    return (
+                                        <button
+                                            key={channel}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={channel === activeChannel}
+                                            className={channel === activeChannel ? styles.channelOptionActive : styles.channelOption}
+                                            onClick={() => openChannel(channel)}
+                                        >
+                                            <ChannelLogo channel={channel} size={16} />
+                                            <span>{label}</span>
+                                            {unread > 0 && <small className={styles.unreadPill}>{unread}</small>}
+                                            {channel === activeChannel && <Check size={14} />}
+                                        </button>
+                                    );
+                                })}
+                                {channelProviders.map((label) => {
+                                    const channel = Object.values(UPCOMING_CHANNELS).find((item) => item.label === label)!;
+                                    return (
+                                        <div key={label} className={styles.channelOptionSoon} title={`${label} is connected, but its messages don't come into the inbox yet.`}>
+                                            {/* eslint-disable-next-line @next/next/no-img-element */}
+                                            <img src={channel.logo} alt="" width={16} height={16} />
+                                            <span>{label}</span>
+                                            <small className={styles.soonBadge}>Soon</small>
+                                        </div>
+                                    );
+                                })}
+                                <Link href="/dashboard/integrations" className={styles.addChannel}>
+                                    <Plus size={14} aria-hidden="true" />
+                                    Add channel
+                                </Link>
+                            </div>
                         )}
-                    </label>
+                    </div>
 
+                    <nav className={styles.folderSection} aria-label={`${activeMeta.label} folders`}>
+                        {mainFolders.map(({ folder, label, icon: Icon }) => (
+                            <button
+                                key={folder}
+                                type="button"
+                                className={activeFolder === folder && listFilter === "all" ? styles.folderActive : styles.folderLink}
+                                aria-current={activeFolder === folder && listFilter === "all" ? "page" : undefined}
+                                onClick={() => openFolder(folder)}
+                            >
+                                <Icon size={15} aria-hidden="true" />
+                                <span>{label}</span>
+                                <small>{folderCount(folder)}</small>
+                            </button>
+                        ))}
+                        <button
+                            type="button"
+                            className={listFilter === "unread" ? styles.folderActive : styles.folderLink}
+                            aria-current={listFilter === "unread" ? "page" : undefined}
+                            onClick={() => {
+                                openFolder("inbox");
+                                setListFilter("unread");
+                            }}
+                        >
+                            <MailOpen size={15} aria-hidden="true" />
+                            <span>Unread</span>
+                            <small>{channelUnread(activeChannel)}</small>
+                        </button>
+                    </nav>
+
+                    {otherFolders.length > 0 && (
+                        <section className={styles.folderSection}>
+                            <button type="button" className={styles.sectionHead} aria-expanded={!closedSections.includes("others")} onClick={() => toggleSection("others")}>
+                                Others
+                                <ChevronDown size={13} className={closedSections.includes("others") ? styles.chevronClosed : undefined} aria-hidden="true" />
+                            </button>
+                            {!closedSections.includes("others") && otherFolders.map(({ folder, label, icon: Icon }) => (
+                                <button
+                                    key={folder}
+                                    type="button"
+                                    className={activeFolder === folder && listFilter === "all" ? styles.folderActive : styles.folderLink}
+                                    aria-current={activeFolder === folder && listFilter === "all" ? "page" : undefined}
+                                    onClick={() => openFolder(folder)}
+                                >
+                                    <Icon size={15} aria-hidden="true" />
+                                    <span>{label}</span>
+                                    <small>{folderCount(folder)}</small>
+                                </button>
+                            ))}
+                        </section>
+                    )}
+                </aside>
+
+                <div className={styles.topBar}>
+                    <span className={styles.viewTitle}>
+                        <ChannelLogo channel={activeChannel} size={15} />
+                        {activeMeta.label}
+                        <span className={styles.viewTitleSep}>/</span>
+                        {viewTitle}
+                    </span>
+
+                    <span className={styles.spacer} />
+
+                    <span className={styles.range}>
+                        {listThreads.length ? `${selectedIndex >= 0 ? selectedIndex + 1 : 1}–${listThreads.length}` : "0"} of {listThreads.length}
+                    </span>
+
+                    <div ref={dateFilterRef} className={styles.dateFilter}>
+                        <button
+                            type="button"
+                            className={styles.ghostButton}
+                            aria-haspopup="listbox"
+                            aria-expanded={dateMenuOpen}
+                            onClick={() => setDateMenuOpen((current) => !current)}
+                        >
+                            <SlidersHorizontal size={13} aria-hidden="true" />
+                            {selectedDateOption.label}
+                        </button>
+                        {dateMenuOpen && (
+                            <div className={styles.menu} role="listbox" aria-label="Filter emails by date">
+                                <div className={styles.menuLabel}>Date</div>
+                                {dateRangeOptions.map((option) => {
+                                    const isSelected = option.value === dateRange;
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={isSelected}
+                                            className={isSelected ? styles.menuItemActive : styles.menuItem}
+                                            onClick={() => {
+                                                setDateRange(option.value);
+                                                setDateMenuOpen(false);
+                                            }}
+                                        >
+                                            {option.label}
+                                            {isSelected && <Check size={14} />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <div className={styles.pager}>
+                        <button type="button" className={styles.iconButton} aria-label="Previous email" disabled={selectedIndex <= 0} onClick={() => stepThread(-1)}>
+                            <ChevronLeft size={15} />
+                        </button>
+                        <button type="button" className={styles.iconButton} aria-label="Next email" disabled={selectedIndex < 0 || selectedIndex >= listThreads.length - 1} onClick={() => stepThread(1)}>
+                            <ChevronRight size={15} />
+                        </button>
+                    </div>
+                </div>
+
+                {/* ---- Message list ---- */}
+                <aside className={styles.listPane}>
                     <div className={styles.threadList}>
                         {loading ? (
                             <div className={styles.emptyState}>
-                                <Loader2
-                                    size={21}
-                                    className={styles.spinning}
-                                />
-                                <strong>Loading emails</strong>
+                                <Loader2 size={18} className={styles.spinning} />
+                                Loading emails
                             </div>
-                        ) : visibleThreads.length === 0 ? (
+                        ) : listThreads.length === 0 ? (
                             <div className={styles.emptyState}>
-                                <MailOpen size={21} />
-                                <strong>No emails found</strong>
-                                <span>
-                                    Try another folder or clear your search.
-                                </span>
+                                <MailOpen size={18} />
+                                No emails here
+                                <small>Try another folder, date range or search.</small>
                             </div>
                         ) : (
-                            visibleThreads.map((thread) => {
-                                const latestMessage =
-                                    getLatestMessage(thread);
-
+                            threadGroups.map((group) => {
+                                const collapsed = collapsedGroups.includes(group.label);
                                 return (
-                                    <button
-                                        key={thread.id}
-                                        type="button"
-                                        className={[
-                                            styles.threadRow,
-                                            selectedThreadId === thread.id
-                                                ? styles.selectedThread
-                                                : "",
-                                            thread.unread
-                                                ? styles.unreadThread
-                                                : "",
-                                        ]
-                                            .filter(Boolean)
-                                            .join(" ")}
-                                        onClick={() => selectThread(thread)}
-                                    >
-                                        <span className={styles.threadAvatar}>
-                                            {getInitials(thread.customerName)}
-                                        </span>
-
-                                        <span
-                                            className={styles.threadInformation}
+                                    <section key={group.label} className={styles.group}>
+                                        <button
+                                            type="button"
+                                            className={styles.groupHead}
+                                            aria-expanded={!collapsed}
+                                            onClick={() =>
+                                                setCollapsedGroups((current) =>
+                                                    current.includes(group.label)
+                                                        ? current.filter((label) => label !== group.label)
+                                                        : [...current, group.label])}
                                         >
-                                            <span
-                                                className={styles.threadTopLine}
-                                            >
-                                                <span className={styles.threadNameLine}>
-                                                    <strong>{thread.customerName}</strong>
-                                                    <small
-                                                        className={[
-                                                            styles.threadReadState,
-                                                            thread.unread
-                                                                ? styles.threadUnreadState
-                                                                : "",
-                                                        ]
-                                                            .filter(Boolean)
-                                                            .join(" ")}
-                                                    >
-                                                        {thread.unread
-                                                            ? "Unread"
-                                                            : latestMessage
-                                                                ? statusLabel(latestMessage)
-                                                                : "Opened"}
-                                                    </small>
-                                                    {thread.starred && (
-                                                        <Star size={12} fill="currentColor" />
-                                                    )}
-                                                </span>
-                                                <time>
-                                                    {formatListDate(
-                                                        thread.lastMessageAt,
-                                                    )}
-                                                </time>
+                                            {group.label}
+                                            <span className={styles.groupCount}>
+                                                <Mail size={13} aria-hidden="true" />
+                                                {group.threads.length}
+                                                <ChevronDown size={13} className={collapsed ? styles.chevronClosed : undefined} aria-hidden="true" />
                                             </span>
+                                        </button>
 
-                                            <span className={styles.companyName}>
-                                                {thread.customerCompany ??
-                                                    thread.customerEmail}
-                                            </span>
+                                        {!collapsed && group.threads.map((thread) => {
+                                            const latestMessage = getLatestMessage(thread);
+                                            const attachments = latestMessage?.attachments ?? [];
+                                            return (
+                                                <button
+                                                    key={thread.id}
+                                                    type="button"
+                                                    className={selectedThreadId === thread.id && !composeOpen ? styles.threadActive : styles.thread}
+                                                    onClick={() => {
+                                                        if (composeOpen) closeCompose();
+                                                        selectThread(thread);
+                                                    }}
+                                                >
+                                                    <span className={styles.threadTop}>
+                                                        <span className={styles.avatarWrap}>
+                                                            <span className={styles.avatar} style={avatarStyle(thread.customerName)}>
+                                                                {getInitials(thread.customerName)}
+                                                            </span>
 
-                                            <span className={styles.subject}>
-                                                {thread.subject}
-                                            </span>
-
-                                            <span className={styles.preview}>
-                                                {thread.preview}
-                                            </span>
-
-                                            {latestMessage?.attachments &&
-                                                latestMessage.attachments.length > 0 && (
-                                                    <span className={styles.threadAttachments}>
-                                                        {latestMessage.attachments
-                                                            .slice(0, 2)
-                                                            .map((attachment) => {
-                                                                const AttachmentIcon =
-                                                                    getAttachmentIcon(
-                                                                        attachment.mimeType,
-                                                                        attachment.fileName,
-                                                                    );
-
+                                                        </span>
+                                                        <span className={styles.threadFrom}>{thread.customerName}</span>
+                                                        {thread.unread && <span className={styles.unreadDot} aria-label="Unread" />}
+                                                        {thread.starred && <Star size={11} className={styles.starIcon} fill="currentColor" aria-label="Starred" />}
+                                                        <time>{formatListDate(thread.lastMessageAt)}</time>
+                                                    </span>
+                                                    <span className={styles.threadSubject}>{thread.subject}</span>
+                                                    <span className={styles.threadPreview}>{thread.preview}</span>
+                                                    {attachments.length > 0 && (
+                                                        <span className={styles.threadChips}>
+                                                            {attachments.slice(0, 2).map((attachment) => {
+                                                                const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
                                                                 return (
-                                                                    <span
-                                                                        key={attachment.id}
-                                                                        className={styles.threadAttachment}
-                                                                        title={attachment.fileName}
-                                                                    >
-                                                                        <AttachmentIcon size={12} />
-                                                                        <span>
-                                                                            {attachment.fileName}
-                                                                        </span>
+                                                                    <span key={attachment.id} className={styles.chip} title={attachment.fileName}>
+                                                                        <AttachmentIcon size={11} />
+                                                                        <span>{attachment.fileName}</span>
                                                                     </span>
                                                                 );
                                                             })}
-
-                                                        {latestMessage.attachments.length > 2 && (
-                                                            <span
-                                                                className={
-                                                                    styles.threadAttachmentCount
-                                                                }
-                                                            >
-                                                                +
-                                                                {latestMessage.attachments.length -
-                                                                    2}
-                                                            </span>
-                                                        )}
-                                                    </span>
-                                                )}
-
-                                        </span>
-                                    </button>
+                                                            {attachments.length > 2 && <span className={styles.chip}>+{attachments.length - 2}</span>}
+                                                        </span>
+                                                    )}
+                                                </button>
+                                            );
+                                        })}
+                                    </section>
                                 );
                             })
                         )}
                     </div>
-
                 </aside>
 
-                <section
-                    className={[
-                        styles.readerPanel,
-                        activeFolder !== "inbox" && !composeOpen
-                            ? styles.readerPanelWithoutReply
-                            : "",
-                    ]
-                        .filter(Boolean)
-                        .join(" ")}
-                >
-                    {!selectedThread ? (
+                {/* ---- Reading pane ---- */}
+                <section className={styles.readerPane}>
+                    {!selectedThread && !composeOpen ? (
                         <div className={styles.readerEmpty}>
-                            <Inbox size={28} />
-                            <strong>Select a conversation</strong>
-                            <span>
-                                Choose an email from the list to read it.
-                            </span>
+                            <Inbox size={22} />
+                            <span>Select an email to read it</span>
                         </div>
                     ) : (
                         <>
-                            <div className={styles.readerToolbar}>
-                                <div className={styles.readerToolbarLeft}>
-                                    <button
-                                        type="button"
-                                        aria-label="Archive conversation"
-                                        data-tooltip="Archive"
-                                        onClick={archiveSelectedThread}
-                                    >
-                                        <Archive size={16} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        aria-label="Delete conversation"
-                                        data-tooltip="Delete"
-                                        onClick={deleteSelectedThread}
-                                    >
-                                        <Trash2 size={16} />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={
-                                            selectedThread.starred
-                                                ? styles.starredToolbarButton
-                                                : undefined
-                                        }
-                                        aria-label="Star or unstar conversation"
-                                        data-tooltip={
-                                            selectedThread.starred ? "Unstar" : "Star"
-                                        }
-                                        onClick={toggleSelectedThreadStar}
-                                    >
-                                        <Star size={16} fill={selectedThread.starred ? "currentColor" : "none"} />
-                                    </button>
+                            {!composeOpen && selectedThread && !selectedIsChat && (
+                                <div className={styles.toolbar}>
+                                    <div className={styles.toolbarGroup}>
+                                        <button type="button" className={styles.iconButton} aria-label="Archive conversation" title="Archive" onClick={archiveSelectedThread}>
+                                            <Archive size={15} />
+                                        </button>
+                                        <button type="button" className={styles.iconButton} aria-label="Delete conversation" title="Delete" onClick={deleteSelectedThread}>
+                                            <Trash2 size={15} />
+                                        </button>
+                                    </div>
+                                    {selectedIsChat && (
+                                        <span className={styles.chatTitle}>
+                                            <span className={styles.senderName}>{selectedThread.customerName}</span>
+                                            <span>{selectedThread.customerHandle} · {CHANNEL_META[channelOf(selectedThread)].label}</span>
+                                        </span>
+                                    )}
+                                    <div className={styles.toolbarGroup}>
+                                        <button
+                                            type="button"
+                                            className={summaryOpen ? styles.summaryButtonOn : styles.summaryButton}
+                                            disabled={summarising}
+                                            aria-expanded={summaryOpen}
+                                            title={selectedIsChat ? "Summarise this conversation with AI" : "Summarise this email with AI"}
+                                            onClick={() => generateEmailSummary(false)}
+                                        >
+                                            {summarising ? <Loader2 size={14} className={styles.spinning} /> : <Sparkles size={14} />}
+                                            Summarise
+                                        </button>
+                                        <button
+                                            type="button"
+                                            className={selectedThread.starred ? styles.iconButtonStar : styles.iconButton}
+                                            aria-label={selectedThread.starred ? "Unstar conversation" : "Star conversation"}
+                                            aria-pressed={selectedThread.starred}
+                                            title={selectedThread.starred ? "Unstar" : "Star"}
+                                            onClick={toggleSelectedThreadStar}
+                                        >
+                                            <Star size={15} fill={selectedThread.starred ? "currentColor" : "none"} />
+                                        </button>
+                                        {activeFolder === "inbox" && !selectedIsChat && (
+                                            <button type="button" className={styles.iconButton} aria-label="Reply" title="Reply" onClick={() => replyRef.current?.focus()}>
+                                                <Reply size={15} />
+                                            </button>
+                                        )}
+                                    </div>
                                 </div>
+                            )}
 
-                                {activeFolder === "inbox" && !composeOpen && (
+                            {summaryOpen && selectedThread && !composeOpen && !selectedIsChat && (
+                                <SummaryCard
+                                    summary={currentSummary}
+                                    loading={summarising}
+                                    error={summaryError}
+                                    messageCount={selectedThread.messages.length}
+                                    isChat={selectedIsChat}
+                                    onRefresh={() => void generateEmailSummary(true)}
+                                    onClose={() => setSummaryOpen(false)}
+                                />
+                            )}
 
+                            {/* Messaging channels read as a chat, with the customer's
+                                profile docked beside it. */}
+                            {selectedIsChat && chatThread && !composeOpen && (
+                                <div className={styles.chatLayout}>
+                                    <InboxChat
+                                        thread={chatThread}
+                                        avatarStyle={avatarStyle}
+                                        initials={getInitials}
+                                        draft={chatDraft}
+                                        setDraft={setChatDraft}
+                                        onSend={(text, file) => appendChatMessage(chatThread.id, text, file)}
+                                        onOpenAssistant={() => setSidePanel({ open: true, tab: "ai" })}
+                                        onToggleStar={toggleSelectedThreadStar}
+                                        onMarkUnread={markSelectedThreadUnread}
+                                        onArchive={archiveSelectedThread}
+                                        onDelete={deleteSelectedThread}
+                                        onSetLabels={setSelectedThreadLabels}
+                                    />
+                                    {sidePanel.open ? (
+                                        <ChatSidePanel
+                                            thread={chatThread}
+                                            edits={contactEdits[chatThread.id] ?? {}}
+                                            onEdit={(patch) => editContact(chatThread.id, patch)}
+                                            tab={sidePanel.tab}
+                                            onTab={(tab) => setSidePanel({ open: true, tab })}
+                                            onFold={() => setSidePanel((current) => ({ ...current, open: false }))}
+                                            avatarStyle={avatarStyle}
+                                            initials={getInitials}
+                                            onEmail={() => emailContact(chatThread)}
+                                            draft={chatDraft}
+                                            onInsertDraft={setChatDraft}
+                                            workspaceId={payload?.workspaceId ?? getStoredWorkspaceId()}
+                                        />
+                                    ) : (
+                                        <div className={styles.sideRail} aria-label="Folded panel">
+                                            <button type="button" className={styles.iconButton} aria-label="Show profile" title="Profile" onClick={() => setSidePanel({ open: true, tab: "profile" })}>
+                                                <UserRound size={15} />
+                                            </button>
+                                            <button type="button" className={styles.iconButtonAi} aria-label="Show AI assistant" title="AI assistant" onClick={() => setSidePanel({ open: true, tab: "ai" })}>
+                                                <Sparkles size={15} />
+                                            </button>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
 
-                                    <button
-                                        type="button"
-                                        className={styles.summaryButton}
-                                        disabled={summarising}
-                                        aria-expanded={summaryOpen}
-                                        onClick={() => generateEmailSummary(false)}
-                                    >
-                                        {summarising ? (
-                                            <Loader2
-                                                size={14}
-                                                className={styles.spinning}
-                                            />
-                                        ) : (
-                                            <Sparkles size={14} />
-                                        )}
-                                        {summarising
-                                            ? "Summarising..."
-                                            : currentSummary && summaryOpen
-                                                ? "Hide summary"
-                                                : "AI summary"}
-                                    </button>
-
-
-                                )}
-                            </div>
-
-                            <section className={styles.emailDocument}>
-                                {displayedMessage && (
+                            {/* The email keeps its own scroll area above the reply box,
+                                so it stays readable while you write. */}
+                            {!composeOpen && !selectedIsChat && (
+                            <div className={styles.readerScroll}>
+                                {selectedThread && displayedMessage && (
                                     <>
-                                        <header className={styles.emailHeading}>
-                                            <div className={styles.emailIdentity}>
-                                                <span className={styles.messageAvatar}>
-                                                    {getInitials(
-                                                        displayedMessage.fromName,
-                                                    )}
+                                        <div className={styles.messageHead}>
+                                        <div className={styles.sender}>
+                                            <span className={styles.avatarLarge} style={avatarStyle(displayedMessage.fromName)}>
+                                                {getInitials(displayedMessage.fromName)}
+                                            </span>
+                                            <span className={styles.senderCopy}>
+                                                <span className={styles.senderName}>{displayedMessage.fromName}</span>
+                                                <span>{displayedMessage.fromEmail}</span>
+                                            </span>
+                                            <time>{formatFullDate(displayedMessage.sentAt)}</time>
+                                        </div>
+
+                                        <h2 className={styles.subject}>{selectedThread.subject}</h2>
+
+                                        {(displayedMessage.toName || displayedMessage.toEmail) && (
+                                            <div className={styles.recipients}>
+                                                <span>To</span>
+                                                <span className={styles.personChip}>
+                                                    <span className={styles.avatarTiny} style={avatarStyle(displayedMessage.toName || displayedMessage.toEmail)}>
+                                                        {getInitials(displayedMessage.toName || displayedMessage.toEmail)}
+                                                    </span>
+                                                    {displayedMessage.toEmail || displayedMessage.toName}
                                                 </span>
-
-                                                <div className={styles.emailIdentityText}>
-                                                    <div className={styles.senderLine}>
-                                                        <strong>
-                                                            {displayedMessage.fromName}
-                                                        </strong>
-                                                        <span>
-                                                            {displayedMessage.fromEmail}
-                                                        </span>
-                                                    </div>
-                                                </div>
-
-                                                <time>
-                                                    {formatFullDate(
-                                                        displayedMessage.sentAt,
-                                                    )}
-                                                </time>
                                             </div>
-
-                                            <div className={styles.emailHeadingTop}>
-                                                <h2>{selectedThread.subject}</h2>
-                                            </div>
-                                        </header>
-
-                                        {summaryOpen && (
-                                            <section
-                                                className={styles.summaryPanel}
-                                                aria-live="polite"
-                                            >
-                                                {summarising ? (
-                                                    <div className={styles.summaryLoading}>
-                                                        <Loader2
-                                                            size={15}
-                                                            className={styles.spinning}
-                                                        />
-                                                        <span>Summarising this email…</span>
-                                                    </div>
-                                                ) : summaryError ? (
-                                                    <div className={styles.summaryError}>
-                                                        <span>{summaryError}</span>
-                                                        <button
-                                                            type="button"
-                                                            onClick={() =>
-                                                                generateEmailSummary(true)
-                                                            }
-                                                        >
-                                                            Try again
-                                                        </button>
-                                                    </div>
-                                                ) : currentSummary ? (
-                                                    <>
-                                                        <div className={styles.summaryPanelHeader}>
-                                                            <div className={styles.summaryTitle}>
-                                                                <Sparkles size={13} />
-                                                                <span>Summary</span>
-                                                                <small>AI</small>
-                                                            </div>
-
-                                                            <button
-                                                                type="button"
-                                                                aria-label="Refresh AI summary"
-                                                                onClick={() =>
-                                                                    generateEmailSummary(true)
-                                                                }
-                                                            >
-                                                                Refresh
-                                                            </button>
-                                                        </div>
-
-                                                        <p className={styles.summaryText}>
-                                                            {currentSummary.summary}
-                                                        </p>
-
-                                                        <div className={styles.summaryAction}>
-                                                            <span>Next step</span>
-                                                            <p>
-                                                                {currentSummary.recommendedAction}
-                                                            </p>
-                                                        </div>
-
-                                                        <div className={styles.summaryFooter}>
-                                                            <span>
-                                                                AI-generated from {selectedThread.messages.length}{" "}
-                                                                {selectedThread.messages.length === 1
-                                                                    ? "message"
-                                                                    : "messages"}
-                                                            </span>
-                                                            <span>
-                                                                {currentSummary.sentiment} · {currentSummary.urgency} urgency
-                                                            </span>
-                                                        </div>
-                                                    </>
-                                                ) : null}
-                                            </section>
                                         )}
+                                        </div>
 
-                                        <div className={styles.emailBody}>
+                                        <div className={styles.body}>
                                             {displayedMessage.html ? (
-                                                <div
-                                                    dangerouslySetInnerHTML={{
-                                                        __html:
-                                                            displayedMessage.html,
-                                                    }}
-                                                />
+                                                <div dangerouslySetInnerHTML={{ __html: displayedMessage.html }} />
                                             ) : (
-                                                <p>
-                                                    {
-                                                        displayedMessage.plainText
-                                                    }
-                                                </p>
+                                                <p>{displayedMessage.plainText}</p>
                                             )}
                                         </div>
 
-                                        {displayedMessage.attachments &&
-                                            displayedMessage.attachments.length >
-                                            0 && (
-                                                <div
-                                                    className={
-                                                        styles.emailAttachments
-                                                    }
-                                                >
-                                                    {displayedMessage.attachments.map(
-                                                        (attachment) => {
-                                                            const AttachmentIcon =
-                                                                getAttachmentIcon(
-                                                                    attachment.mimeType,
-                                                                    attachment.fileName,
-                                                                );
-
-                                                            return (
-                                                                <button
-                                                                    key={
-                                                                        attachment.id
-                                                                    }
-                                                                    type="button"
-                                                                    title={`Open ${attachment.fileName}`}
-                                                                >
-                                                                    <AttachmentIcon
-                                                                        size={20}
-                                                                    />
-                                                                    <span>
-                                                                        <strong>
-                                                                            {
-                                                                                attachment.fileName
-                                                                            }
-                                                                        </strong>
-                                                                        <small>
-                                                                            {
-                                                                                attachment.sizeLabel
-                                                                            }
-                                                                        </small>
-                                                                    </span>
-                                                                </button>
-                                                            );
-                                                        },
-                                                    )}
-                                                </div>
-                                            )}
+                                        {displayedMessage.attachments && displayedMessage.attachments.length > 0 && (
+                                            <div className={styles.attachmentGrid}>
+                                                {displayedMessage.attachments.map((attachment) => {
+                                                    const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
+                                                    return (
+                                                        <div key={attachment.id} className={styles.attachment} title={attachment.fileName}>
+                                                            <AttachmentIcon size={15} className={styles.attachmentIcon} />
+                                                            <span className={styles.attachmentCopy}>
+                                                                <span>{attachment.fileName}</span>
+                                                                <small>{attachment.sizeLabel}</small>
+                                                            </span>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        )}
                                     </>
                                 )}
-                            </section>
+                            </div>
+                            )}
 
-                            {(activeFolder === "inbox" || composeOpen) && (
-                                <footer
-                                    className={[
-                                        styles.replyComposer,
-                                        composeOpen ? styles.composeComposer : "",
-                                    ]
-                                        .filter(Boolean)
-                                        .join(" ")}
+                            {/* ---- Docked reply / compose box ---- */}
+                            {showComposer && (
+                                <section
+                                    className={composeOpen ? styles.composerFull : replyExpanded ? styles.composerTall : styles.composer}
+                                    aria-label={composeOpen ? "New message" : "Reply"}
                                 >
                                     {composeOpen ? (
-                                        <div
-                                            ref={composeAccountPickerRef}
-                                            className={styles.composeRecipientPicker}
-                                        >
-                                            <div className={styles.composeRecipientSearch}>
-                                                <Search size={15} />
+                                        <>
+                                            <h2 className={styles.composeTitle}>New message</h2>
+                                            <div ref={composeAccountPickerRef} className={styles.fieldRow}>
+                                                <span className={styles.fieldLabel}>To</span>
                                                 {composeRecipient ? (
                                                     <button
                                                         type="button"
-                                                        className={styles.composeRecipientChip}
+                                                        className={styles.personChip}
                                                         onClick={() => {
                                                             setComposeRecipient(null);
                                                             setComposeAccountSearch("");
                                                             setComposeAccountPickerOpen(true);
                                                         }}
+                                                        aria-label={`Change recipient ${composeRecipient.name}`}
                                                     >
-                                                        <span>
-                                                            <strong>{composeRecipient.name}</strong>
-                                                            <small>{composeRecipient.email}</small>
-                                                        </span>
-                                                        <X size={13} />
+                                                        <span className={styles.avatarTiny} style={avatarStyle(composeRecipient.name)}>{getInitials(composeRecipient.name)}</span>
+                                                        {composeRecipient.name}
+                                                        <X size={11} />
                                                     </button>
                                                 ) : (
                                                     <input
+                                                        className={styles.fieldInput}
                                                         value={composeAccountSearch}
                                                         onChange={(event) => {
                                                             setComposeAccountSearch(event.target.value);
                                                             setComposeAccountPickerOpen(true);
                                                         }}
                                                         onFocus={() => setComposeAccountPickerOpen(true)}
-                                                        placeholder="Search accounts by name, company or email..."
+                                                        placeholder="Search accounts by name, company or email…"
                                                         aria-label="Select account to email"
                                                     />
                                                 )}
-                                            </div>
 
-                                            {composeAccountPickerOpen && !composeRecipient && (
-                                                <div
-                                                    className={styles.composeAccountMenu}
-                                                    role="listbox"
-                                                    aria-label="Accounts"
-                                                >
-                                                    <div className={styles.composeAccountMenuHeader}>
-                                                        <span>Accounts</span>
-                                                        <small>{filteredComposeAccounts.length}</small>
+                                                {composeAccountPickerOpen && !composeRecipient && (
+                                                    <div className={styles.accountMenu} role="listbox" aria-label="Accounts">
+                                                        <div className={styles.menuLabel}>Accounts <span>{filteredComposeAccounts.length}</span></div>
+                                                        <div className={styles.subList}>
+                                                            {filteredComposeAccounts.length > 0 ? (
+                                                                filteredComposeAccounts.map((account) => (
+                                                                    <button
+                                                                        key={`${account.id}-${account.email}`}
+                                                                        type="button"
+                                                                        role="option"
+                                                                        aria-selected={false}
+                                                                        className={styles.menuItem}
+                                                                        onClick={() => {
+                                                                            setComposeRecipient(account);
+                                                                            setComposeAccountSearch("");
+                                                                            setComposeAccountPickerOpen(false);
+                                                                            requestAnimationFrame(() => replyRef.current?.focus());
+                                                                        }}
+                                                                    >
+                                                                        <span className={styles.avatarTiny} style={avatarStyle(account.name)}>{getInitials(account.name)}</span>
+                                                                        <span className={styles.menuCopy}>
+                                                                            {account.name}
+                                                                            <small>{[account.company, account.email].filter(Boolean).join(" · ")}</small>
+                                                                        </span>
+                                                                    </button>
+                                                                ))
+                                                            ) : (
+                                                                <div className={styles.menuEmpty}>No matching accounts</div>
+                                                            )}
+                                                        </div>
                                                     </div>
+                                                )}
+                                            </div>
+                                            <label className={styles.fieldRow}>
+                                                <span className={styles.fieldLabel}>Subject</span>
+                                                <input
+                                                    className={styles.fieldInput}
+                                                    type="text"
+                                                    value={replySubject}
+                                                    onChange={(event) => setReplySubject(event.target.value)}
+                                                    placeholder="Email subject"
+                                                />
+                                            </label>
+                                        </>
+                                    ) : selectedThread && (
+                                        <div className={styles.composerHead}>
+                                            <span className={styles.avatarSmall} style={avatarStyle("You")}>Y</span>
+                                            <span className={styles.senderCopy}>
+                                                <span className={styles.senderName}>You</span>
+                                                <span>Replying to {selectedThread.customerEmail}</span>
+                                            </span>
+                                            <button
+                                                type="button"
+                                                className={styles.iconButton}
+                                                aria-label={replyExpanded ? "Shrink reply" : "Expand reply"}
+                                                aria-pressed={replyExpanded}
+                                                title={replyExpanded ? "Shrink" : "Expand"}
+                                                onClick={() => setReplyExpanded((open) => !open)}
+                                            >
+                                                {replyExpanded ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
+                                            </button>
+                                        </div>
+                                    )}
 
-                                                    <div className={styles.composeAccountList}>
-                                                        {filteredComposeAccounts.length > 0 ? (
-                                                            filteredComposeAccounts.map((account) => (
-                                                                <button
-                                                                    key={`${account.id}-${account.email}`}
-                                                                    type="button"
-                                                                    role="option"
-                                                                    onClick={() => {
-                                                                        setComposeRecipient(account);
-                                                                        setComposeAccountSearch("");
-                                                                        setComposeAccountPickerOpen(false);
-                                                                        requestAnimationFrame(() =>
-                                                                            replyRef.current?.focus(),
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <span className={styles.composeAccountAvatar}>
-                                                                        {getInitials(account.name)}
-                                                                    </span>
-                                                                    <span className={styles.composeAccountCopy}>
-                                                                        <strong>{account.name}</strong>
-                                                                        <small>
-                                                                            {[account.company, account.email]
-                                                                                .filter(Boolean)
-                                                                                .join(" · ")}
-                                                                        </small>
-                                                                    </span>
-                                                                </button>
-                                                            ))
-                                                        ) : (
-                                                            <div className={styles.composeAccountEmpty}>
-                                                                No matching accounts
-                                                            </div>
-                                                        )}
+                                    {!composeOpen && selectedThread && (
+                                        <label className={styles.fieldRow}>
+                                            <span className={styles.fieldLabel}>Subject</span>
+                                            {/* Shows the "Re:" subject the reply is sent with; it can be
+                                                edited but never left empty. */}
+                                            <input
+                                                className={styles.fieldInput}
+                                                type="text"
+                                                value={replySubject || replySubjectFor(selectedThread.subject)}
+                                                onChange={(event) => setReplySubject(event.target.value)}
+                                                aria-label="Reply subject"
+                                            />
+                                        </label>
+                                    )}
+
+                                    {/* AI writing sits inside the reply box */}
+                                    {aiPanelOpen && canUseAi && selectedThread && (
+                                        <div className={styles.aiBox}>
+                                            <div className={styles.aiPromptRow}>
+                                                <Sparkles size={14} className={styles.aiIcon} aria-hidden="true" />
+                                                <textarea
+                                                    value={aiPrompt}
+                                                    onChange={(event) => setAiPrompt(event.target.value)}
+                                                    onKeyDown={(event) => {
+                                                        if (event.key === "Enter" && !event.shiftKey) {
+                                                            event.preventDefault();
+                                                            if (aiPrompt.trim() && !generatingReply) void generateAiReply();
+                                                        }
+                                                    }}
+                                                    rows={1}
+                                                    placeholder="Tell AI what to write, e.g. confirm Thursday at 2:30pm"
+                                                    aria-label="What should the reply say?"
+                                                    autoFocus
+                                                />
+                                                <button
+                                                    type="button"
+                                                    className={styles.aiGo}
+                                                    disabled={!aiPrompt.trim() || generatingReply}
+                                                    onClick={generateAiReply}
+                                                    aria-label="Write with AI"
+                                                >
+                                                    {generatingReply ? <Loader2 size={13} className={styles.spinning} /> : <ArrowUp size={13} />}
+                                                </button>
+                                                <button type="button" className={styles.iconButton} aria-label="Close AI writer" onClick={() => setAiPanelOpen(false)}>
+                                                    <X size={13} />
+                                                </button>
+                                            </div>
+                                            {aiError && <p className={styles.aiError}>{aiError}</p>}
+                                            {aiReply && (
+                                                <div className={styles.aiSuggestion}>
+                                                    <p>{aiReply}</p>
+                                                    <div className={styles.aiSuggestionActions}>
+                                                        <button type="button" className={styles.primaryButton} onClick={useAiReply}>Use this reply</button>
+                                                        <button type="button" className={styles.ghostButton} onClick={() => setAiReply("")}>Discard</button>
                                                     </div>
                                                 </div>
                                             )}
                                         </div>
-                                    ) : (
-                                        <div className={styles.replyRecipientRow}>
-                                            <Reply size={14} />
-                                            <span>To</span>
-                                            <strong>{selectedThread.customerName}</strong>
-                                            <span className={styles.replyRecipientEmail}>
-                                                {selectedThread.customerEmail}
-                                            </span>
-                                        </div>
                                     )}
 
-                                    <label className={styles.replySubjectRow}>
-                                        <span>Subject</span>
-                                        <input
-                                            type="text"
-                                            value={replySubject}
-                                            onChange={(event) =>
-                                                setReplySubject(event.target.value)
-                                            }
-                                            placeholder={composeOpen ? "Email subject" : "Add a subject"}
+                                    <div className={styles.editorWrap}>
+                                        <div
+                                            ref={replyRef}
+                                            className={styles.editor}
+                                            contentEditable
+                                            suppressContentEditableWarning
+                                            role="textbox"
+                                            aria-multiline="true"
+                                            aria-label={composeOpen ? "Email message" : "Reply message"}
+                                            data-placeholder={composeOpen ? "Write your email…" : `Reply to ${selectedThread?.customerName ?? "this email"}…`}
+                                            onInput={handleReplyInput}
+                                            onClick={handleReplyEditorClick}
+                                            onScroll={() => activeBlockRef.current && selectBlock(activeBlockRef.current)}
+                                            onBlur={() => selectBlock(null)}
+                                            onDragStart={handleReplyDragStart}
+                                            onDragOver={handleReplyDragOver}
+                                            onDrop={handleReplyDrop}
+                                            onDragEnd={endReplyDrag}
                                         />
-                                    </label>
 
-                                    <div
-                                        ref={replyRef}
-                                        className={styles.replyEditor}
-                                        contentEditable
-                                        suppressContentEditableWarning
-                                        role="textbox"
-                                        aria-multiline="true"
-                                        data-placeholder={composeOpen ? "Write your email..." : "Write your reply..."}
-                                        onInput={(event) =>
-                                            setReplyBody(event.currentTarget.innerHTML)
-                                        }
-                                        onClick={handleReplyEditorClick}
-                                    />
+                                        {dropLineTop !== null && (
+                                            <span className={styles.dropLine} style={{ top: dropLineTop }} aria-hidden="true" />
+                                        )}
+
+                                        {/* Controls for the selected button or footer. They sit on top
+                                            of the editor, so they are never part of the email. */}
+                                        {activeBlock && (
+                                            <div
+                                                className={activeBlock.side === "right" ? styles.blockToolbar : styles.blockToolbarLeft}
+                                                style={{ top: activeBlock.top, left: activeBlock.left }}
+                                                role="toolbar"
+                                                aria-label={activeBlock.kind === "cta" ? "Button" : "Footer"}
+                                                onMouseDown={(event) => event.preventDefault()}
+                                            >
+                                                {activeBlock.kind === "cta" ? (
+                                                    <>
+                                                        <span className={styles.blockHandle} title="Drag the button to move it">
+                                                            <GripVertical size={13} aria-hidden="true" />
+                                                        </span>
+                                                        <button type="button" aria-label="Align left" title="Align left" onClick={() => alignActiveCta("left")}><AlignLeft size={13} /></button>
+                                                        <button type="button" aria-label="Align centre" title="Align centre" onClick={() => alignActiveCta("center")}><AlignCenter size={13} /></button>
+                                                        <button type="button" aria-label="Align right" title="Align right" onClick={() => alignActiveCta("right")}><AlignRight size={13} /></button>
+                                                        <span className={styles.blockDivider} aria-hidden="true" />
+                                                        <button type="button" aria-label="Edit button" title="Edit text and link" onClick={editActiveCta}><Pencil size={13} /></button>
+                                                        <button type="button" aria-label="Remove button" title="Remove" onClick={removeActiveBlock}><Trash2 size={13} /></button>
+                                                    </>
+                                                ) : (
+                                                    <button type="button" className={styles.blockTextButton} onClick={removeActiveBlock}>
+                                                        <Trash2 size={13} />
+                                                        Remove footer
+                                                    </button>
+                                                )}
+                                            </div>
+                                        )}
+                                    </div>
 
                                     {replyAttachment && (
                                         <div className={styles.replyAttachment}>
                                             <button
                                                 type="button"
-                                                className={styles.replyAttachmentPreviewButton}
+                                                className={styles.attachment}
                                                 onClick={() => setAttachmentPreviewOpen(true)}
                                                 title={`Preview ${replyAttachment.name}`}
                                             >
-                                                <File size={14} />
-                                                <span>
-                                                    <strong>{replyAttachment.name}</strong>
-                                                    <small>
-                                                        {(replyAttachment.size / 1024).toFixed(0)} KB · Click to preview
-                                                    </small>
+                                                <File size={14} className={styles.attachmentIcon} />
+                                                <span className={styles.attachmentCopy}>
+                                                    <span>{replyAttachment.name}</span>
+                                                    <small>{(replyAttachment.size / 1024).toFixed(0)} KB</small>
                                                 </span>
                                             </button>
-                                            <button
-                                                type="button"
-                                                className={styles.replyAttachmentRemoveButton}
-                                                aria-label="Remove attachment"
-                                                onClick={removeReplyAttachment}
-                                            >
+                                            <button type="button" className={styles.iconButton} aria-label="Remove attachment" onClick={removeReplyAttachment}>
                                                 <X size={13} />
                                             </button>
                                         </div>
                                     )}
 
-                                    <div className={styles.replyToolbar}>
-                                        <div className={styles.replyToolbarGroup}>
+                                    <div className={styles.replyBar}>
+                                        {canUseAi && (
                                             <button
                                                 type="button"
-                                                aria-label="Undo"
-                                                title="Undo"
-                                                onClick={() => runEditorCommand("undo")}
+                                                className={aiPanelOpen ? styles.aiButtonActive : styles.aiButton}
+                                                aria-expanded={aiPanelOpen}
+                                                onClick={() => setAiPanelOpen((open) => !open)}
                                             >
-                                                <Undo2 size={15} />
+                                                <Sparkles size={13} />
+                                                Use AI
                                             </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Redo"
-                                                title="Redo"
-                                                onClick={() => runEditorCommand("redo")}
-                                            >
-                                                <Redo2 size={15} />
-                                            </button>
+                                        )}
 
-                                            <span className={styles.replyToolbarDivider} />
-
-                                            <button
-                                                type="button"
-                                                aria-label="Bold"
-                                                title="Bold"
-                                                onClick={() => runEditorCommand("bold")}
-                                            >
-                                                <Bold size={15} />
+                                        <div className={styles.format} role="toolbar" aria-label="Formatting">
+                                            {([
+                                                ["bold", "Bold", Bold],
+                                                ["italic", "Italic", Italic],
+                                                ["underline", "Underline", Underline],
+                                                ["insertUnorderedList", "Bulleted list", List],
+                                                ["insertOrderedList", "Numbered list", ListOrdered],
+                                                ["justifyLeft", "Align left", AlignLeft],
+                                                ["justifyCenter", "Align centre", AlignCenter],
+                                                ["justifyRight", "Align right", AlignRight],
+                                            ] as const).map(([command, label, Icon]) => (
+                                                <button key={command} type="button" className={styles.formatButton} aria-label={label} title={label} onClick={() => runEditorCommand(command)}>
+                                                    <Icon size={14} />
+                                                </button>
+                                            ))}
+                                            <button type="button" className={styles.formatButton} aria-label="Attach a file" title="Attach file" onClick={() => attachmentInputRef.current?.click()}>
+                                                <Paperclip size={14} />
                                             </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Italic"
-                                                title="Italic"
-                                                onClick={() => runEditorCommand("italic")}
-                                            >
-                                                <Italic size={15} />
+                                            <button type="button" className={styles.formatButton} aria-label="Undo" title="Undo" onClick={() => runEditorCommand("undo")}>
+                                                <Undo2 size={14} />
                                             </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Underline"
-                                                title="Underline"
-                                                onClick={() => runEditorCommand("underline")}
-                                            >
-                                                <Underline size={15} />
-                                            </button>
-
-                                            <span className={styles.replyToolbarDivider} />
-
-                                            <button
-                                                type="button"
-                                                aria-label="Align left"
-                                                title="Align left"
-                                                onClick={() => runEditorCommand("justifyLeft")}
-                                            >
-                                                <AlignLeft size={15} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Align centre"
-                                                title="Align centre"
-                                                onClick={() => runEditorCommand("justifyCenter")}
-                                            >
-                                                <AlignCenter size={15} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Align right"
-                                                title="Align right"
-                                                onClick={() => runEditorCommand("justifyRight")}
-                                            >
-                                                <AlignRight size={15} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Bulleted list"
-                                                title="Bulleted list"
-                                                onClick={() => runEditorCommand("insertUnorderedList")}
-                                            >
-                                                <List size={15} />
-                                            </button>
-                                            <button
-                                                type="button"
-                                                aria-label="Numbered list"
-                                                title="Numbered list"
-                                                onClick={() => runEditorCommand("insertOrderedList")}
-                                            >
-                                                <ListOrdered size={15} />
+                                            <button type="button" className={styles.formatButton} aria-label="Redo" title="Redo" onClick={() => runEditorCommand("redo")}>
+                                                <Redo2 size={14} />
                                             </button>
                                         </div>
 
-                                        <div className={styles.replyToolbarActions}>
-                                            <div className={styles.replyTools}>
-                                                <button
-                                                    type="button"
-                                                    aria-label="Attach a file"
-                                                    title="Attach file"
-                                                    onClick={() =>
-                                                        attachmentInputRef.current?.click()
-                                                    }
-                                                >
-                                                    <Paperclip size={16} />
-                                                </button>
+                                        <span className={styles.spacer} />
 
-                                                <button
-                                                    type="button"
-                                                    aria-label="Generate AI reply"
-                                                    title="AI reply"
-                                                    onClick={() =>
-                                                        setAiPanelOpen(true)
-                                                    }
-                                                >
-                                                    <Sparkles size={16} />
-                                                </button>
+                                        <div ref={replyOptionsRef} className={styles.moreWrap}>
+                                            <button
+                                                type="button"
+                                                className={styles.iconButton}
+                                                aria-label="More reply options"
+                                                title="More options"
+                                                aria-haspopup="menu"
+                                                aria-expanded={replyOptionsOpen}
+                                                onClick={() => setReplyOptionsOpen((current) => !current)}
+                                            >
+                                                <MoreHorizontal size={15} />
+                                            </button>
 
-                                                <div
-                                                    ref={replyOptionsRef}
-                                                    className={styles.replyOptions}
-                                                >
-                                                    <button
-                                                        type="button"
-                                                        aria-label="More reply options"
-                                                        title="More options"
-                                                        aria-haspopup="menu"
-                                                        aria-expanded={replyOptionsOpen}
-                                                        onClick={() =>
-                                                            setReplyOptionsOpen(
-                                                                (current) => !current,
-                                                            )
-                                                        }
-                                                    >
-                                                        <MoreHorizontal size={17} />
+                                            {replyOptionsOpen && (
+                                                <div className={styles.moreMenu} role="menu">
+                                                    <button type="button" role="menuitem" className={styles.menuItem} onClick={insertLink}>
+                                                        <LinkIcon size={14} />
+                                                        Insert link
                                                     </button>
 
-                                                    {replyOptionsOpen && (
-                                                        <div
-                                                            className={styles.replyOptionsMenu}
-                                                            role="menu"
+                                                    <div className={styles.subWrap}>
+                                                        <button
+                                                            type="button"
+                                                            role="menuitem"
+                                                            aria-haspopup="menu"
+                                                            aria-expanded={ctaPickerOpen}
+                                                            className={ctaPickerOpen ? styles.menuItemActive : styles.menuItem}
+                                                            onClick={() => {
+                                                                setSavedEmailPickerOpen(false);
+                                                                setCtaPickerOpen((current) => !current);
+                                                            }}
                                                         >
-                                                            <button
-                                                                type="button"
-                                                                role="menuitem"
-                                                                onClick={() =>
-                                                                    attachmentInputRef.current?.click()
-                                                                }
-                                                            >
-                                                                <Paperclip size={14} />
-                                                                Add attachment
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                role="menuitem"
-                                                                onClick={insertLink}
-                                                            >
-                                                                <LinkIcon size={14} />
-                                                                Insert link
-                                                            </button>
-                                                            <div
-                                                                className={
-                                                                    styles.replyCtaPickerWrap
-                                                                }
-                                                            >
-                                                                <button
-                                                                    type="button"
-                                                                    role="menuitem"
-                                                                    aria-haspopup="menu"
-                                                                    aria-expanded={
-                                                                        ctaPickerOpen
-                                                                    }
-                                                                    className={
-                                                                        ctaPickerOpen
-                                                                            ? styles.replyMenuActive
-                                                                            : ""
-                                                                    }
-                                                                    onClick={() => {
-                                                                        setSavedEmailPickerOpen(false);
-                                                                        setCtaPickerOpen(
-                                                                            (current) => !current,
-                                                                        );
-                                                                    }}
-                                                                >
-                                                                    <MousePointerClick
-                                                                        size={14}
-                                                                    />
-                                                                    <span>
-                                                                        <strong>
-                                                                            Insert CTA
-                                                                        </strong>
-                                                                        <small>
-                                                                            Saved in Email Builder
-                                                                        </small>
-                                                                    </span>
-                                                                    <ChevronRight
-                                                                        size={14}
-                                                                        className={
-                                                                            styles.replyCtaChevron
-                                                                        }
-                                                                    />
-                                                                </button>
+                                                            <MousePointerClick size={14} />
+                                                            <span className={styles.menuCopy}>Insert button</span>
+                                                            <ChevronRight size={14} />
+                                                        </button>
 
-                                                                {ctaPickerOpen && (
-                                                                    <div
-                                                                        className={
-                                                                            styles.replyCtaPicker
-                                                                        }
-                                                                    >
-                                                                        <div
-                                                                            className={
-                                                                                styles.replyCtaPickerHeader
-                                                                            }
-                                                                        >
-                                                                            <strong>
-                                                                                Choose CTA
-                                                                            </strong>
-                                                                            <small>
-                                                                                Saved in Email Builder
-                                                                            </small>
-                                                                        </div>
-
-                                                                        <div
-                                                                            className={
-                                                                                styles.replyCtaPickerList
-                                                                            }
-                                                                        >
-                                                                            {savedReplyCtas.map(
-                                                                                (
-                                                                                    cta,
-                                                                                ) => (
-                                                                                    <button
-                                                                                        key={
-                                                                                            cta.id
-                                                                                        }
-                                                                                        type="button"
-                                                                                        onClick={() =>
-                                                                                            insertSavedCtaIntoReply(
-                                                                                                cta,
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <span
-                                                                                            className={
-                                                                                                styles.replyCtaColour
-                                                                                            }
-                                                                                            style={{
-                                                                                                background:
-                                                                                                    cta.variant ===
-                                                                                                        "primary"
-                                                                                                        ? cta.colour
-                                                                                                        : "#ffffff",
-                                                                                                borderColor:
-                                                                                                    cta.colour,
-                                                                                            }}
-                                                                                        />
-                                                                                        <span
-                                                                                            className={
-                                                                                                styles.replyCtaPickerCopy
-                                                                                            }
-                                                                                        >
-                                                                                            <strong>
-                                                                                                {
-                                                                                                    cta.name
-                                                                                                }
-                                                                                            </strong>
-                                                                                            <small>
-                                                                                                {
-                                                                                                    cta.text
-                                                                                                }
-                                                                                            </small>
-                                                                                        </span>
-                                                                                        {cta.isDefault && (
-                                                                                            <span
-                                                                                                className={
-                                                                                                    styles.replyCtaDefault
-                                                                                                }
-                                                                                            >
-                                                                                                Default
-                                                                                            </span>
-                                                                                        )}
-                                                                                    </button>
-                                                                                ),
-                                                                            )}
-                                                                        </div>
-
-                                                                        <Link
-                                                                            href="/dashboard/email-builder"
-                                                                            className={
-                                                                                styles.replyManageCtas
-                                                                            }
-                                                                        >
-                                                                            Manage CTAs
-                                                                            <ArrowRight
-                                                                                size={
-                                                                                    13
-                                                                                }
-                                                                            />
-                                                                        </Link>
-                                                                    </div>
-                                                                )}
+                                                        {ctaPickerOpen && (
+                                                            <div className={styles.subMenu}>
+                                                                <div className={styles.menuLabel}>Saved buttons</div>
+                                                                {savedReplyCtas.map((cta) => (
+                                                                    <button key={cta.id} type="button" className={styles.menuItem} onClick={() => insertSavedCtaIntoReply(cta)}>
+                                                                        <span
+                                                                            className={styles.ctaSwatch}
+                                                                            style={{
+                                                                                background: cta.variant === "primary" ? cta.colour : "#ffffff",
+                                                                                borderColor: cta.colour,
+                                                                            }}
+                                                                        />
+                                                                        <span className={styles.menuCopy}>
+                                                                            {cta.name}
+                                                                            <small>{cta.text}</small>
+                                                                        </span>
+                                                                        {cta.isDefault && <span className={styles.badge}>Default</span>}
+                                                                    </button>
+                                                                ))}
+                                                                <Link href="/dashboard/email-builder" className={styles.menuLink}>
+                                                                    Manage buttons
+                                                                    <ArrowRight size={13} />
+                                                                </Link>
                                                             </div>
+                                                        )}
+                                                    </div>
 
-                                                            <div className={styles.replySavedEmailPickerWrap}>
-                                                                <button
-                                                                    type="button"
-                                                                    role="menuitem"
-                                                                    aria-haspopup="menu"
-                                                                    aria-expanded={savedEmailPickerOpen}
-                                                                    className={
-                                                                        savedEmailPickerOpen
-                                                                            ? styles.replyMenuActive
-                                                                            : ""
-                                                                    }
-                                                                    onClick={() => {
-                                                                        setCtaPickerOpen(false);
-                                                                        setSavedEmailPickerOpen(
-                                                                            (current) => !current,
-                                                                        );
+                                                    <div className={styles.subWrap}>
+                                                        <button
+                                                            type="button"
+                                                            role="menuitem"
+                                                            aria-haspopup="menu"
+                                                            aria-expanded={savedEmailPickerOpen}
+                                                            className={savedEmailPickerOpen ? styles.menuItemActive : styles.menuItem}
+                                                            onClick={() => {
+                                                                setCtaPickerOpen(false);
+                                                                setSavedEmailPickerOpen((current) => !current);
+                                                                if (!savedEmailsLoading) void loadSavedEmails();
+                                                            }}
+                                                        >
+                                                            <FileText size={14} />
+                                                            <span className={styles.menuCopy}>Insert saved email</span>
+                                                            <ChevronRight size={14} />
+                                                        </button>
 
-                                                                        if (!savedEmailsLoading) {
-                                                                            void loadSavedEmails();
-                                                                        }
-                                                                    }}
-                                                                >
-                                                                    <FileText size={14} />
-                                                                    <span>
-                                                                        <strong>Insert saved email</strong>
-                                                                        <small>Saved in Email Builder</small>
-                                                                    </span>
-                                                                    <ChevronRight
-                                                                        size={14}
-                                                                        className={styles.replyCtaChevron}
+                                                        {savedEmailPickerOpen && (
+                                                            <div className={styles.subMenu}>
+                                                                <label className={styles.menuSearch}>
+                                                                    <Search size={13} />
+                                                                    <input
+                                                                        value={savedEmailSearch}
+                                                                        onChange={(event) => setSavedEmailSearch(event.target.value)}
+                                                                        placeholder="Search saved emails"
+                                                                        autoFocus
                                                                     />
-                                                                </button>
-
-                                                                {savedEmailPickerOpen && (
-                                                                    <div className={styles.replySavedEmailPicker}>
-                                                                        <div className={styles.replyCtaPickerHeader}>
-                                                                            <strong>Choose saved email</strong>
-                                                                            <small>Inserted content remains editable</small>
+                                                                </label>
+                                                                <div className={styles.subList}>
+                                                                    {savedEmailsLoading ? (
+                                                                        <div className={styles.menuEmpty}><Loader2 size={14} className={styles.spinning} /> Loading…</div>
+                                                                    ) : savedEmailsError ? (
+                                                                        <div className={styles.menuEmpty}>{savedEmailsError}</div>
+                                                                    ) : filteredSavedEmails.length > 0 ? (
+                                                                        filteredSavedEmails.map((email) => (
+                                                                            <button key={email.id} type="button" className={styles.menuItem} onClick={() => insertSavedEmailIntoReply(email)}>
+                                                                                <FileText size={14} />
+                                                                                <span className={styles.menuCopy}>
+                                                                                    {email.subject}
+                                                                                    <small>
+                                                                                        {email.emailType || "Saved email"}
+                                                                                        {email.createdAt ? ` · ${formatListDate(email.createdAt)}` : ""}
+                                                                                    </small>
+                                                                                </span>
+                                                                            </button>
+                                                                        ))
+                                                                    ) : (
+                                                                        <div className={styles.menuEmpty}>
+                                                                            {savedEmailSearch ? "No saved emails match your search." : "No saved emails yet."}
                                                                         </div>
-
-                                                                        <label className={styles.replySavedEmailSearch}>
-                                                                            <Search size={13} />
-                                                                            <input
-                                                                                value={savedEmailSearch}
-                                                                                onChange={(event) =>
-                                                                                    setSavedEmailSearch(
-                                                                                        event.target.value,
-                                                                                    )
-                                                                                }
-                                                                                placeholder="Search saved emails"
-                                                                                autoFocus
-                                                                            />
-                                                                        </label>
-
-                                                                        <div className={styles.replySavedEmailList}>
-                                                                            {savedEmailsLoading ? (
-                                                                                <div className={styles.replySavedEmailState}>
-                                                                                    <Loader2
-                                                                                        size={16}
-                                                                                        className={styles.spin}
-                                                                                    />
-                                                                                    <span>Loading saved emails...</span>
-                                                                                </div>
-                                                                            ) : savedEmailsError ? (
-                                                                                <div className={styles.replySavedEmailState}>
-                                                                                    <span>{savedEmailsError}</span>
-                                                                                </div>
-                                                                            ) : filteredSavedEmails.length > 0 ? (
-                                                                                filteredSavedEmails.map((email) => (
-                                                                                    <button
-                                                                                        key={email.id}
-                                                                                        type="button"
-                                                                                        onClick={() =>
-                                                                                            insertSavedEmailIntoReply(
-                                                                                                email,
-                                                                                            )
-                                                                                        }
-                                                                                    >
-                                                                                        <FileText size={14} />
-                                                                                        <span>
-                                                                                            <strong>{email.subject}</strong>
-                                                                                            <small>
-                                                                                                {email.emailType || "Saved email"}
-                                                                                                {email.createdAt
-                                                                                                    ? ` · ${formatListDate(email.createdAt)}`
-                                                                                                    : ""}
-                                                                                            </small>
-                                                                                        </span>
-                                                                                    </button>
-                                                                                ))
-                                                                            ) : (
-                                                                                <div className={styles.replySavedEmailState}>
-                                                                                    <span>
-                                                                                        {savedEmailSearch
-                                                                                            ? "No saved emails match your search."
-                                                                                            : "No saved emails yet."}
-                                                                                    </span>
-                                                                                </div>
-                                                                            )}
-                                                                        </div>
-
-                                                                        <Link
-                                                                            href="/dashboard/email-builder"
-                                                                            className={styles.replyManageCtas}
-                                                                        >
-                                                                            Manage saved emails
-                                                                            <ArrowRight size={13} />
-                                                                        </Link>
-                                                                    </div>
-                                                                )}
+                                                                    )}
+                                                                </div>
+                                                                <Link href="/dashboard/email-builder" className={styles.menuLink}>
+                                                                    Manage saved emails
+                                                                    <ArrowRight size={13} />
+                                                                </Link>
                                                             </div>
+                                                        )}
+                                                    </div>
 
-                                                            <button
-                                                                type="button"
-                                                                role="menuitem"
-                                                                className={
-                                                                    replyFooterIncluded
-                                                                        ? styles.replyMenuActive
-                                                                        : ""
-                                                                }
-                                                                onClick={
-                                                                    toggleReplyFooter
-                                                                }
-                                                            >
-                                                                <PanelBottom
-                                                                    size={14}
-                                                                />
-                                                                <span>
-                                                                    <strong>
-                                                                        {replyFooterIncluded
-                                                                            ? "Remove email footer"
-                                                                            : "Include email footer"}
-                                                                    </strong>
-                                                                    <small>
-                                                                        {footerSettings.enabled
-                                                                            ? "Uses your Email Builder footer"
-                                                                            : "Enable it in Email Builder first"}
-                                                                    </small>
-                                                                </span>
-                                                                {replyFooterIncluded && (
-                                                                    <Check
-                                                                        size={14}
-                                                                        className={
-                                                                            styles.replyFooterCheck
-                                                                        }
-                                                                    />
-                                                                )}
-                                                            </button>
-                                                            <button
-                                                                type="button"
-                                                                role="menuitem"
-                                                                onClick={insertSignature}
-                                                            >
-                                                                <Signature size={14} />
-                                                                Insert signature
-                                                            </button>
-                                                            {replyAttachment && (
-                                                                <button
-                                                                    type="button"
-                                                                    role="menuitem"
-                                                                    onClick={() => {
-                                                                        setReplyOptionsOpen(false);
-                                                                        setAttachmentPreviewOpen(true);
-                                                                    }}
-                                                                >
-                                                                    <File size={14} />
-                                                                    Preview attachment
-                                                                </button>
-                                                            )}
-                                                            <button
-                                                                type="button"
-                                                                role="menuitem"
-                                                                className={styles.replyClearOption}
-                                                                onClick={clearReply}
-                                                                disabled={
-                                                                    !replySubject &&
-                                                                    !replyBody &&
-                                                                    !replyAttachment
-                                                                }
-                                                            >
-                                                                <Trash2 size={14} />
-                                                                Clear reply
-                                                            </button>
-                                                        </div>
+                                                    <button
+                                                        type="button"
+                                                        role="menuitemcheckbox"
+                                                        aria-checked={replyFooterIncluded}
+                                                        className={styles.menuItem}
+                                                        onClick={toggleReplyFooter}
+                                                    >
+                                                        <PanelBottom size={14} />
+                                                        <span className={styles.menuCopy}>
+                                                            {replyFooterIncluded ? "Remove email footer" : "Include email footer"}
+                                                            <small>{footerSettings.enabled ? "Uses your Email Builder footer" : "Turn it on in Email Builder first"}</small>
+                                                        </span>
+                                                        {replyFooterIncluded && <Check size={14} />}
+                                                    </button>
+                                                    <button type="button" role="menuitem" className={styles.menuItem} onClick={insertSignature}>
+                                                        <Signature size={14} />
+                                                        Insert signature
+                                                    </button>
+                                                    {replyAttachment && (
+                                                        <button
+                                                            type="button"
+                                                            role="menuitem"
+                                                            className={styles.menuItem}
+                                                            onClick={() => {
+                                                                setReplyOptionsOpen(false);
+                                                                setAttachmentPreviewOpen(true);
+                                                            }}
+                                                        >
+                                                            <File size={14} />
+                                                            Preview attachment
+                                                        </button>
                                                     )}
                                                 </div>
-                                            </div>
-
-                                            <button
-                                                type="button"
-                                                className={styles.sendButton}
-                                                disabled={
-                                                    !replyRef.current?.innerText.trim() ||
-                                                    (composeOpen && !composeRecipient)
-                                                }
-                                                onClick={sendReply}
-                                            >
-                                                Send now
-                                                <Send size={14} />
-                                            </button>
+                                            )}
                                         </div>
+
+                                        <button
+                                            type="button"
+                                            className={styles.iconButton}
+                                            aria-label={composeOpen ? "Discard email" : "Clear reply"}
+                                            title={composeOpen ? "Discard" : "Clear"}
+                                            onClick={composeOpen ? closeCompose : clearReply}
+                                        >
+                                            <Trash2 size={14} />
+                                        </button>
+
+                                        {sendError && (
+                                            <p className={styles.aiError} role="alert">{sendError}</p>
+                                        )}
+                                        <button
+                                            type="button"
+                                            className={styles.primaryButton}
+                                            disabled={sending || !replyBody.replace(/<[^>]*>/g, "").trim() || (composeOpen && !composeRecipient)}
+                                            aria-busy={sending}
+                                            onClick={() => void sendReply()}
+                                        >
+                                            {sending ? "Sending…" : "Send"}
+                                            {sending ? <Loader2 size={14} className={styles.spinning} /> : <Send size={14} />}
+                                        </button>
                                     </div>
 
                                     <input
                                         ref={attachmentInputRef}
                                         type="file"
-                                        className={styles.hiddenFileInput}
+                                        hidden
                                         onChange={(event) => {
-                                            setReplyAttachment(
-                                                event.target.files?.[0] ?? null,
-                                            );
+                                            setReplyAttachment(event.target.files?.[0] ?? null);
                                             setAttachmentPreviewOpen(false);
                                         }}
                                     />
-                                </footer>
-                            )}
-
-                            {attachmentPreviewOpen && replyAttachment && replyAttachmentUrl && (
-                                <div
-                                    className={styles.attachmentPreviewOverlay}
-                                    role="dialog"
-                                    aria-modal="true"
-                                    aria-label={`Preview ${replyAttachment.name}`}
-                                    onMouseDown={(event) => {
-                                        if (event.target === event.currentTarget) {
-                                            setAttachmentPreviewOpen(false);
-                                        }
-                                    }}
-                                >
-                                    <div className={styles.attachmentPreviewModal}>
-                                        <header>
-                                            <div>
-                                                <strong>{replyAttachment.name}</strong>
-                                                <span>
-                                                    {(replyAttachment.size / 1024).toFixed(0)} KB
-                                                </span>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                aria-label="Close attachment preview"
-                                                onClick={() => setAttachmentPreviewOpen(false)}
-                                            >
-                                                <X size={16} />
-                                            </button>
-                                        </header>
-
-                                        <div className={styles.attachmentPreviewBody}>
-                                            {replyAttachment.type.startsWith("image/") ? (
-                                                <img
-                                                    src={replyAttachmentUrl}
-                                                    alt={replyAttachment.name}
-                                                />
-                                            ) : replyAttachment.type === "application/pdf" ? (
-                                                <iframe
-                                                    src={replyAttachmentUrl}
-                                                    title={replyAttachment.name}
-                                                />
-                                            ) : (
-                                                <div className={styles.attachmentPreviewFallback}>
-                                                    <File size={30} />
-                                                    <strong>{replyAttachment.name}</strong>
-                                                    <span>
-                                                        A browser preview is not available for this file type.
-                                                    </span>
-                                                    <a
-                                                        href={replyAttachmentUrl}
-                                                        target="_blank"
-                                                        rel="noreferrer"
-                                                    >
-                                                        Open file
-                                                    </a>
-                                                </div>
-                                            )}
-                                        </div>
-                                    </div>
-                                </div>
-                            )}
-
-                            {aiPanelOpen && (
-                                <aside className={styles.aiPanel}>
-                                    <header className={styles.aiPanelHeader}>
-                                        <div>
-                                            <span>
-                                                <Bot size={17} />
-                                            </span>
-                                            <div>
-                                                <strong>
-                                                    AI Reply Assistant
-                                                </strong>
-                                                <small>
-                                                    Generate a personalised
-                                                    response
-                                                </small>
-                                            </div>
-                                        </div>
-
-                                        <button
-                                            type="button"
-                                            aria-label="Close AI assistant"
-                                            onClick={() =>
-                                                setAiPanelOpen(false)
-                                            }
-                                        >
-                                            <X size={16} />
-                                        </button>
-                                    </header>
-
-                                    <div className={styles.aiPanelBody}>
-                                        <div className={styles.aiContext}>
-                                            <span>Replying to</span>
-                                            <strong>
-                                                {selectedThread.customerName}
-                                            </strong>
-                                            <small>
-                                                {selectedThread.subject}
-                                            </small>
-                                        </div>
-
-                                        <label className={styles.aiPrompt}>
-                                            <span>
-                                                What should the reply do?
-                                            </span>
-                                            <textarea
-                                                value={aiPrompt}
-                                                onChange={(event) =>
-                                                    setAiPrompt(
-                                                        event.target.value,
-                                                    )
-                                                }
-                                                placeholder="Example: Write a warm, concise reply. Confirm Thursday at 2:30 PM and mention that James can join the call."
-                                            />
-                                        </label>
-
-                                        <button
-                                            type="button"
-                                            className={
-                                                styles.generateReplyButton
-                                            }
-                                            disabled={
-                                                !aiPrompt.trim() ||
-                                                generatingReply
-                                            }
-                                            onClick={generateAiReply}
-                                        >
-                                            {generatingReply ? (
-                                                <Loader2
-                                                    size={15}
-                                                    className={styles.spinning}
-                                                />
-                                            ) : (
-                                                <Sparkles size={15} />
-                                            )}
-                                            {generatingReply
-                                                ? "Generating..."
-                                                : "Generate reply"}
-                                        </button>
-
-                                        {aiError && (
-                                            <div className={styles.aiError}>
-                                                {aiError}
-                                            </div>
-                                        )}
-
-                                        {aiReply && (
-                                            <div
-                                                className={
-                                                    styles.aiGeneratedReply
-                                                }
-                                            >
-                                                <div>
-                                                    <strong>
-                                                        Suggested reply
-                                                    </strong>
-                                                    <button
-                                                        type="button"
-                                                        onClick={() =>
-                                                            setAiReply("")
-                                                        }
-                                                    >
-                                                        Clear
-                                                    </button>
-                                                </div>
-
-                                                <p>{aiReply}</p>
-
-                                                <button
-                                                    type="button"
-                                                    className={
-                                                        styles.useReplyButton
-                                                    }
-                                                    onClick={useAiReply}
-                                                >
-                                                    <Reply size={14} />
-                                                    Use this reply
-                                                </button>
-                                            </div>
-                                        )}
-                                    </div>
-                                </aside>
+                                </section>
                             )}
                         </>
                     )}
                 </section>
             </section>
+
+            {attachmentPreviewOpen && replyAttachment && replyAttachmentUrl && (
+                <div
+                    className={styles.overlay}
+                    role="dialog"
+                    aria-modal="true"
+                    aria-label={`Preview ${replyAttachment.name}`}
+                    onMouseDown={(event) => {
+                        if (event.target === event.currentTarget) setAttachmentPreviewOpen(false);
+                    }}
+                >
+                    <div className={styles.modal}>
+                        <header className={styles.modalHead}>
+                            <span>
+                                {replyAttachment.name}
+                                <small>{(replyAttachment.size / 1024).toFixed(0)} KB</small>
+                            </span>
+                            <button type="button" className={styles.iconButton} aria-label="Close attachment preview" onClick={() => setAttachmentPreviewOpen(false)}>
+                                <X size={16} />
+                            </button>
+                        </header>
+                        <div className={styles.modalBody}>
+                            {replyAttachment.type.startsWith("image/") ? (
+                                // eslint-disable-next-line @next/next/no-img-element
+                                <img src={replyAttachmentUrl} alt={replyAttachment.name} />
+                            ) : replyAttachment.type === "application/pdf" ? (
+                                <iframe src={replyAttachmentUrl} title={replyAttachment.name} />
+                            ) : (
+                                <div className={styles.emptyState}>
+                                    <File size={22} />
+                                    {replyAttachment.name}
+                                    <small>A browser preview isn&apos;t available for this file type.</small>
+                                    <a href={replyAttachmentUrl} target="_blank" rel="noreferrer" className={styles.ghostButton}>Open file</a>
+                                </div>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            )}
         </main>
     );
 }

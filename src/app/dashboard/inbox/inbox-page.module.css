@@ -1,0 +1,2939 @@
+/* Inbox, modelled on the "All inbox" Dribbble shot: all white, light type,
+   tabs across the top, compact message cards grouped by day, a reading
+   pane with sender → subject → recipients, and a slim reply box docked at
+   the bottom. No bold: 500 is the heaviest weight used. */
+
+.page {
+    --ink: #111827;
+    --ink-2: #4b5563;
+    --ink-3: #8b929c;
+    --line: #ececef;
+    --hover: #f7f7f8;
+    --ai: #6d4fe0;
+
+    height: calc(100vh - 64px);
+    min-height: 540px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    background: #ffffff;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+.spacer {
+    flex: 1;
+}
+
+/* ---- Header ---------------------------------------------------------- */
+
+.header {
+    flex: none;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.headerSearch {
+    width: min(380px, 100%);
+    height: 34px;
+    margin-left: 14px;
+    padding: 0 8px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    color: var(--ink-3);
+}
+
+.headerSearch:focus-within {
+    border-color: #d5d7dc;
+}
+
+.headerSearch input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.headerSearch input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.headerSearch kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 10.5px;
+}
+
+.headerSearch button {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+}
+
+.errorBanner {
+    flex: none;
+    padding: 9px 12px;
+    border: 1px solid #fde2e1;
+    border-radius: 10px;
+    background: #ffffff;
+    color: #b42318;
+}
+
+/* ---- Buttons --------------------------------------------------------- */
+
+.primaryButton,
+.ghostButton {
+    height: 32px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border-radius: 8px;
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.primaryButton {
+    border: 0;
+    background: var(--ink);
+    color: #ffffff;
+}
+
+.primaryButton:hover:not(:disabled) {
+    background: #2a3140;
+}
+
+.primaryButton:disabled {
+    background: #ececef;
+    color: #a2a8b1;
+    cursor: not-allowed;
+}
+
+.ghostButton {
+    border: 1px solid var(--line);
+    background: #ffffff;
+    color: var(--ink-2);
+}
+
+.ghostButton:hover:not(:disabled) {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.iconButton,
+.iconButtonOn,
+.iconButtonStar {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.iconButton:hover:not(:disabled) {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.iconButton:disabled {
+    opacity: 0.35;
+    cursor: default;
+}
+
+.iconButtonOn {
+    background: var(--hover);
+    color: var(--ai);
+}
+
+.iconButtonStar {
+    color: #f59e0b;
+}
+
+.linkButton {
+    align-self: flex-start;
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 12px;
+    cursor: pointer;
+}
+
+.linkButton:hover {
+    color: var(--ink);
+}
+
+/* ---- Menus ----------------------------------------------------------- */
+
+.dateFilter,
+.moreWrap,
+.subWrap {
+    position: relative;
+}
+
+.menu,
+.moreMenu,
+.subMenu,
+.accountMenu {
+    position: absolute;
+    z-index: 30;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.1);
+}
+
+.menu {
+    top: calc(100% + 6px);
+    right: 0;
+    min-width: 160px;
+}
+
+.moreMenu {
+    right: 0;
+    bottom: calc(100% + 6px);
+    width: 240px;
+}
+
+.subMenu {
+    right: calc(100% + 6px);
+    bottom: 0;
+    width: 260px;
+    max-height: 340px;
+}
+
+.accountMenu {
+    top: calc(100% + 4px);
+    left: 0;
+    right: 0;
+    max-height: 280px;
+}
+
+.menuItem,
+.menuItemActive {
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menuItem > svg,
+.menuItemActive > svg {
+    flex: none;
+    color: var(--ink-3);
+}
+
+.menuItem:hover,
+.menuItemActive {
+    background: var(--hover);
+}
+
+.menuCopy {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.menuCopy small {
+    overflow: hidden;
+    color: var(--ink-3);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.menuLabel {
+    padding: 6px 8px 4px;
+    display: flex;
+    justify-content: space-between;
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.menuEmpty {
+    padding: 10px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.menuLink {
+    margin-top: 4px;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-top: 1px solid var(--line);
+    color: var(--ink-2);
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.menuSearch {
+    margin: 2px 2px 4px;
+    height: 30px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    color: var(--ink-3);
+}
+
+.menuSearch input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.subList {
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.ctaSwatch {
+    width: 14px;
+    height: 14px;
+    flex: none;
+    border: 2px solid;
+    border-radius: 4px;
+}
+
+.badge {
+    padding: 1px 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink-3);
+    font-size: 10.5px;
+}
+
+/* ---- Shell: tabs across the top, then list | reader ----------------- */
+
+.shell {
+    flex: 1;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 200px minmax(260px, 340px) minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 14px;
+    background: #ffffff;
+}
+
+.topBar {
+    grid-column: 2 / -1;
+    padding: 8px 10px 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+}
+
+.tabs {
+    display: flex;
+    gap: 4px;
+    overflow-x: auto;
+}
+
+.tab,
+.tabActive {
+    height: 30px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tab:hover {
+    background: var(--hover);
+}
+
+.tabActive {
+    border-color: var(--line);
+    color: var(--ink);
+}
+
+.tab svg,
+.tabActive svg {
+    color: var(--ink-3);
+}
+
+.tabCount {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: #f1f1f3;
+    color: var(--ink-3);
+    font-size: 10.5px;
+    line-height: 17px;
+    text-align: center;
+}
+
+.tabActive .tabCount {
+    background: var(--ink);
+    color: #ffffff;
+}
+
+.viewTitle {
+    padding-left: 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.viewTitleSep {
+    color: #c9cdd3;
+    font-weight: 400;
+}
+
+/* ---- Channel switcher (top of the inbox sidebar) --------------------- */
+
+.channelSwitch {
+    position: relative;
+    margin-bottom: 4px;
+}
+
+.channelSwitchButton {
+    width: 100%;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 500;
+    text-align: left;
+    cursor: pointer;
+}
+
+.channelSwitchButton:hover {
+    background: var(--hover);
+}
+
+.channelSwitchButton > svg:last-child {
+    color: var(--ink-3);
+}
+
+.channelSwitchCopy {
+    flex: 1;
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    line-height: 1.25;
+}
+
+.channelSwitchCopy small {
+    color: var(--ink-3);
+    font-size: 10.5px;
+    font-weight: 400;
+}
+
+.channelMenu {
+    position: absolute;
+    top: calc(100% + 6px);
+    left: 0;
+    right: 0;
+    z-index: 30;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
+}
+
+.channelOption,
+.channelOptionActive,
+.channelOptionSoon {
+    width: 100%;
+    height: 34px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.channelOption span,
+.channelOptionActive span,
+.channelOptionSoon span {
+    flex: 1;
+}
+
+.channelOption:hover,
+.channelOptionActive {
+    background: var(--hover);
+}
+
+.channelOptionActive {
+    font-weight: 500;
+}
+
+.channelOptionSoon {
+    color: var(--ink-3);
+    cursor: default;
+}
+
+.unreadPill {
+    min-width: 18px;
+    padding: 0 5px;
+    border-radius: 999px;
+    background: #2f6bff;
+    color: #ffffff;
+    font-size: 10.5px;
+    line-height: 17px;
+    text-align: center;
+}
+
+/* ---- Inbox sidebar: folders, views and channels --------------------- */
+
+.folderPane {
+    grid-row: 1 / -1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 10px 8px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border-right: 1px solid var(--line);
+    background: #ffffff;
+}
+
+.folderSection {
+    display: flex;
+    flex-direction: column;
+    gap: 1px;
+}
+
+.folderSection + .folderSection {
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--line);
+}
+
+.sectionHead {
+    padding: 4px 8px 6px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.sectionHead svg {
+    transition: transform 140ms ease;
+}
+
+.folderLink,
+.folderActive,
+.channelSoon,
+.addChannel {
+    width: 100%;
+    height: 32px;
+    padding: 0 8px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.folderLink svg,
+.folderActive svg,
+.channelSoon img {
+    flex: none;
+    color: var(--ink-3);
+}
+
+.folderLink span,
+.folderActive span,
+.channelSoon span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.folderLink small,
+.folderActive small {
+    color: var(--ink-3);
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+}
+
+.folderLink:hover,
+.addChannel:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.folderActive {
+    background: #f3f3f5;
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.folderActive svg {
+    color: var(--ink);
+}
+
+.channelSoon {
+    cursor: default;
+    opacity: 0.75;
+}
+
+.soonBadge {
+    padding: 0 5px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    color: var(--ink-3);
+    font-size: 10px;
+    line-height: 16px;
+}
+
+.addChannel {
+    color: var(--ink-3);
+}
+
+.range {
+    color: var(--ink-3);
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.pager {
+    display: flex;
+}
+
+/* ---- Message list ---------------------------------------------------- */
+
+.listPane {
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    border-right: 1px solid var(--line);
+    background: #ffffff;
+}
+
+.listSearch {
+    flex: none;
+    margin: 10px 10px 4px;
+    height: 34px;
+    padding: 0 8px 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink-3);
+}
+
+.listSearch:focus-within {
+    border-color: #d5d7dc;
+}
+
+.listSearch input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.listSearch input::-webkit-search-cancel-button {
+    display: none;
+}
+
+.listSearch kbd {
+    padding: 1px 5px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 10.5px;
+}
+
+.listSearch button {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.threadList {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 0 10px 12px;
+}
+
+.group {
+    padding-top: 8px;
+}
+
+.groupHead {
+    width: 100%;
+    padding: 6px 2px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.groupCount {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ink-3);
+    font-weight: 400;
+}
+
+.groupCount svg:last-child {
+    transition: transform 140ms ease;
+}
+
+.chevronClosed {
+    transform: rotate(-90deg);
+}
+
+.thread,
+.threadActive {
+    width: 100%;
+    margin-top: 6px;
+    padding: 9px 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+    cursor: pointer;
+}
+
+.thread:hover {
+    background: var(--hover);
+}
+
+.threadActive {
+    border-color: #3a3f4a;
+}
+
+.threadTop {
+    min-width: 0;
+    margin-bottom: 2px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.threadTop time {
+    margin-left: auto;
+    flex: none;
+    color: var(--ink-3);
+    font-size: 11px;
+}
+
+.threadFrom {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink-2);
+    font-size: 11.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.unreadDot {
+    width: 6px;
+    height: 6px;
+    flex: none;
+    border-radius: 50%;
+    background: #2f6bff;
+}
+
+.starIcon {
+    flex: none;
+    color: #f59e0b;
+}
+
+.threadSubject {
+    overflow: hidden;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.threadPreview {
+    overflow: hidden;
+    color: var(--ink-3);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.threadChips {
+    margin-top: 5px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.chip {
+    max-width: 140px;
+    height: 20px;
+    padding: 0 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 5px;
+    color: var(--ink-2);
+    font-size: 10.5px;
+}
+
+.chip span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ---- Avatars --------------------------------------------------------- */
+
+.avatar,
+.avatarTiny,
+.avatarSmall,
+.avatarLarge {
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    font-weight: 500;
+}
+
+.avatar {
+    width: 16px;
+    height: 16px;
+    font-size: 7.5px;
+}
+
+.avatarTiny {
+    width: 16px;
+    height: 16px;
+    font-size: 7.5px;
+}
+
+.avatarSmall {
+    width: 28px;
+    height: 28px;
+    font-size: 10.5px;
+}
+
+.avatarLarge {
+    width: 32px;
+    height: 32px;
+    font-size: 11.5px;
+}
+
+/* ---- Reading pane ---------------------------------------------------- */
+
+.readerPane {
+    position: relative;
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.toolbar {
+    flex: none;
+    padding: 6px 12px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+}
+
+.toolbarGroup {
+    display: flex;
+    gap: 2px;
+}
+
+/* The email always keeps at least 40% of the pane, so it stays in view
+   while the reply below it is being written. */
+.readerScroll {
+    flex: 1 1 auto;
+    min-height: 40%;
+    overflow-y: auto;
+    padding: 18px 24px 20px;
+}
+
+/* Sender, subject and recipients stay pinned while the body scrolls. */
+.messageHead {
+    position: sticky;
+    top: -18px;
+    z-index: 3;
+    margin: -18px -24px 0;
+    padding: 18px 24px 12px;
+    border-bottom: 1px solid var(--line);
+    background: #ffffff;
+}
+
+.messageHead + * {
+    margin-top: 2px;
+}
+
+.sender {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.senderCopy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.senderCopy > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.senderName {
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 500;
+}
+
+.sender time {
+    margin-left: auto;
+    flex: none;
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.subject {
+    margin: 12px 0 8px;
+    font-size: 17px;
+    font-weight: 500;
+    letter-spacing: -0.01em;
+    line-height: 1.35;
+}
+
+.recipients {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.personChip {
+    height: 24px;
+    padding: 0 8px 0 4px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12px;
+}
+
+button.personChip {
+    cursor: pointer;
+}
+
+.summary {
+    margin-top: 14px;
+    padding: 12px 14px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+}
+
+.summary p {
+    margin: 0;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.55;
+}
+
+.summaryHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.summaryHead span:first-child {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    color: var(--ai);
+}
+
+.summaryNext {
+    color: var(--ink-2) !important;
+}
+
+/* ---- AI summary card ------------------------------------------------- */
+
+.summaryButton,
+.summaryButtonOn {
+    height: 28px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid #e4def9;
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ai);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.summaryButton:hover,
+.summaryButtonOn {
+    background: #f8f6fe;
+}
+
+.summaryButton:disabled {
+    cursor: wait;
+}
+
+.summaryCard {
+    position: absolute;
+    top: 50px;
+    right: 14px;
+    z-index: 12;
+    width: min(380px, calc(100% - 28px));
+    padding: 12px 14px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 18px 44px rgba(17, 24, 39, 0.14);
+}
+
+.summaryCardHead {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.summaryCardHead .iconButton {
+    width: 26px;
+    height: 26px;
+}
+
+.summaryTitle {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 500;
+}
+
+.summaryTitle svg {
+    color: var(--ai);
+}
+
+.summaryTitle small {
+    padding: 0 5px;
+    border-radius: 4px;
+    background: #f4f1fe;
+    color: var(--ai);
+    font-size: 10px;
+    line-height: 16px;
+}
+
+.summaryText {
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 9px;
+    background: #fafafb;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.6;
+}
+
+.summaryCard .summaryNext {
+    margin: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    font-size: 12.5px;
+    line-height: 1.5;
+}
+
+.summaryCard .summaryNext span {
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.summaryFoot {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 11px;
+}
+
+/* ---- Channel badge on list avatars ----------------------------------- */
+
+.avatarWrap {
+    position: relative;
+    flex: none;
+    display: inline-flex;
+}
+
+.channelBadge {
+    position: absolute;
+    right: -4px;
+    bottom: -3px;
+    width: 10px;
+    height: 10px;
+    padding: 1px;
+    border-radius: 50%;
+    background: #ffffff;
+}
+
+/* ---- Chat view --------------------------------------------------------- */
+
+.chatTitle {
+    min-width: 0;
+    margin: 0 auto 0 8px;
+    display: flex;
+    flex-direction: column;
+    color: var(--ink-3);
+    font-size: 11.5px;
+    line-height: 1.3;
+}
+
+.chat {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.chatScroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 14px 22px 18px;
+}
+
+.dayChip {
+    margin: 10px 0 14px;
+    display: flex;
+    justify-content: center;
+}
+
+.dayChip span {
+    padding: 3px 10px;
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    color: var(--ink-3);
+    font-size: 11px;
+}
+
+.bubbleRowIn,
+.bubbleRowOut {
+    margin-top: 4px;
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.bubbleRowOut {
+    justify-content: flex-end;
+}
+
+.avatarSpacer {
+    width: 28px;
+    flex: none;
+}
+
+.bubbleStack {
+    max-width: min(72%, 520px);
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+}
+
+.bubbleRowOut .bubbleStack {
+    align-items: flex-end;
+}
+
+.bubbleMeta {
+    margin-top: 8px;
+    padding: 0 4px;
+    color: var(--ink-3);
+    font-size: 11px;
+}
+
+.bubbleIn,
+.bubbleOut {
+    margin: 0;
+    padding: 8px 12px;
+    border-radius: 14px;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.bubbleIn {
+    border-bottom-left-radius: 5px;
+    background: #f3f4f6;
+}
+
+.bubbleOut {
+    border-bottom-right-radius: 5px;
+    background: #eaf1ff;
+}
+
+.chatComposer {
+    flex: none;
+    margin: 0 16px 14px;
+    padding: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(17, 24, 39, 0.05);
+}
+
+.chatComposer:focus-within {
+    border-color: #d5d7dc;
+}
+
+.chatComposer .aiBox {
+    margin: 0 0 2px;
+}
+
+.chatInputRow {
+    display: flex;
+    align-items: flex-end;
+    gap: 8px;
+}
+
+.chatInput {
+    flex: 1;
+    min-width: 0;
+    max-height: 120px;
+    padding: 6px 4px;
+    resize: none;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+    line-height: 1.5;
+    field-sizing: content;
+}
+
+.sendRound {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: var(--ink);
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.sendRound:disabled {
+    background: #ececef;
+    color: #a2a8b1;
+    cursor: not-allowed;
+}
+
+.chatNote {
+    margin: 0;
+    padding: 0 4px;
+    color: var(--ink-3);
+    font-size: 11px;
+}
+
+/* ---- Customer profile, docked beside chats --------------------------- */
+
+.chatLayout {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+}
+
+.chatLayout > .chat {
+    flex: 1;
+    min-width: 0;
+}
+
+.contactPanel {
+    width: 284px;
+    flex: none;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-left: 1px solid var(--line);
+    background: #ffffff;
+}
+
+.contactTop {
+    padding: 18px 16px 12px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.contactAvatar {
+    width: 46px;
+    height: 46px;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border-radius: 50%;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.contactHeading {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.contactName {
+    font-size: 14px;
+    font-weight: 500;
+}
+
+.contactSub {
+    color: var(--ink-3);
+    font-size: 12px;
+    line-height: 1.35;
+}
+
+.contactActions {
+    padding: 0 16px 14px;
+    display: flex;
+    gap: 6px;
+    border-bottom: 1px solid var(--line);
+}
+
+.contactActions button,
+.contactActions a {
+    flex: 1;
+    padding: 8px 0 6px;
+    display: inline-flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #ffffff;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 11px;
+    text-decoration: none;
+    cursor: pointer;
+}
+
+.contactActions button:hover,
+.contactActions a:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.contactSection {
+    padding: 0 16px;
+    border-bottom: 1px solid var(--line);
+}
+
+.contactSectionHead {
+    width: 100%;
+    padding: 13px 0;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.contactSectionHead svg {
+    color: var(--ink-3);
+    transition: transform 140ms ease;
+}
+
+.contactSectionBody {
+    padding-bottom: 6px;
+}
+
+.contactField {
+    margin-bottom: 12px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.contactField > span {
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.contactField p {
+    margin: 0;
+    color: var(--ink);
+    font-size: 12.5px;
+    overflow-wrap: anywhere;
+}
+
+.contactChip {
+    max-width: 100%;
+    padding: 2px 4px 2px 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    font-size: 12.5px;
+}
+
+.contactChip a,
+.contactChip > span {
+    min-width: 0;
+    overflow: hidden;
+    color: #2f6bff;
+    text-decoration: none;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.contactChip > span {
+    color: var(--ink);
+}
+
+.contactChip button {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.contactChip button:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.contactChannel {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+}
+
+/* Narrow screens: the chat gets the room; the profile hides. */
+@media (max-width: 1240px) {
+    .contactPanel {
+        display: none;
+    }
+}
+
+.summaryNext span {
+    color: var(--ink-3);
+}
+
+.summaryRow {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-2);
+}
+
+.body {
+    padding-top: 16px;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.65;
+    overflow-wrap: anywhere;
+}
+
+.body p {
+    margin: 0 0 12px;
+    white-space: pre-wrap;
+}
+
+.body b,
+.body strong {
+    font-weight: 500;
+}
+
+.body img {
+    max-width: 100%;
+    height: auto;
+}
+
+.attachmentGrid {
+    padding-top: 6px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.attachment {
+    min-width: 0;
+    max-width: 230px;
+    padding: 7px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    text-align: left;
+}
+
+button.attachment {
+    cursor: pointer;
+}
+
+.attachmentIcon {
+    flex: none;
+    color: var(--ink-3);
+}
+
+.attachmentCopy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    font-size: 12px;
+}
+
+.attachmentCopy > span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.attachmentCopy small {
+    color: var(--ink-3);
+    font-size: 10.5px;
+}
+
+.readerEmpty,
+.emptyState {
+    flex: 1;
+    padding: 40px 16px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    text-align: center;
+}
+
+.emptyState small {
+    font-size: 12px;
+}
+
+/* ---- Docked reply / compose box ------------------------------------- */
+
+.composer,
+.composerTall,
+.composerFull {
+    flex: none;
+    min-height: 0;
+    max-height: 58%;
+    margin: 0 16px 14px;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+    box-shadow: 0 4px 16px rgba(17, 24, 39, 0.05);
+}
+
+/* Expanded reply: a fixed share of the pane, the email still above it. */
+.composerTall {
+    height: 55%;
+}
+
+/* New email: nothing to read, so the composer takes the whole pane. */
+.composerFull {
+    flex: 1;
+    max-height: none;
+    margin-top: 16px;
+}
+
+.composeTitle {
+    margin: 0;
+    padding: 14px 14px 6px;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.composer:focus-within,
+.composerTall:focus-within,
+.composerFull:focus-within {
+    border-color: #d5d7dc;
+}
+
+.composerHead,
+.replyBar,
+.aiBox,
+.replyAttachment,
+.fieldRow {
+    flex: none;
+}
+
+.composerHead {
+    padding: 10px 10px 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 9px;
+}
+
+.composerHead .iconButton {
+    margin-left: auto;
+}
+
+.fieldRow {
+    position: relative;
+    min-height: 40px;
+    padding: 4px 12px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+}
+
+.fieldLabel {
+    flex: none;
+    width: 50px;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
+.fieldInput {
+    flex: 1;
+    min-width: 0;
+    height: 30px;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 13px;
+}
+
+.editor {
+    flex: 1 1 auto;
+    min-height: 44px;
+    max-height: 140px;
+    overflow-y: auto;
+    padding: 8px 12px;
+    outline: none;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.6;
+    overflow-wrap: anywhere;
+}
+
+.composerTall .editor,
+.composerFull .editor {
+    max-height: none;
+}
+
+/* The editor sits in a wrapper that also holds the floating controls. */
+.editorWrap {
+    position: relative;
+    flex: 1 1 auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+/* Inserted buttons and the footer: compact, and only outlined when you
+   point at or select them. */
+.editor [data-cobrai-cta] {
+    margin: 10px 0 !important;
+    border-radius: 8px;
+    outline: 1px dashed transparent;
+    outline-offset: 3px;
+    cursor: grab;
+    transition: outline-color 120ms ease;
+}
+
+.editor [data-cobrai-cta] a {
+    cursor: grab;
+    pointer-events: none;
+}
+
+.editor [data-cobrai-cta]:hover {
+    outline-color: #cfd3da;
+}
+
+.editor [data-cobrai-footer] {
+    border-radius: 4px;
+    outline: 1px dashed transparent;
+    outline-offset: 3px;
+    cursor: pointer;
+    user-select: none;
+}
+
+.editor [data-cobrai-footer]:hover {
+    outline-color: #cfd3da;
+}
+
+.editor [data-selected="true"] {
+    outline: 1.5px solid #2f6bff !important;
+}
+
+.dropLine {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    z-index: 4;
+    height: 2px;
+    border-radius: 2px;
+    background: #2f6bff;
+    pointer-events: none;
+}
+
+.blockToolbar,
+.blockToolbarLeft {
+    position: absolute;
+    z-index: 6;
+    padding: 3px;
+    display: flex;
+    align-items: center;
+    gap: 1px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: #ffffff;
+    box-shadow: 0 8px 22px rgba(17, 24, 39, 0.12);
+    transform: translateY(-50%);
+    white-space: nowrap;
+}
+
+/* No room on the right: sit to the left of the block instead. */
+.blockToolbarLeft {
+    transform: translate(-100%, -50%);
+}
+
+.blockToolbar button,
+.blockToolbarLeft button {
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink-2);
+    cursor: pointer;
+}
+
+.blockToolbar button:hover,
+.blockToolbarLeft button:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.blockToolbar .blockTextButton,
+.blockToolbarLeft .blockTextButton {
+    width: auto;
+    padding: 0 8px;
+    display: inline-flex;
+    gap: 5px;
+    color: #b42318;
+    font: inherit;
+    font-size: 12px;
+}
+
+.blockHandle {
+    width: 18px;
+    display: inline-grid;
+    place-items: center;
+    color: var(--ink-3);
+    cursor: grab;
+}
+
+.blockDivider {
+    width: 1px;
+    height: 16px;
+    margin: 0 3px;
+    background: var(--line);
+}
+
+.editor:empty::before {
+    content: attr(data-placeholder);
+    color: var(--ink-3);
+    pointer-events: none;
+}
+
+.editor p {
+    margin: 0 0 8px;
+}
+
+.replyAttachment {
+    padding: 0 12px 8px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+/* AI writer, a one-line prompt inside the reply box. */
+.aiBox {
+    margin: 4px 10px 2px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.aiPromptRow {
+    padding: 4px 4px 4px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid #e4def9;
+    border-radius: 9px;
+}
+
+.aiPromptRow:focus-within {
+    border-color: #c9bdf5;
+}
+
+.aiIcon {
+    flex: none;
+    color: var(--ai);
+}
+
+.aiPromptRow textarea {
+    flex: 1;
+    min-width: 0;
+    padding: 5px 0;
+    resize: none;
+    border: 0;
+    outline: none;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    line-height: 1.45;
+}
+
+.aiPromptRow .iconButton {
+    width: 26px;
+    height: 26px;
+}
+
+.aiGo {
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 7px;
+    background: var(--ai);
+    color: #ffffff;
+    cursor: pointer;
+}
+
+.aiGo:disabled {
+    background: #e4def9;
+    cursor: not-allowed;
+}
+
+.aiError {
+    margin: 0;
+    color: #b42318;
+    font-size: 12px;
+}
+
+.aiSuggestion {
+    padding: 10px 12px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+}
+
+.aiSuggestion p {
+    max-height: 120px;
+    overflow-y: auto;
+    margin: 0 0 10px;
+    color: var(--ink);
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+}
+
+.aiSuggestionActions {
+    display: flex;
+    gap: 6px;
+}
+
+.replyBar {
+    padding: 6px 8px 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.replyBar .aiError {
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.aiButton,
+.aiButtonActive {
+    height: 28px;
+    padding: 0 9px;
+    flex: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 1px solid #e4def9;
+    border-radius: 7px;
+    background: #ffffff;
+    color: var(--ai);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+}
+
+.aiButton:hover,
+.aiButtonActive {
+    background: #f8f6fe;
+}
+
+.format {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    overflow-x: auto;
+    scrollbar-width: none;
+}
+
+.formatButton {
+    box-sizing: border-box;
+    width: 26px;
+    height: 26px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.formatButton:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+/* ---- Attachment preview --------------------------------------------- */
+
+.overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 100;
+    display: grid;
+    place-items: center;
+    padding: 24px;
+    background: rgba(17, 24, 39, 0.3);
+}
+
+.modal {
+    width: min(860px, 100%);
+    max-height: 90vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+    border-radius: 14px;
+    background: #ffffff;
+    box-shadow: 0 30px 80px rgba(17, 24, 39, 0.2);
+}
+
+.modalHead {
+    padding: 10px 12px 10px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    border-bottom: 1px solid var(--line);
+}
+
+.modalHead span {
+    display: flex;
+    flex-direction: column;
+    font-weight: 500;
+}
+
+.modalHead small {
+    color: var(--ink-3);
+    font-size: 12px;
+    font-weight: 400;
+}
+
+.modalBody {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    display: flex;
+    justify-content: center;
+    background: #ffffff;
+}
+
+.modalBody img {
+    max-width: 100%;
+    object-fit: contain;
+}
+
+.modalBody iframe {
+    width: 100%;
+    height: 75vh;
+    border: 0;
+}
+
+/* ---- Utilities ------------------------------------------------------- */
+
+.spinning {
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 1180px) {
+    .shell {
+        grid-template-columns: 172px minmax(240px, 300px) minmax(0, 1fr);
+    }
+}
+
+@media (max-width: 860px) {
+    .folderPane {
+        display: none;
+    }
+
+    .topBar {
+        grid-column: 1 / -1;
+    }
+
+    .page {
+        height: auto;
+    }
+
+    .shell {
+        grid-template-columns: 1fr;
+    }
+
+    .listPane {
+        max-height: 45vh;
+        border-right: 0;
+        border-bottom: 1px solid var(--line);
+    }
+
+    .topBar {
+        flex-wrap: wrap;
+    }
+
+    .replyBar {
+        flex-wrap: wrap;
+    }
+}
+
+/* ---- Chat header, search and menu ------------------------------------ */
+
+.chatHeader {
+    flex: none;
+    padding: 8px 12px 8px 16px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    border-bottom: 1px solid var(--line);
+}
+
+.chatHeader .chatTitle {
+    margin: 0 4px 0 4px;
+}
+
+.chatSubline {
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.chatLabels {
+    display: flex;
+    gap: 4px;
+    overflow: hidden;
+}
+
+.labelChip {
+    height: 20px;
+    padding: 0 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    border: 1px solid var(--line);
+    border-radius: 6px;
+    color: var(--ink-2);
+    font-size: 11px;
+    white-space: nowrap;
+}
+
+.labelChip button {
+    width: 14px;
+    height: 14px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+a.iconButton {
+    text-decoration: none;
+}
+
+.iconButtonAi {
+    box-sizing: border-box;
+    width: 30px;
+    height: 30px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ai);
+    cursor: pointer;
+}
+
+.iconButtonAi:hover {
+    background: #f8f6fe;
+}
+
+.chatMenu {
+    position: absolute;
+    top: calc(100% + 6px);
+    right: 0;
+    z-index: 30;
+    width: 180px;
+    padding: 4px;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
+}
+
+.menuItemDanger {
+    width: 100%;
+    min-height: 32px;
+    padding: 6px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: #b42318;
+    font: inherit;
+    font-size: 12.5px;
+    text-align: left;
+    cursor: pointer;
+}
+
+.menuItemDanger:hover {
+    background: #fef3f2;
+}
+
+.menuDivider {
+    height: 1px;
+    margin: 4px 2px;
+    background: var(--line);
+}
+
+.chatSearch {
+    flex: none;
+    padding: 6px 12px 6px 16px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border-bottom: 1px solid var(--line);
+    color: var(--ink-3);
+}
+
+.chatSearch input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.chatSearch small {
+    font-size: 11.5px;
+    white-space: nowrap;
+}
+
+.searchHit {
+    border-radius: 3px;
+    background: #fff3b0;
+    color: inherit;
+}
+
+/* ---- Attachments in chat --------------------------------------------- */
+
+.bubbleImage {
+    max-width: 240px;
+    max-height: 220px;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    object-fit: cover;
+}
+
+.bubbleFile {
+    max-width: 260px;
+    padding: 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ink);
+    font-size: 12.5px;
+    text-decoration: none;
+}
+
+.bubbleFile span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.bubbleFile small {
+    color: var(--ink-3);
+    font-size: 11px;
+}
+
+.draftAttachment {
+    align-self: flex-start;
+    max-width: 100%;
+    height: 26px;
+    padding: 0 4px 0 8px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px dashed #d4d8de;
+    border-radius: 999px;
+    color: var(--ink-2);
+    font-size: 12px;
+}
+
+.draftAttachment span {
+    overflow: hidden;
+    max-width: 220px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.draftAttachment button {
+    width: 18px;
+    height: 18px;
+    padding: 0;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+/* ---- Chat composer toolbar ------------------------------------------- */
+
+.chatTools {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.chatTools .aiButton {
+    margin-right: 6px;
+}
+
+.emojiPicker {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 30;
+    width: 216px;
+    padding: 6px;
+    display: grid;
+    grid-template-columns: repeat(5, 1fr);
+    gap: 2px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
+}
+
+.emojiPicker button {
+    height: 36px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+.emojiPicker button:hover {
+    background: var(--hover);
+}
+
+.toolPopover {
+    position: absolute;
+    bottom: calc(100% + 8px);
+    left: 0;
+    z-index: 30;
+    width: 280px;
+    max-height: 320px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
+}
+
+.quickReply {
+    width: 100%;
+    padding: 7px 8px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    line-height: 1.45;
+    text-align: left;
+    cursor: pointer;
+}
+
+.quickReply:hover {
+    background: var(--hover);
+}
+
+button.menuLink {
+    width: 100%;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    background: transparent;
+    font: inherit;
+    font-size: 12px;
+    text-align: left;
+    cursor: pointer;
+}
+
+button.menuLink:disabled {
+    color: var(--ink-3);
+    cursor: not-allowed;
+}
+
+.tagList {
+    padding: 2px 4px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px;
+}
+
+.tagInput {
+    margin: 2px 4px;
+    height: 30px;
+    padding: 0 8px;
+    border: 1px solid var(--line);
+    border-radius: 7px;
+    outline: 0;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.tagInput:focus {
+    border-color: #d5d7dc;
+}
+
+.tagSuggestion {
+    height: 22px;
+    padding: 0 7px;
+    border: 1px dashed #d4d8de;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 11px;
+    cursor: pointer;
+}
+
+.tagSuggestion:hover {
+    border-style: solid;
+}
+
+/* ---- Side panel: tabs, editable profile, AI ---------------------------- */
+
+.sideTabs {
+    flex: none;
+    padding: 8px 8px 8px 10px;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border-bottom: 1px solid var(--line);
+}
+
+.sideTab,
+.sideTabActive {
+    height: 28px;
+    padding: 0 10px;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    border: 1px solid transparent;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.sideTab:hover {
+    background: var(--hover);
+}
+
+.sideTabActive {
+    border-color: var(--line);
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.sideTabActive svg {
+    color: var(--ai);
+}
+
+.sideScroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+}
+
+.sideRail {
+    width: 44px;
+    flex: none;
+    padding-top: 8px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 4px;
+    border-left: 1px solid var(--line);
+}
+
+.editField {
+    margin-bottom: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 3px;
+}
+
+.editLabel {
+    color: var(--ink-3);
+    font-size: 11.5px;
+}
+
+.editValueRow {
+    max-width: 100%;
+    display: inline-flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.editValue {
+    min-width: 0;
+    overflow: hidden;
+    color: var(--ink);
+    font-size: 12.5px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+a.editValue {
+    color: #2f6bff;
+    text-decoration: none;
+}
+
+.editIcon {
+    box-sizing: border-box;
+    width: 20px;
+    height: 20px;
+    padding: 0;
+    flex: none;
+    display: inline-grid;
+    place-items: center;
+    border: 0;
+    border-radius: 5px;
+    background: transparent;
+    color: var(--ink-3);
+    opacity: 0;
+    cursor: pointer;
+    transition: opacity 120ms ease;
+}
+
+.editField:hover .editIcon,
+.propertyRow:hover > .editIcon,
+.editIcon:focus-visible {
+    opacity: 1;
+}
+
+.editIcon:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.editInput,
+.editSelect {
+    width: 100%;
+    height: 28px;
+    padding: 0 8px;
+    border: 1px solid #d5d7dc;
+    border-radius: 7px;
+    outline: 0;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+.editSelect {
+    border-color: var(--line);
+}
+
+.setValue {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.setValue:hover {
+    color: #2f6bff;
+}
+
+.propertyRow {
+    display: flex;
+    align-items: flex-start;
+    gap: 4px;
+}
+
+.propertyRow > .editField {
+    flex: 1;
+    min-width: 0;
+}
+
+.addProperty {
+    margin-bottom: 10px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    border: 0;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    cursor: pointer;
+}
+
+.addProperty:hover {
+    color: var(--ink);
+}
+
+.sharedFile {
+    margin-bottom: 6px;
+    padding: 7px 8px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    color: var(--ink);
+    font-size: 12px;
+    text-decoration: none;
+}
+
+.sharedFile span {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.sharedFile small {
+    color: var(--ink-3);
+    font-size: 10.5px;
+}
+
+.profileNote {
+    margin: 0;
+    padding: 12px 16px 16px;
+    color: var(--ink-3);
+    font-size: 11px;
+    line-height: 1.45;
+}
+
+.assistant {
+    flex: 1;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.assistantScroll {
+    flex: 1;
+    min-height: 0;
+    overflow-y: auto;
+    padding: 12px 12px 6px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.assistantEmpty {
+    margin: auto 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    color: var(--ink-3);
+    font-size: 12.5px;
+    line-height: 1.5;
+    text-align: center;
+}
+
+.assistantEmpty p {
+    margin: 0;
+    max-width: 200px;
+}
+
+.assistantMark {
+    width: 32px;
+    height: 32px;
+    display: inline-grid;
+    place-items: center;
+    border: 1px solid #e4def9;
+    border-radius: 10px;
+    color: var(--ai);
+}
+
+.assistantUser,
+.assistantReply {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 12.5px;
+    line-height: 1.55;
+}
+
+.assistantUser {
+    align-self: flex-end;
+    max-width: 88%;
+}
+
+.assistantUser p {
+    margin: 0;
+    padding: 6px 10px;
+    border-radius: 12px;
+    background: #f3f4f6;
+}
+
+.assistantReply p {
+    margin: 0;
+    white-space: pre-wrap;
+}
+
+.assistantThinking {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--ink-3);
+}
+
+.assistantDraft {
+    padding: 10px;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    border: 1px solid #e4def9;
+    border-radius: 10px;
+    background: #fcfbff;
+}
+
+.assistantDraft .primaryButton {
+    height: 28px;
+    padding: 0 10px;
+    font-size: 12px;
+}
+
+.assistantActions {
+    flex: none;
+    padding: 6px 12px 0;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+}
+
+.assistantChip {
+    height: 24px;
+    padding: 0 9px;
+    border: 1px solid #e4def9;
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--ai);
+    font: inherit;
+    font-size: 11.5px;
+    cursor: pointer;
+}
+
+.assistantChip:hover:not(:disabled) {
+    background: #f8f6fe;
+}
+
+.assistantChip:disabled {
+    opacity: 0.5;
+    cursor: wait;
+}
+
+.assistantInputRow {
+    flex: none;
+    margin: 8px 12px 12px;
+    padding: 4px 4px 4px 10px;
+    display: flex;
+    align-items: flex-end;
+    gap: 6px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+}
+
+.assistantInputRow:focus-within {
+    border-color: #c9bdf5;
+}
+
+.assistantInputRow textarea {
+    flex: 1;
+    min-width: 0;
+    max-height: 100px;
+    padding: 5px 0;
+    resize: none;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    line-height: 1.45;
+    field-sizing: content;
+}
