@@ -26,19 +26,13 @@
     flex: 1;
 }
 
-/* ---- Header ---------------------------------------------------------- */
-
-.header {
-    flex: none;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-}
+/* ---- Search (in the top bar) ---------------------------------------- */
 
 .headerSearch {
-    width: min(380px, 100%);
-    height: 34px;
-    margin-left: 14px;
+    flex: 0 1 340px;
+    min-width: 140px;
+    height: 32px;
+    margin-left: 8px;
     padding: 0 8px 0 10px;
     display: flex;
     align-items: center;
@@ -89,8 +83,38 @@
     cursor: pointer;
 }
 
-.header h1 {
-    margin: 0;
+/* "Inbox" heads the folder column, so the whole inbox is one surface
+   with no separate header row above it. The button beside it folds the
+   column to an icon strip. */
+.paneHead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.foldButton {
+    flex: none;
+    width: 28px;
+    height: 28px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink-3);
+    cursor: pointer;
+}
+
+.foldButton:hover {
+    background: var(--hover);
+    color: var(--ink);
+}
+
+.paneTitle {
+    margin: 2px 6px 0;
     font-size: 18px;
     font-weight: 500;
     letter-spacing: -0.01em;
@@ -377,8 +401,8 @@
     grid-template-columns: 200px minmax(260px, 340px) minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1fr);
     overflow: hidden;
-    border: 1px solid var(--line);
-    border-radius: 14px;
+    /* No card around the inbox: it is the page, with the panes split only
+       by their own hairline dividers. */
     background: #ffffff;
 }
 
@@ -459,117 +483,6 @@
     font-weight: 400;
 }
 
-/* ---- Channel switcher (top of the inbox sidebar) --------------------- */
-
-.channelSwitch {
-    position: relative;
-    margin-bottom: 4px;
-}
-
-.channelSwitchButton {
-    width: 100%;
-    padding: 8px 10px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: #ffffff;
-    color: var(--ink);
-    font: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: left;
-    cursor: pointer;
-}
-
-.channelSwitchButton:hover {
-    background: var(--hover);
-}
-
-.channelSwitchButton > svg:last-child {
-    color: var(--ink-3);
-}
-
-.channelSwitchCopy {
-    flex: 1;
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    line-height: 1.25;
-}
-
-.channelSwitchCopy small {
-    color: var(--ink-3);
-    font-size: 10.5px;
-    font-weight: 400;
-}
-
-.channelMenu {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    z-index: 30;
-    padding: 4px;
-    display: flex;
-    flex-direction: column;
-    border: 1px solid var(--line);
-    border-radius: 10px;
-    background: #ffffff;
-    box-shadow: 0 12px 32px rgba(17, 24, 39, 0.12);
-}
-
-.channelOption,
-.channelOptionActive,
-.channelOptionSoon {
-    width: 100%;
-    height: 34px;
-    padding: 0 8px;
-    display: flex;
-    align-items: center;
-    gap: 9px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--ink);
-    font: inherit;
-    font-size: 12.5px;
-    text-align: left;
-    cursor: pointer;
-}
-
-.channelOption span,
-.channelOptionActive span,
-.channelOptionSoon span {
-    flex: 1;
-}
-
-.channelOption:hover,
-.channelOptionActive {
-    background: var(--hover);
-}
-
-.channelOptionActive {
-    font-weight: 500;
-}
-
-.channelOptionSoon {
-    color: var(--ink-3);
-    cursor: default;
-}
-
-.unreadPill {
-    min-width: 18px;
-    padding: 0 5px;
-    border-radius: 999px;
-    background: #2f6bff;
-    color: #ffffff;
-    font-size: 10.5px;
-    line-height: 17px;
-    text-align: center;
-}
-
 /* ---- Inbox sidebar: folders, views and channels --------------------- */
 
 .folderPane {
@@ -636,6 +549,7 @@
 
 .folderLink svg,
 .folderActive svg,
+.addChannel svg,
 .channelSoon img {
     flex: none;
     color: var(--ink-3);
@@ -643,6 +557,7 @@
 
 .folderLink span,
 .folderActive span,
+.addChannel span,
 .channelSoon span {
     flex: 1;
     min-width: 0;
@@ -674,18 +589,25 @@
     color: var(--ink);
 }
 
-.channelSoon {
-    cursor: default;
-    opacity: 0.75;
+/* Channels sit under Others on desktop; on phones they move to the front
+   of the folder row (see the phone rules). */
+.channelsSection {
+    flex: none;
 }
 
-.soonBadge {
-    padding: 0 5px;
-    border: 1px solid var(--line);
-    border-radius: 5px;
+/* Channels that aren't connected yet: muted, and they open Integrations. */
+.channelSoon {
     color: var(--ink-3);
-    font-size: 10px;
-    line-height: 16px;
+}
+
+.channelSoon img,
+.channelSoon svg {
+    opacity: 0.55;
+}
+
+.channelSoon:hover {
+    background: var(--hover);
+    color: var(--ink-2);
 }
 
 .addChannel {
@@ -974,12 +896,18 @@
     gap: 2px;
 }
 
-/* The email always keeps at least 40% of the pane, so it stays in view
-   while the reply below it is being written. */
-.readerScroll {
+/* One scroll for the email and the reply: the whole email first, the
+   reply card after it, so the reply never covers what was sent. */
+.readerFlow {
     flex: 1 1 auto;
-    min-height: 40%;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
     overflow-y: auto;
+}
+
+.readerScroll {
+    flex: none;
     padding: 18px 24px 20px;
 }
 
@@ -1589,9 +1517,56 @@ button.personChip {
     gap: 6px;
 }
 
-/* Narrow screens: the chat gets the room; the profile hides. */
+/* ---- Folded folder column (desktop): icons only, names on hover ------ */
+
+@media (min-width: 861px) {
+    .shell.shellFolded {
+        grid-template-columns: 52px minmax(260px, 340px) minmax(0, 1fr);
+    }
+
+    .shellFolded .folderPane {
+        padding: 10px 6px 14px;
+        align-items: center;
+    }
+
+    .shellFolded .paneHead {
+        justify-content: center;
+    }
+
+    .shellFolded .paneTitle,
+    .shellFolded .sectionHead,
+    .shellFolded .folderLink span,
+    .shellFolded .folderActive span,
+    .shellFolded .folderLink small,
+    .shellFolded .folderActive small,
+    .shellFolded .channelSoon span,
+    .shellFolded .addChannel span {
+        display: none;
+    }
+
+    .shellFolded .folderSection {
+        width: 100%;
+        align-items: center;
+    }
+
+    .shellFolded .folderLink,
+    .shellFolded .folderActive,
+    .shellFolded .channelSoon,
+    .shellFolded .addChannel {
+        width: 36px;
+        padding: 0;
+        justify-content: center;
+    }
+}
+
+/* Narrow screens: the chat gets the room; the profile hides. The "1–11
+   of 11" count also hides so search and Compose fit in the top bar. */
 @media (max-width: 1240px) {
     .contactPanel {
+        display: none;
+    }
+
+    .range {
         display: none;
     }
 }
@@ -1822,7 +1797,6 @@ button.attachment {
 .composerFull {
     flex: none;
     min-height: 0;
-    max-height: 58%;
     margin: 0 16px 14px;
     display: flex;
     flex-direction: column;
@@ -1833,9 +1807,9 @@ button.attachment {
     box-shadow: 0 4px 16px rgba(17, 24, 39, 0.05);
 }
 
-/* Expanded reply: a fixed share of the pane, the email still above it. */
+/* Expanded reply: a roomy writing area, still below the email. */
 .composerTall {
-    height: 55%;
+    min-height: 420px;
 }
 
 /* New email: nothing to read, so the composer takes the whole pane. */
@@ -2307,18 +2281,46 @@ button.attachment {
     /* Phones and small tablets: one column. Folders become a scrolling row
        above the list instead of disappearing, so Sent, Drafts and Trash
        stay reachable. */
-    .header {
-        flex-wrap: wrap;
-    }
-
+    /* Top bar on phones: breadcrumb with Compose at the right, then
+       search across the full width, then the date filter and arrows. */
     .headerSearch {
-        order: 3;
-        width: 100%;
+        order: 2;
+        flex: 1 1 100%;
         margin-left: 0;
     }
 
-    .header > :last-child {
+    .topBar > .primaryButton {
+        order: 1;
         margin-left: auto;
+    }
+
+    .topBar > .spacer {
+        display: none;
+    }
+
+    .dateFilter,
+    .pager {
+        order: 3;
+    }
+
+    .paneHead {
+        flex: none;
+        order: -2;
+        margin: 0 6px 0 4px;
+    }
+
+    .paneTitle {
+        margin: 0;
+    }
+
+    /* Phones already show folders as one scrolling row; no folding. */
+    .foldButton {
+        display: none;
+    }
+
+    /* Channels come first in the scrolling row, right after the title. */
+    .channelsSection {
+        order: -1;
     }
 
     .folderPane {
@@ -2356,11 +2358,6 @@ button.attachment {
         width: auto;
         flex: none;
         white-space: nowrap;
-    }
-
-    .channelSwitch {
-        flex: none;
-        margin-bottom: 0;
     }
 
     .topBar {
