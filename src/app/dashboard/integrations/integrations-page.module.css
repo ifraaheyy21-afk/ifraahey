@@ -1,0 +1,463 @@
+/* Integrations, modelled on the "Integrations Page - CRM Dashboard" Dribbble
+   shot. The page fills the content area (no width cap) so it sits flush
+   with the rest of the dashboard. Same palette and light type as the inbox:
+   all white, hairline borders, 500 is the heaviest weight used. Green and
+   red are the app's existing connected-badge and danger colours. */
+
+.page {
+    --ink: #111827;
+    --ink-2: #4b5563;
+    --ink-3: #8b929c;
+    --line: #ececef;
+    --hover: #f7f7f8;
+    --danger: #b42318;
+    --ok: #047857;
+
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+    background: #ffffff;
+    color: var(--ink);
+    font-size: 13px;
+    font-weight: 400;
+}
+
+/* ---- Header: title, faded logo mosaic, divider (from the Pivot shot) -- */
+
+.header {
+    position: relative;
+    height: 118px;
+    display: flex;
+    align-items: center;
+    border-bottom: 1px solid var(--line);
+    overflow: hidden;
+}
+
+.headerText {
+    position: relative;
+    z-index: 1;
+    padding-bottom: 6px;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+    letter-spacing: -0.02em;
+}
+
+.header p {
+    margin: 6px 0 0;
+    color: var(--ink-2);
+    font-size: 14px;
+}
+
+/* Three rows of tiles across the right 60% of the header. auto-fill keeps
+   only whole columns, and justify-content: end pins them to the right edge,
+   so the wall ends flush with the cards below at any width. */
+.mosaic {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 60%;
+    height: 102px;
+    display: grid;
+    grid-template-columns: repeat(auto-fill, 30px);
+    grid-auto-rows: 30px;
+    justify-content: end;
+    gap: 6px 8px;
+    overflow: hidden;
+    opacity: 0.6;
+    -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 65%);
+    mask-image: linear-gradient(90deg, transparent 0%, #000 65%);
+    pointer-events: none;
+}
+
+.mosaic span {
+    width: 30px;
+    height: 30px;
+    display: grid;
+    place-items: center;
+    border-radius: 7px;
+    background: var(--hover);
+}
+
+.mosaic img {
+    width: 15px;
+    height: 15px;
+    object-fit: contain;
+    filter: saturate(0.6);
+}
+
+.requestButton {
+    flex: none;
+    height: 34px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+}
+
+.requestButton:hover {
+    background: var(--hover);
+}
+
+/* ---- Notice ---------------------------------------------------------- */
+
+.notice {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    color: var(--ink-2);
+}
+
+.notice span {
+    flex: 1;
+    min-width: 0;
+}
+
+.noticeError {
+    color: var(--danger);
+}
+
+.notice button {
+    border: 0;
+    background: transparent;
+    color: var(--ink-3);
+    font-size: 16px;
+    line-height: 1;
+    cursor: pointer;
+}
+
+/* ---- Toolbar: status switch + search, as in the shot ----------------- */
+
+.toolbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.tabs {
+    display: inline-flex;
+    padding: 3px;
+    gap: 2px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    background: var(--hover);
+}
+
+.tabs button {
+    height: 28px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 7px;
+    background: transparent;
+    color: var(--ink-2);
+    font: inherit;
+    font-size: 12.5px;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.tabs button:hover {
+    color: var(--ink);
+}
+
+.tabs .tabActive {
+    background: #ffffff;
+    color: var(--ink);
+    font-weight: 500;
+    box-shadow: 0 0 0 1px var(--line);
+}
+
+.shortLabel {
+    display: none;
+}
+
+.toolbarEnd {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    min-width: 0;
+}
+
+.search {
+    width: min(240px, 100%);
+    height: 34px;
+    padding: 0 10px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+    color: var(--ink-3);
+}
+
+.search:focus-within {
+    border-color: #d5d7dc;
+}
+
+.search input {
+    flex: 1;
+    min-width: 0;
+    border: 0;
+    outline: 0;
+    background: transparent;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+}
+
+/* ---- Sections and cards ---------------------------------------------- */
+
+.section {
+    margin-top: 4px;
+}
+
+.section h2 {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 500;
+}
+
+.sectionBlurb {
+    margin: 3px 0 12px;
+    color: var(--ink-3);
+    font-size: 12.5px;
+}
+
+/* Three equal columns that always span the full width. */
+.grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.card {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    background: #ffffff;
+}
+
+.cardBody {
+    flex: 1;
+    display: flex;
+    gap: 12px;
+    padding: 14px;
+}
+
+.logo {
+    flex: none;
+    width: 36px;
+    height: 36px;
+    display: grid;
+    place-items: center;
+    border: 1px solid var(--line);
+    border-radius: 9px;
+}
+
+.logo img {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.cardBody div {
+    min-width: 0;
+}
+
+.cardBody h3 {
+    margin: 0;
+    font-size: 13.5px;
+    font-weight: 500;
+}
+
+.cardBody p {
+    margin: 3px 0 0;
+    color: var(--ink-2);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.cardFoot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    padding: 10px 14px;
+    border-top: 1px solid var(--line);
+}
+
+.actions {
+    display: flex;
+    gap: 6px;
+    min-width: 0;
+}
+
+.actions a,
+.actions button {
+    height: 30px;
+    padding: 0 12px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    background: #ffffff;
+    color: var(--ink);
+    font: inherit;
+    font-size: 12.5px;
+    font-weight: 500;
+    text-decoration: none;
+    white-space: nowrap;
+    cursor: pointer;
+}
+
+.actions a:hover,
+.actions button:hover {
+    background: var(--hover);
+}
+
+.actions .danger {
+    color: var(--danger);
+}
+
+.actions button:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+/* Switch: grey off, the app's green on, like the shot. */
+.toggle {
+    flex: none;
+    position: relative;
+    width: 32px;
+    height: 18px;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: #dfe1e5;
+    cursor: pointer;
+    transition: background 0.15s;
+}
+
+.toggle span {
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: #ffffff;
+    box-shadow: 0 1px 2px rgba(17, 24, 39, 0.2);
+    transition: transform 0.15s;
+}
+
+.toggle[aria-checked="true"] {
+    background: var(--ok);
+}
+
+.toggle[aria-checked="true"] span {
+    transform: translateX(14px);
+}
+
+.toggle:disabled {
+    opacity: 0.6;
+    cursor: default;
+}
+
+.toggle:focus-visible,
+.tabs button:focus-visible,
+.actions a:focus-visible,
+.actions button:focus-visible,
+.requestButton:focus-visible {
+    outline: 2px solid var(--ink-3);
+    outline-offset: 2px;
+}
+
+/* ---- Empty state ----------------------------------------------------- */
+
+.empty {
+    padding: 48px 16px;
+    border: 1px dashed var(--line);
+    border-radius: 12px;
+    text-align: center;
+    color: var(--ink-2);
+}
+
+.empty p {
+    margin: 0 0 8px;
+}
+
+.empty a {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+/* ---- Narrower screens ------------------------------------------------ */
+
+@media (max-width: 1100px) {
+    .grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+}
+
+@media (max-width: 640px) {
+    .header {
+        height: auto;
+        padding-bottom: 16px;
+    }
+
+    .header h1 {
+        font-size: 22px;
+    }
+
+    .mosaic {
+        display: none;
+    }
+
+
+    .toolbar {
+        flex-direction: column;
+        align-items: stretch;
+    }
+
+    .tabs button {
+        flex: 1 1 auto;
+        padding: 0 8px;
+        font-size: 12px;
+    }
+
+    .longLabel {
+        display: none;
+    }
+
+    .shortLabel {
+        display: inline;
+    }
+
+    .search {
+        flex: 1;
+        width: auto;
+        min-width: 0;
+    }
+
+    .grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+}

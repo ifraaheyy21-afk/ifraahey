@@ -1,43 +1,56 @@
 "use client";
 
-import "@fontsource/inter";
-import { useEffect, useMemo, useState } from "react";
-import { integrations } from "../../../lib/integrationsData";
+/* Integrations, modelled on the "Integrations Page - CRM Dashboard" Dribbble
+   shot: title, a status switcher with search, then titled category sections
+   in a full-width three-column grid of cards (logo, name, description, and a
+   footer with buttons and a toggle). */
+
+import { use, useEffect, useMemo, useState } from "react";
+
+import {
+    CATEGORIES,
+    INTEGRATIONS,
+    favicon,
+    type IntegrationEntry,
+} from "../../../lib/integrations-catalogue";
+import styles from "./integrations-page.module.css";
 
 type ConnectedIntegration = {
     provider: string;
     status: string;
 };
 
-function normaliseProviderName(name: string) {
-    return name.toLowerCase().replace(/\s+/g, "_");
+type StatusFilter = "all" | "connected" | "disconnected";
+
+const STATUS_TABS: { id: StatusFilter; label: string; short?: string }[] = [
+    { id: "all", label: "All applications", short: "All" },
+    { id: "connected", label: "Connected" },
+    { id: "disconnected", label: "Not connected" },
+];
+
+const REQUEST_EMAIL = "support@mailgine.com";
+
+function requestHref(name?: string) {
+    const subject = name ? `Integration request: ${name}` : "Integration request";
+    return `mailto:${REQUEST_EMAIL}?subject=${encodeURIComponent(subject)}`;
 }
 
-function getLogoUrl(item: { name: string; domain: string }) {
-    const provider = normaliseProviderName(item.name);
-
-    const logos: Record<string, string> = {
-        slack: "https://www.google.com/s2/favicons?domain=slack.com&sz=128",
-        salesforce:
-            "https://www.google.com/s2/favicons?domain=salesforce.com&sz=128",
-        pipedrive: "https://www.google.com/s2/favicons?domain=pipedrive.com&sz=128",
-        stripe: "https://www.google.com/s2/favicons?domain=stripe.com&sz=128",
-
-        hubspot: "https://www.google.com/s2/favicons?domain=hubspot.com&sz=128",
-        intercom: "https://www.google.com/s2/favicons?domain=intercom.com&sz=128",
-        sendgrid: "https://www.google.com/s2/favicons?domain=sendgrid.com&sz=128",
-        mailgun: "https://www.google.com/s2/favicons?domain=mailgun.com&sz=128",
-        resend: "https://cdn.simpleicons.org/resend/000000",
-        zapier: "https://www.google.com/s2/favicons?domain=zapier.com&sz=128",
-        google_calendar: "https://cdn.simpleicons.org/googlecalendar",
-        posthog: "https://www.google.com/s2/favicons?domain=posthog.com&sz=128",
-    };
-
-    return (
-        logos[provider] ||
-        `https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`
-    );
+function nameFor(id: string) {
+    return INTEGRATIONS.find((item) => item.id === id)?.name ?? id.replace(/_/g, " ");
 }
+
+function categoryLabel(item: IntegrationEntry) {
+    return CATEGORIES.find((entry) => entry.id === item.category)?.label ?? "";
+}
+
+/* Decorative logo wall beside the title. Three rows of up to 24 tiles; CSS
+   shows as many columns as fit, so the wall always ends flush with the
+   page's right edge. Each row starts at a different point in the list so
+   repeats don't line up. */
+const MOSAIC = Array.from({ length: 72 }, (_, index) => {
+    const row = Math.floor(index / 24);
+    return INTEGRATIONS[(index + row * 7) % INTEGRATIONS.length];
+});
 
 function handleLogoError(event: React.SyntheticEvent<HTMLImageElement>) {
     const img = event.currentTarget;
@@ -48,97 +61,113 @@ function handleLogoError(event: React.SyntheticEvent<HTMLImageElement>) {
     }
 }
 
-export default function IntegrationsPage() {
+/** Connected providers for this workspace, or null if they couldn't load. */
+async function fetchStatus(): Promise<ConnectedIntegration[] | null> {
+    try {
+        const res = await fetch("/api/integrations/status", {
+            credentials: "include",
+            cache: "no-store",
+        });
+
+        if (!res.ok) {
+            return null;
+        }
+
+        const data = await res.json();
+
+        return Array.isArray(data.integrations) ? data.integrations : [];
+    } catch (error) {
+        console.error("Failed to load integrations:", error);
+        return null;
+    }
+}
+
+function first(value: string | string[] | undefined) {
+    return Array.isArray(value) ? value[0] : value;
+}
+
+export default function IntegrationsPage({
+    searchParams,
+}: {
+    searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
+}) {
+    const params = use(searchParams);
+    const connectedParam = first(params.connected);
+    const errorParam = first(params.error);
+
     const [connectedIntegrations, setConnectedIntegrations] = useState<
         ConnectedIntegration[]
     >([]);
     const [loadingProvider, setLoadingProvider] = useState<string | null>(null);
+    const [query, setQuery] = useState("");
+    const [statusFilter, setStatusFilter] = useState<StatusFilter>("all");
+    const [noticeHidden, setNoticeHidden] = useState(false);
+    /* Shown when someone tries a tool that isn't wired up yet. */
+    const [comingNotice, setComingNotice] = useState<string | null>(null);
 
     async function loadStatus() {
-        try {
-            const res = await fetch("/api/integrations/status", {
-                cache: "no-store",
-            });
-
-            if (!res.ok) {
-                return;
-            }
-
-            const data = await res.json();
-
-            setConnectedIntegrations(
-                Array.isArray(data.integrations) ? data.integrations : [],
-            );
-        } catch (error) {
-            console.error("Failed to load integrations:", error);
-        }
+        const list = await fetchStatus();
+        if (list) setConnectedIntegrations(list);
     }
 
     useEffect(() => {
-        void loadStatus();
+        let active = true;
+
+        void fetchStatus().then((list) => {
+            if (active && list) setConnectedIntegrations(list);
+        });
+
+        return () => {
+            active = false;
+        };
     }, []);
 
     const connectedProviders = useMemo(() => {
         return new Set(
             connectedIntegrations
                 .filter((item) => item.status === "connected")
-                .map((item) => normaliseProviderName(item.provider)),
+                .map((item) => item.provider.toLowerCase()),
         );
     }, [connectedIntegrations]);
 
-    const uniqueIntegrations = useMemo(() => {
-        const seenProviders = new Set<string>();
-
-        return integrations.filter((item) => {
-            const provider = normaliseProviderName(item.name);
-
-            if (seenProviders.has(provider)) {
-                return false;
-            }
-
-            seenProviders.add(provider);
-            return true;
-        });
-    }, []);
-
-    function handleConnect(itemName: string) {
-        const provider = normaliseProviderName(itemName);
-
-        const oauthRoutes: Record<string, string> = {
-            salesforce: "/api/integrations/salesforce/connect",
-            pipedrive: "/api/integrations/pipedrive/connect",
-            intercom: "/api/integrations/intercom/connect",
-            google_calendar: "/api/integrations/google-calendar/connect",
-            slack: "/api/integrations/slack/connect",
-        };
-
-        const dashboardRoutes: Record<string, string> = {
-            resend: "/dashboard/integrations/resend",
-        };
-
-        const oauthRoute = oauthRoutes[provider];
-
-        if (oauthRoute) {
-            window.location.href = oauthRoute;
-            return;
-        }
-
-        const dashboardRoute = dashboardRoutes[provider];
-
-        if (dashboardRoute) {
-            window.location.href = dashboardRoute;
-            return;
-        }
-
-        console.warn(`No connection flow has been configured for ${provider}.`);
+    function isConnected(item: IntegrationEntry) {
+        return Boolean(item.provider && connectedProviders.has(item.provider));
     }
 
-    async function handleDisconnect(itemName: string) {
-        const provider = normaliseProviderName(itemName);
+    const needle = query.trim().toLowerCase();
 
-        const confirmed = window.confirm(`Disconnect ${itemName}?`);
+    const visible = INTEGRATIONS.filter((item) => {
+        if (statusFilter === "connected" && !isConnected(item)) return false;
+        if (statusFilter === "disconnected" && isConnected(item)) return false;
+        if (!needle) return true;
 
-        if (!confirmed) {
+        return [item.name, item.description, categoryLabel(item)]
+            .join(" ")
+            .toLowerCase()
+            .includes(needle);
+    });
+
+    const sections = CATEGORIES.map((entry) => ({
+        ...entry,
+        items: visible.filter((item) => item.category === entry.id),
+    })).filter((section) => section.items.length > 0);
+
+    function handleConnect(item: IntegrationEntry) {
+        if (item.connect) {
+            window.location.assign(item.connect);
+            return;
+        }
+
+        setComingNotice(
+            `${item.name} isn't ready to connect yet. It's on its way.`,
+        );
+        window.scrollTo({ top: 0, behavior: "smooth" });
+    }
+
+    async function handleDisconnect(item: IntegrationEntry) {
+        const provider = item.provider;
+
+        if (!provider || !window.confirm(`Disconnect ${item.name}?`)) {
             return;
         }
 
@@ -147,6 +176,7 @@ export default function IntegrationsPage() {
 
             const res = await fetch("/api/integrations/disconnect", {
                 method: "POST",
+                credentials: "include",
                 headers: {
                     "Content-Type": "application/json",
                 },
@@ -156,7 +186,7 @@ export default function IntegrationsPage() {
             if (!res.ok) {
                 const data = await res.json().catch(() => null);
 
-                window.alert(data?.error || `Failed to disconnect ${itemName}.`);
+                window.alert(data?.error || `Failed to disconnect ${item.name}.`);
 
                 return;
             }
@@ -164,127 +194,190 @@ export default function IntegrationsPage() {
             await loadStatus();
         } catch (error) {
             console.error(`Failed to disconnect ${provider}:`, error);
-            window.alert(`Failed to disconnect ${itemName}.`);
+            window.alert(`Failed to disconnect ${item.name}.`);
         } finally {
             setLoadingProvider(null);
         }
     }
 
-    function handleRequestIntegration() {
-        window.location.href =
-            "mailto:support@mailgine.com?subject=Integration request";
-    }
+    const notice = comingNotice
+        ? { tone: "ok" as const, text: comingNotice }
+        : noticeHidden
+            ? null
+            : errorParam
+                ? {
+                    tone: "error" as const,
+                    text: `Couldn't finish connecting: ${errorParam.replace(/_/g, " ")}.`,
+                }
+                : connectedParam
+                    ? { tone: "ok" as const, text: `${nameFor(connectedParam)} is connected.` }
+                    : null;
 
     return (
-        <section className="integrationsPage">
-            <section className="integrationsContent">
-                <header className="integrationsHeader">
-                    <div>
-                        <h1>Integrations</h1>
+        <section className={styles.page}>
+            <header className={styles.header}>
+                <div className={styles.headerText}>
+                    <h1>Integrations</h1>
+                    <p>Integrate with your favourite apps.</p>
+                </div>
 
-                        <span>
-                            Connect the tools your customers already use, then let AI analyse
-                            activity, risk, revenue and email opportunities.
+                <div className={styles.mosaic} aria-hidden="true">
+                    {MOSAIC.map((item, index) => (
+                        <span key={index}>
+                            {/* eslint-disable-next-line @next/next/no-img-element -- remote brand logos */}
+                            <img
+                                src={item.logo}
+                                data-fallback={favicon(item.domain)}
+                                onError={handleLogoError}
+                                alt=""
+                            />
                         </span>
-                    </div>
+                    ))}
+                </div>
+            </header>
 
-                    <button type="button" onClick={handleRequestIntegration}>
-                        + Request integration
+            {notice && (
+                <div
+                    className={`${styles.notice} ${notice.tone === "error" ? styles.noticeError : ""}`}
+                    role="status"
+                >
+                    <span>{notice.text}</span>
+                    <button
+                        type="button"
+                        aria-label="Dismiss"
+                        onClick={() => {
+                            setComingNotice(null);
+                            setNoticeHidden(true);
+                        }}
+                    >
+                        ×
                     </button>
-                </header>
+                </div>
+            )}
 
-                <section className="integrationHero">
-                    <div>
-                        <h2>Sync customer data from your favourite tools</h2>
+            <div className={styles.toolbar}>
+                <div className={styles.tabs} role="tablist" aria-label="Filter by status">
+                    {STATUS_TABS.map((tab) => (
+                        <button
+                            key={tab.id}
+                            type="button"
+                            role="tab"
+                            aria-selected={statusFilter === tab.id}
+                            className={statusFilter === tab.id ? styles.tabActive : undefined}
+                            onClick={() => setStatusFilter(tab.id)}
+                        >
+                            {tab.short ? (
+                                <>
+                                    <span className={styles.longLabel}>{tab.label}</span>
+                                    <span className={styles.shortLabel}>{tab.short}</span>
+                                </>
+                            ) : (
+                                tab.label
+                            )}
+                        </button>
+                    ))}
+                </div>
 
-                        <p>
-                            Import customers from payments, CRM, support, email, spreadsheets
-                            and workspaces so Mailgine can generate personalised AI emails.
-                        </p>
-                    </div>
+                <div className={styles.toolbarEnd}>
+                    <label className={styles.search}>
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                            <circle cx="11" cy="11" r="7" stroke="currentColor" strokeWidth="1.8" />
+                            <path d="m20 20-3.5-3.5" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
+                        </svg>
+                        <input
+                            type="search"
+                            value={query}
+                            onChange={(event) => setQuery(event.target.value)}
+                            placeholder="Search"
+                            aria-label="Search integrations"
+                        />
+                    </label>
 
-                    <div className="heroStack" aria-label="Featured integrations">
-                        {uniqueIntegrations.slice(0, 5).map((item) => {
-                            const provider = normaliseProviderName(item.name);
+                    <a className={styles.requestButton} href={requestHref()}>
+                        Request a tool
+                    </a>
+                </div>
+            </div>
 
-                            return (
-                                <img
-                                    key={`hero-${provider}`}
-                                    src={getLogoUrl(item)}
-                                    data-fallback={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`}
-                                    onError={handleLogoError}
-                                    alt={`${item.name} logo`}
-                                />
-                            );
-                        })}
-                    </div>
-                </section>
+            {sections.length === 0 ? (
+                <div className={styles.empty}>
+                    <p>No integrations match{needle ? ` “${query.trim()}”` : " this filter"}.</p>
+                    <a href={requestHref(query.trim() || undefined)}>Request it</a>
+                </div>
+            ) : (
+                sections.map((section) => (
+                    <section key={section.id} className={styles.section}>
+                        <h2>{section.label}</h2>
+                        <p className={styles.sectionBlurb}>{section.blurb}</p>
 
-                <section className="integrationsGrid">
-                    {uniqueIntegrations.map((item) => {
-                        const provider = normaliseProviderName(item.name);
-                        const isConnected = connectedProviders.has(provider);
-                        const isLoading = loadingProvider === provider;
+                        <div className={styles.grid}>
+                            {section.items.map((item) => {
+                                const connected = isConnected(item);
+                                const busy = loadingProvider === item.provider;
 
-                        return (
-                            <article
-                                className="integrationCard"
-                                key={`integration-${provider}`}
-                            >
-                                <div className="integrationTop">
-                                    <img
-                                        src={getLogoUrl(item)}
-                                        data-fallback={`https://www.google.com/s2/favicons?domain=${item.domain}&sz=128`}
-                                        onError={handleLogoError}
-                                        alt={`${item.name} logo`}
-                                    />
+                                return (
+                                    <article key={item.id} className={styles.card}>
+                                        <div className={styles.cardBody}>
+                                            <span className={styles.logo}>
+                                                {/* eslint-disable-next-line @next/next/no-img-element -- remote brand logos */}
+                                                <img
+                                                    src={item.logo}
+                                                    data-fallback={favicon(item.domain)}
+                                                    onError={handleLogoError}
+                                                    alt=""
+                                                    loading="lazy"
+                                                />
+                                            </span>
+                                            <div>
+                                                <h3>{item.name}</h3>
+                                                <p>{item.description}</p>
+                                            </div>
+                                        </div>
 
-                                    <div>
-                                        <h3>{item.name}</h3>
-                                        <p>{item.domain}</p>
-                                    </div>
+                                        <div className={styles.cardFoot}>
+                                            <div className={styles.actions}>
+                                                {connected ? (
+                                                    <>
+                                                        {item.manage && <a href={item.manage}>Manage</a>}
+                                                        <button
+                                                            type="button"
+                                                            className={styles.danger}
+                                                            onClick={() => handleDisconnect(item)}
+                                                            disabled={busy}
+                                                        >
+                                                            {busy ? "Disconnecting…" : "Disconnect"}
+                                                        </button>
+                                                    </>
+                                                ) : (
+                                                    <button type="button" onClick={() => handleConnect(item)}>
+                                                        Connect
+                                                    </button>
+                                                )}
+                                            </div>
 
-                                    <span
-                                        className={
-                                            isConnected
-                                                ? "statusBadge connected"
-                                                : item.status === "Available"
-                                                    ? "statusBadge available"
-                                                    : "statusBadge soon"
-                                        }
-                                    >
-                                        {isConnected ? "Connected" : item.status}
-                                    </span>
-                                </div>
-
-                                <div className="integrationCategory">{item.category}</div>
-
-                                <p className="integrationDescription">{item.description}</p>
-
-                                {isConnected ? (
-                                    <button
-                                        type="button"
-                                        className="integrationButton disconnectButton"
-                                        onClick={() => handleDisconnect(item.name)}
-                                        disabled={isLoading}
-                                    >
-                                        {isLoading ? "Disconnecting..." : "Disconnect"}
-                                    </button>
-                                ) : (
-                                    <button
-                                        type="button"
-                                        className="integrationButton"
-                                        onClick={() => handleConnect(item.name)}
-                                        disabled={isLoading}
-                                    >
-                                        Connect
-                                    </button>
-                                )}
-                            </article>
-                        );
-                    })}
-                </section>
-            </section>
+                                            <button
+                                                type="button"
+                                                role="switch"
+                                                aria-checked={connected}
+                                                aria-label={`${connected ? "Disconnect" : "Connect"} ${item.name}`}
+                                                className={styles.toggle}
+                                                disabled={busy}
+                                                onClick={() =>
+                                                    connected
+                                                        ? handleDisconnect(item)
+                                                        : handleConnect(item)
+                                                }
+                                            >
+                                                <span />
+                                            </button>
+                                        </div>
+                                    </article>
+                                );
+                            })}
+                        </div>
+                    </section>
+                ))
+            )}
         </section>
     );
 }
