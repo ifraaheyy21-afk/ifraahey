@@ -1,6 +1,6 @@
 "use client";
 
-import "@fontsource/inter";
+
 
 import { Check } from "lucide-react";
 import { onAuthStateChanged, type User } from "firebase/auth";
@@ -227,7 +227,7 @@ export default function SettingsPage() {
                                             <span>
                                                 {profileImageUrl
                                                     ? "Synced from your sign-in account"
-                                                    : "Using your initials until a profile photo is available"}
+                                                    : ""}
                                             </span>
                                         </div>
                                     </div>
