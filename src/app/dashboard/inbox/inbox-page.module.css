@@ -129,10 +129,36 @@
     color: #b42318;
 }
 
+/* Setup problems that stop the inbox working fully (e.g. Resend). */
+.setupNotice {
+    flex: none;
+    padding: 8px 8px 8px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    background: #ffffff;
+    color: var(--ink-2);
+    font-size: 12.5px;
+    flex-wrap: wrap;
+}
+
+.setupNotice > span {
+    flex: 1 1 260px;
+    min-width: 0;
+}
+
+.setupNotice > svg {
+    flex: none;
+    color: var(--ink-3);
+}
+
 /* ---- Buttons --------------------------------------------------------- */
 
 .primaryButton,
-.ghostButton {
+.ghostButton,
+.ghostButtonActive {
     height: 32px;
     padding: 0 12px;
     display: inline-flex;
@@ -175,9 +201,21 @@
     color: var(--ink);
 }
 
+.ghostButton:disabled {
+    color: #a2a8b1;
+    cursor: not-allowed;
+}
+
+/* A toggle that's on, such as Select while choosing emails. */
+.ghostButtonActive {
+    border: 1px solid var(--ink);
+    background: var(--hover);
+    color: var(--ink);
+}
+
 .iconButton,
 .iconButtonOn,
-.iconButtonStar {
+.iconButtonPinned {
     box-sizing: border-box;
     width: 30px;
     height: 30px;
@@ -207,8 +245,10 @@
     color: var(--ai);
 }
 
-.iconButtonStar {
-    color: #f59e0b;
+/* Pinned: the button stays filled in so the state reads at a glance. */
+.iconButtonPinned {
+    background: var(--hover);
+    color: var(--ink);
 }
 
 .linkButton {
@@ -731,6 +771,78 @@
     transform: rotate(-90deg);
 }
 
+/* ---- Selecting emails -------------------------------------------- */
+
+/* The tick box sits over the small avatar: it shows on hover, on ticked
+   rows, everywhere while selecting, and always on touch screens. */
+.threadRow,
+.threadRowChecked {
+    position: relative;
+}
+
+.threadCheck {
+    position: absolute;
+    top: 16px;
+    left: 11px;
+    z-index: 1;
+    width: 15px;
+    height: 15px;
+    margin: 0;
+    accent-color: var(--ink);
+    cursor: pointer;
+    opacity: 0;
+}
+
+/* Checkboxes only exist in Select mode, so they're always visible there. */
+.threadListSelecting .threadCheck {
+    opacity: 1;
+}
+
+.threadListSelecting .avatar {
+    visibility: hidden;
+}
+
+.threadRowChecked .thread,
+.threadRowChecked .threadActive {
+    background: var(--hover);
+}
+
+@media (hover: none) {
+    .threadCheck {
+        opacity: 1;
+    }
+
+    .threadRow .avatar {
+        visibility: hidden;
+    }
+}
+
+.bulkBar {
+    flex: none;
+    min-height: 42px;
+    padding: 4px 8px 4px 21px;
+    display: flex;
+    align-items: center;
+    gap: 2px;
+    border-bottom: 1px solid var(--line);
+    background: #ffffff;
+}
+
+.bulkCheck {
+    width: 15px;
+    height: 15px;
+    margin: 0 8px 0 0;
+    accent-color: var(--ink);
+    cursor: pointer;
+}
+
+.bulkCount {
+    color: var(--ink);
+    font-size: 12.5px;
+    font-weight: 500;
+    white-space: nowrap;
+}
+
 .thread,
 .threadActive {
     width: 100%;
@@ -788,15 +900,18 @@
     background: #2f6bff;
 }
 
-.starIcon {
+.pinIcon {
     flex: none;
-    color: #f59e0b;
+    color: var(--ink-2);
+    transform: rotate(35deg);
 }
 
+/* Read emails sit back; new ones (.threadUnread) stand out below. */
 .threadSubject {
     overflow: hidden;
+    color: var(--ink-2);
     font-size: 12.5px;
-    font-weight: 500;
+    font-weight: 400;
     text-overflow: ellipsis;
     white-space: nowrap;
 }
@@ -1730,7 +1845,8 @@ button.personChip {
     gap: 8px;
 }
 
-.attachment {
+.attachment,
+.attachmentButton {
     min-width: 0;
     max-width: 230px;
     padding: 7px 10px;
@@ -1745,8 +1861,17 @@ button.personChip {
     text-align: left;
 }
 
-button.attachment {
+button.attachment,
+.attachmentButton {
     cursor: pointer;
+}
+
+.attachmentButton:hover:not(:disabled) {
+    background: var(--hover);
+}
+
+.attachmentButton:disabled {
+    cursor: progress;
 }
 
 .attachmentIcon {
@@ -3137,4 +3262,21 @@ a.editValue {
     font-size: 12.5px;
     line-height: 1.45;
     field-sizing: content;
+}
+
+/* ---- New (unread) emails ---------------------------------------------- */
+
+/* A blue edge, the dot and darker type mark mail you haven't opened yet. */
+.threadUnread {
+    box-shadow: inset 3px 0 0 #2f6bff;
+}
+
+.threadUnread .threadFrom,
+.threadUnread .threadSubject {
+    color: var(--ink);
+    font-weight: 500;
+}
+
+.threadUnread .threadPreview {
+    color: var(--ink-2);
 }

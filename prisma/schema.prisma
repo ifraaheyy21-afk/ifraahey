@@ -533,9 +533,13 @@ model InboxSentMessage {
   html               String
   plainText          String
   inReplyTo          String?
+  // First file only; kept for rows sent before several files were allowed.
   attachmentName     String?
   attachmentMimeType String?
   attachmentSize     Int?
+  // Every file sent with the email: [{ fileName, mimeType, size }]. The files
+  // themselves are not stored.
+  attachments        Json?
   status             String    @default("sending")
   failureReason      String?
   providerMessageId  String?

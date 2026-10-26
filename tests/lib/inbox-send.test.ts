@@ -9,6 +9,7 @@ import {
     parseSendForm,
     sanitiseEmailHtml,
     sendInboxEmail,
+    sentRecordToMessage,
     type InboxSendDeps,
     type InboxSendInput,
     type InboxSentCreate,
@@ -128,7 +129,7 @@ function input(overrides: Partial<InboxSendInput> = {}): InboxSendInput {
         toName: null,
         subject: "",
         html: "<p>Thanks, looking into it.</p>",
-        attachment: null,
+        attachments: [],
         ...overrides,
     };
 }
@@ -178,8 +179,8 @@ describe("parseSendForm", () => {
         }));
         assert.equal(parsed.toEmail, "dan@example.com");
         assert.equal(parsed.threadId, null);
-        assert.equal(parsed.attachment?.fileName, "notes.txt");
-        assert.equal(parsed.attachment?.content.toString(), "hello");
+        assert.equal(parsed.attachments[0]?.fileName, "notes.txt");
+        assert.equal(parsed.attachments[0]?.content.toString(), "hello");
     });
 });
 
@@ -215,7 +216,7 @@ describe("sendInboxEmail", () => {
         const { deps, calls } = setup();
         await sendInboxEmail(deps, input({
             threadId: null, toEmail: "dan@example.com", toName: "Dan", subject: "Report",
-            attachment: { fileName: "a.txt", mimeType: "text/plain", size: 2, content: Buffer.from("hi") },
+            attachments: [{ fileName: "a.txt", mimeType: "text/plain", size: 2, content: Buffer.from("hi") }],
         }));
         assert.equal(calls[0].payload.to, "dan@example.com");
         assert.deepEqual(calls[0].payload.attachments, [{ filename: "a.txt", content: Buffer.from("hi"), contentType: "text/plain" }]);
@@ -392,4 +393,64 @@ test("a sending-only Resend key stops further Message-ID lookups", async () => {
     assert.equal(record.status, "sent");
     // One failed lookup for the thread, one after sending; not one per message.
     assert.equal(lookups, 2);
+});
+
+describe("several attachments", () => {
+    function filesForm(files: File[]) {
+        const data = new FormData();
+        data.set("sendKey", "draft_key_0001");
+        data.set("threadId", "thread_1");
+        data.set("html", "<p>Files attached</p>");
+        for (const file of files) data.append("attachment", file);
+        return data;
+    }
+
+    test("reads every attached file", async () => {
+        const parsed = await parseSendForm(filesForm([
+            new File(["a"], "a.txt", { type: "text/plain" }),
+            new File(["bb"], "b.pdf", { type: "application/pdf" }),
+        ]));
+        assert.deepEqual(parsed.attachments.map((file) => [file.fileName, file.size]), [["a.txt", 1], ["b.pdf", 2]]);
+    });
+
+    test("rejects more than five files", async () => {
+        const files = Array.from({ length: 6 }, (_, i) => new File(["x"], `f${i}.txt`));
+        await assert.rejects(parseSendForm(filesForm(files)), { status: 413, message: "Attach up to 5 files per email." });
+    });
+
+    test("rejects files that add up to more than 20 MB", async () => {
+        const nineMb = () => new File([new Uint8Array(9 * 1024 * 1024)], "big.bin");
+        await assert.rejects(parseSendForm(filesForm([nineMb(), nineMb(), nineMb()])), {
+            status: 413, message: "Attachments can add up to 20 MB per email.",
+        });
+    });
+
+    test("sends every file and lists them all on the sent message", async () => {
+        const { deps, calls } = setup();
+        const record = await sendInboxEmail(deps, input({
+            attachments: [
+                { fileName: "a.txt", mimeType: "text/plain", size: 1, content: Buffer.from("a") },
+                { fileName: "b.pdf", mimeType: "application/pdf", size: 2048, content: Buffer.from("bb") },
+            ],
+        }));
+        assert.equal((calls[0].payload.attachments as unknown[]).length, 2);
+        assert.deepEqual(record.attachments, [
+            { fileName: "a.txt", mimeType: "text/plain", size: 1 },
+            { fileName: "b.pdf", mimeType: "application/pdf", size: 2048 },
+        ]);
+        assert.deepEqual(sentRecordToMessage(record).attachments?.map((file) => [file.fileName, file.sizeLabel]), [
+            ["a.txt", "1 B"],
+            ["b.pdf", "2 KB"],
+        ]);
+    });
+
+    test("older rows with one stored file still show it", () => {
+        const message = sentRecordToMessage({
+            id: "old", workspaceId: WORKSPACE, sendKey: "k", threadId: null, toEmail: "a@b.co", toName: null,
+            fromEmail: "t@c.co", fromName: null, subject: "s", html: "", plainText: "", inReplyTo: null,
+            attachmentName: "report.pdf", attachmentMimeType: "application/pdf", attachmentSize: 4096,
+            status: "sent", failureReason: null, providerMessageId: "re_1", sentAt: new Date(), createdAt: new Date(),
+        });
+        assert.deepEqual(message.attachments?.map((file) => file.fileName), ["report.pdf"]);
+    });
 });

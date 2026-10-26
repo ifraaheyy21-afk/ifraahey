@@ -15,7 +15,8 @@ import {
     RotateCcw,
     Search,
     Smile,
-    Star,
+    Pin,
+    PinOff,
     Tag,
     Trash2,
     X,
@@ -33,7 +34,7 @@ type Props = {
     draft: string;
     setDraft: (value: string) => void;
     onSend: (text: string, attachment: File | null) => void;
-    onToggleStar: () => void;
+    onTogglePin: () => void;
     onMarkUnread: () => void;
     onArchive: () => void;
     onRestore: () => void;
@@ -88,7 +89,7 @@ type Popover = "menu" | "emoji" | "quick" | "tag" | null;
 
 /** A conversation from a messaging channel: header actions, bubbles and a chat composer. */
 export default function InboxChat(props: Props) {
-    const { thread, avatarStyle, initials, draft, setDraft, onSend, onToggleStar, onMarkUnread, onArchive, onRestore, onDelete, onSetLabels } = props;
+    const { thread, avatarStyle, initials, draft, setDraft, onSend, onTogglePin, onMarkUnread, onArchive, onRestore, onDelete, onSetLabels } = props;
     const movedAway = thread.folder === "archived" || thread.folder === "deleted";
     const [popover, setPopover] = useState<Popover>(null);
     const [searchOpen, setSearchOpen] = useState(false);
@@ -222,9 +223,9 @@ export default function InboxChat(props: Props) {
                     </button>
                     {popover === "menu" && (
                         <div className={styles.chatMenu} role="menu">
-                            <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onToggleStar(); }}>
-                                <Star size={14} />
-                                {thread.starred ? "Unstar" : "Star"}
+                            <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onTogglePin(); }}>
+                                {thread.starred ? <PinOff size={14} /> : <Pin size={14} />}
+                                {thread.starred ? "Unpin" : "Pin to the top"}
                             </button>
                             <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onMarkUnread(); }}>
                                 <MailOpen size={14} />

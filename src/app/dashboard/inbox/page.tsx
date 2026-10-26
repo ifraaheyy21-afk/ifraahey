@@ -13,6 +13,8 @@ import {
     Pencil,
     GripVertical,
     SlidersHorizontal,
+    ArrowUpDown,
+    ListChecks,
     Minimize2,
     Maximize2,
     Mail,
@@ -35,6 +37,7 @@ import {
     List,
     ListOrdered,
     Loader2,
+    MailCheck,
     MailOpen,
     MoreHorizontal,
     Music2,
@@ -45,13 +48,16 @@ import {
     Paperclip,
     PenSquare,
     Redo2,
+    Download,
+    Forward,
     Reply,
     RotateCcw,
     Search,
     Signature,
     Send,
     Sparkles,
-    Star,
+    Pin,
+    PinOff,
     Trash2,
     Underline,
     Undo2,
@@ -72,6 +78,13 @@ import {
 
 import { CHAT_CHANNELS, isChatChannel, type InboxChannel } from "../../../lib/inbox-data";
 import { threadInFolder } from "../../../lib/inbox-folders";
+import {
+    groupThreadsForList,
+    INBOX_SORT_OPTIONS,
+    isInboxSortOrder,
+    sortThreads,
+    type InboxSortOrder,
+} from "../../../lib/inbox-list";
 import type {
     InboxFolder,
     InboxPayload,
@@ -93,7 +106,7 @@ import {
     type ThreadAction,
 } from "./thread-actions";
 
-type DateRange = "24h" | "7d" | "30d" | "60d";
+type DateRange = "24h" | "7d" | "30d" | "60d" | "all";
 
 type EmailSummary = {
     summary: string;
@@ -167,17 +180,28 @@ type BuilderSavedEmailMeta = {
     };
 };
 
-const dateRangeOptions: Array<{ value: DateRange; label: string; days: number }> = [
+const SORT_STORAGE_KEY = "inbox-sort-order";
+
+const dateRangeOptions: Array<{ value: DateRange; label: string; days: number | null }> = [
+    { value: "all", label: "All time", days: null },
     { value: "24h", label: "Last 24 hours", days: 1 },
     { value: "7d", label: "Last 7 days", days: 7 },
     { value: "30d", label: "Last 30 days", days: 30 },
     { value: "60d", label: "Last 60 days", days: 60 },
 ];
 
+/** Whether a thread's latest message falls inside the chosen date range. */
+function inDateRange(thread: { lastMessageAt: string }, range: DateRange, now: number) {
+    const days = dateRangeOptions.find((option) => option.value === range)?.days ?? null;
+    if (days === null) return true;
+    const time = new Date(thread.lastMessageAt).getTime();
+    return !Number.isNaN(time) && time >= now - days * 24 * 60 * 60 * 1000;
+}
+
 
 const folderOptions: Array<{ value: InboxFolder; label: string }> = [
     { value: "inbox", label: "Received" },
-    { value: "starred", label: "Starred" },
+    { value: "starred", label: "Pinned" },
     { value: "sent", label: "Sent" },
     { value: "drafts", label: "Drafts" },
     { value: "scheduled", label: "Scheduled" },
@@ -399,8 +423,10 @@ function buildEditableSavedEmailHtml(email: BuilderSavedEmail) {
     `;
 }
 
-// Mirrors MAX_ATTACHMENT_BYTES in src/lib/inbox-send.ts.
+// Mirror the limits in src/lib/inbox-send.ts.
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+const MAX_ATTACHMENTS = 5;
+const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 
 function getStoredWorkspaceId() {
     if (typeof window === "undefined") return "demo-workspace";
@@ -525,7 +551,7 @@ function replySubjectFor(subject: string) {
 /** Folders in the inbox sidebar: the whole inbox lives on this one page. */
 const MAIN_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof Inbox }> = [
     { folder: "inbox", label: "Inbox", icon: Inbox },
-    { folder: "starred", label: "Starred", icon: Star },
+    { folder: "starred", label: "Pinned", icon: Pin },
     { folder: "sent", label: "Sent", icon: Send },
     { folder: "drafts", label: "Drafts", icon: FileText },
     { folder: "deleted", label: "Trash", icon: Trash2 },
@@ -538,28 +564,7 @@ const OTHER_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof In
 
 
 /** Groups threads under Today / Yesterday / This week / Earlier. */
-function groupThreadsByDay(threads: InboxThread[]) {
-    const startOfToday = new Date();
-    startOfToday.setHours(0, 0, 0, 0);
-    const day = 24 * 60 * 60 * 1000;
-    const labelFor = (value: string) => {
-        const time = new Date(value).getTime();
-        if (!Number.isFinite(time)) return "Earlier";
-        if (time >= startOfToday.getTime()) return "Today";
-        if (time >= startOfToday.getTime() - day) return "Yesterday";
-        if (time >= startOfToday.getTime() - 6 * day) return "This week";
-        return "Earlier";
-    };
-    const groups: Array<{ label: string; threads: InboxThread[] }> = [];
-    for (const thread of threads) {
-        const label = labelFor(thread.lastMessageAt);
-        const group = groups.find((item) => item.label === label);
-        if (group) group.threads.push(thread);
-        else groups.push({ label, threads: [thread] });
-    }
-    return groups;
-}
-
+/** Pinned emails first (their own group), then the rest by day. */
 const AVATAR_TONES = [
     ["#eef2ff", "#4338ca"],
     ["#ecfdf3", "#027a48"],
@@ -591,8 +596,15 @@ export default function InboxPage() {
     const [payload, setPayload] = useState<InboxPayload | null>(null);
     const [activeFolder, setActiveFolder] =
         useState<InboxFolder>(initialFolder);
-    const [dateRange, setDateRange] = useState<DateRange>("30d");
+    const [dateRange, setDateRange] = useState<DateRange>("all");
     const [dateMenuOpen, setDateMenuOpen] = useState(false);
+    const [sortOrder, setSortOrder] = useState<InboxSortOrder>("newest");
+    const [sortMenuOpen, setSortMenuOpen] = useState(false);
+    // Whether Resend is set up well enough to send and to receive replies.
+    const [resendSetup, setResendSetup] = useState<"unknown" | "missing" | "sending_only" | "ready">("unknown");
+    const [setupNoticeDismissed, setSetupNoticeDismissed] = useState(false);
+    /* "Select" mode: every email shows a checkbox for bulk actions. */
+    const [selectMode, setSelectMode] = useState(false);
     const [search, setSearch] = useState("");
     const [selectedThreadId, setSelectedThreadId] = useState(() => searchParams.get("thread") ?? "");
     const [composeOpen, setComposeOpen] = useState(false);
@@ -618,7 +630,7 @@ export default function InboxPage() {
     const [summaryOpen, setSummaryOpen] = useState(false);
     const [summarising, setSummarising] = useState(false);
     const [summaryError, setSummaryError] = useState("");
-    const [replyAttachment, setReplyAttachment] = useState<globalThis.File | null>(null);
+    const [replyAttachments, setReplyAttachments] = useState<globalThis.File[]>([]);
     const [replyOptionsOpen, setReplyOptionsOpen] = useState(false);
     const [ctaPickerOpen, setCtaPickerOpen] = useState(false);
     const [savedEmailPickerOpen, setSavedEmailPickerOpen] = useState(false);
@@ -631,7 +643,10 @@ export default function InboxPage() {
     const [footerSettings, setFooterSettings] =
         useState<BuilderFooterSettings>(defaultFooterSettings);
     const [replyFooterIncluded, setReplyFooterIncluded] = useState(false);
-    const [attachmentPreviewOpen, setAttachmentPreviewOpen] = useState(false);
+    // Which attached file is open in the preview, if any.
+    const [previewAttachmentIndex, setPreviewAttachmentIndex] = useState<number | null>(null);
+    const previewAttachment = previewAttachmentIndex === null ? null : replyAttachments[previewAttachmentIndex] ?? null;
+    const attachmentPreviewOpen = previewAttachment !== null;
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState("");
     // One key per unchanged draft, so clicking Send again after a failure
@@ -648,6 +663,8 @@ export default function InboxPage() {
     const searchRef = useRef<HTMLInputElement>(null);
     const [listFilter, setListFilter] = useState<ListFilter>("all");
     const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
+    /* Emails ticked in the list for a bulk action. */
+    const [checkedIds, setCheckedIds] = useState<string[]>([]);
     const [closedSections, setClosedSections] = useState<string[]>([]);
     /* Folds the folder column to an icon strip, giving the email more room. */
     const [foldersFolded, setFoldersFolded] = useState(false);
@@ -724,6 +741,7 @@ export default function InboxPage() {
     }, []);
     const attachmentInputRef = useRef<HTMLInputElement>(null);
     const dateFilterRef = useRef<HTMLDivElement>(null);
+    const sortMenuRef = useRef<HTMLDivElement>(null);
     const replyOptionsRef = useRef<HTMLDivElement>(null);
     const composeAccountPickerRef = useRef<HTMLDivElement>(null);
 
@@ -755,6 +773,9 @@ export default function InboxPage() {
             setPayload(withDemoState);
             return withDemoState;
         } catch (loadError) {
+            // A background refresh that fails keeps the list you have; the
+            // next one tries again.
+            if (silent) return;
             setError(
                 loadError instanceof Error
                     ? loadError.message
@@ -762,6 +783,19 @@ export default function InboxPage() {
             );
         } finally {
             setLoading(false);
+        }
+    }, []);
+
+    const loadResendSetup = useCallback(async () => {
+        try {
+            const response = await fetch("/api/integrations/resend/status", { cache: "no-store", credentials: "include" });
+            if (!response.ok) return;
+            const result = (await response.json()) as { connected?: boolean; integration?: { permission?: string | null } | null };
+            if (!result.connected) setResendSetup("missing");
+            else if (result.integration?.permission === "sending_access") setResendSetup("sending_only");
+            else setResendSetup("ready");
+        } catch {
+            // Leave the notice hidden if the status can't be read.
         }
     }, []);
 
@@ -883,11 +917,18 @@ export default function InboxPage() {
             void loadInbox();
             void loadComposeAccounts();
             void loadSavedEmails();
+            void loadResendSetup();
+            try {
+                const storedSort = window.localStorage.getItem(SORT_STORAGE_KEY);
+                if (isInboxSortOrder(storedSort)) setSortOrder(storedSort);
+            } catch {
+                // Private mode or blocked storage: keep newest first.
+            }
         });
         return () => {
             active = false;
         };
-    }, [loadInbox, loadComposeAccounts, loadSavedEmails]);
+    }, [loadInbox, loadComposeAccounts, loadSavedEmails, loadResendSetup]);
 
     useEffect(() => {
         const loadBuilderPreferences = () => {
@@ -901,6 +942,27 @@ export default function InboxPage() {
         return () =>
             window.removeEventListener("storage", loadBuilderPreferences);
     }, []);
+
+    // Keep the list current without a reload: check every minute while the
+    // tab is visible, and straight away when you come back to it.
+    useEffect(() => {
+        const REFRESH_MS = 60_000;
+        let lastRefresh = Date.now();
+        const refresh = () => {
+            if (document.visibilityState !== "visible") return;
+            if (Date.now() - lastRefresh < 15_000) return;
+            lastRefresh = Date.now();
+            void loadInbox({ silent: true });
+        };
+        const timer = window.setInterval(refresh, REFRESH_MS);
+        document.addEventListener("visibilitychange", refresh);
+        window.addEventListener("focus", refresh);
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener("visibilitychange", refresh);
+            window.removeEventListener("focus", refresh);
+        };
+    }, [loadInbox]);
 
     // Follow ?folder= when the URL changes (back/forward, links), adjusting
     // state during render rather than in an effect.
@@ -919,6 +981,10 @@ export default function InboxPage() {
                 !dateFilterRef.current.contains(event.target as Node)
             ) {
                 setDateMenuOpen(false);
+            }
+
+            if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
+                setSortMenuOpen(false);
             }
 
             if (
@@ -941,6 +1007,9 @@ export default function InboxPage() {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 setDateMenuOpen(false);
+                setSortMenuOpen(false);
+                setSelectMode(false);
+                setCheckedIds([]);
                 setReplyOptionsOpen(false);
                 setCtaPickerOpen(false);
                 setSavedEmailPickerOpen(false);
@@ -959,19 +1028,10 @@ export default function InboxPage() {
     const visibleThreads = useMemo(() => {
         const query = search.trim().toLowerCase();
 
-        const selectedRange = dateRangeOptions.find(
-            (option) => option.value === dateRange,
-        );
-        const rangeStart = loadedAt - (selectedRange?.days ?? 30) * 24 * 60 * 60 * 1000;
-
         const filtered = (payload?.threads ?? []).filter((thread) => {
             if (channelOf(thread) !== activeChannel) return false;
-            const belongsToFolder = threadInFolder(thread, activeFolder);
-            const lastMessageTime = new Date(thread.lastMessageAt).getTime();
-            const belongsToDateRange =
-                !Number.isNaN(lastMessageTime) && lastMessageTime >= rangeStart;
-
-            if (!belongsToFolder || !belongsToDateRange) return false;
+            if (!threadInFolder(thread, activeFolder)) return false;
+            if (!inDateRange(thread, dateRange, loadedAt)) return false;
             if (!query) return true;
 
             return [
@@ -986,12 +1046,8 @@ export default function InboxPage() {
                 .some((value) => String(value).toLowerCase().includes(query));
         });
 
-        return [...filtered].sort(
-            (first, second) =>
-                new Date(second.lastMessageAt).getTime() -
-                new Date(first.lastMessageAt).getTime(),
-        );
-    }, [activeChannel, activeFolder, dateRange, loadedAt, payload, search]);
+        return sortThreads(filtered, sortOrder);
+    }, [activeChannel, activeFolder, dateRange, loadedAt, payload, search, sortOrder]);
 
     // Keep a visible thread selected: fall back to the first one when the
     // selection leaves the list (folder change, search, delete).
@@ -1015,13 +1071,13 @@ export default function InboxPage() {
         setAiError("");
         setSummaryOpen(false);
         setSummaryError("");
-        setReplyAttachment(null);
+        setReplyAttachments([]);
         setReplyOptionsOpen(false);
         setCtaPickerOpen(false);
         setSavedEmailPickerOpen(false);
         setSavedEmailSearch("");
         setReplyFooterIncluded(false);
-        setAttachmentPreviewOpen(false);
+        setPreviewAttachmentIndex(null);
         setSendError("");
     }
 
@@ -1135,18 +1191,18 @@ export default function InboxPage() {
         );
     }, [savedEmailSearch, savedEmails]);
 
-    const replyAttachmentUrl = useMemo(
-        () => (replyAttachment ? URL.createObjectURL(replyAttachment) : ""),
-        [replyAttachment],
+    const previewAttachmentUrl = useMemo(
+        () => (previewAttachment ? URL.createObjectURL(previewAttachment) : ""),
+        [previewAttachment],
     );
 
     useEffect(() => {
         return () => {
-            if (replyAttachmentUrl) {
-                URL.revokeObjectURL(replyAttachmentUrl);
+            if (previewAttachmentUrl) {
+                URL.revokeObjectURL(previewAttachmentUrl);
             }
         };
-    }, [replyAttachmentUrl]);
+    }, [previewAttachmentUrl]);
 
     const replaceThread = (threadId: string, next: (thread: InboxThread) => InboxThread) => {
         setPayload((current) =>
@@ -1160,7 +1216,7 @@ export default function InboxPage() {
     };
 
     /**
-     * Apply a star/read/folder/tag change at once and save it. Sample threads
+     * Apply a pin/read/folder/tag change at once and save it. Sample threads
      * are saved in this browser; real ones on the server, undone if that fails.
      */
     const saveThreadAction = (thread: InboxThread, action: ThreadAction) => {
@@ -1188,6 +1244,80 @@ export default function InboxPage() {
                 setError(saveError instanceof Error ? saveError.message : "Could not save that change.");
             });
     };
+
+    /**
+     * Apply one change to every ticked email: optimistic, saved in one request
+     * for real mail, in this browser for samples, and undone if saving fails.
+     * Drafts can only be deleted, which discards them.
+     */
+    const bulkThreadAction = (targets: InboxThread[], action: ThreadAction) => {
+        setCheckedIds([]);
+        setSelectMode(false);
+        if (action.folder === "deleted") {
+            for (const thread of targets) if (thread.draft) void discardDraft(thread.draft.id);
+        }
+        const threads = targets.filter((thread) => !thread.draft);
+        if (threads.length === 0) return;
+
+        const previous = new Map(threads.map((thread) => [thread.id, thread]));
+        for (const thread of threads) {
+            replaceThread(thread.id, (current) => applyThreadAction(current, action));
+            if (thread.demo) saveDemoThreadAction(thread.id, action);
+        }
+        const realIds = threads.filter((thread) => !thread.demo).map((thread) => thread.id);
+        if (realIds.length === 0) return;
+
+        void fetch("/api/dashboard/inbox/threads", {
+            method: "PATCH",
+            credentials: "include",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ threadIds: realIds, ...action }),
+        })
+            .then(async (response) => {
+                if (response.ok) return;
+                const result = (await response.json().catch(() => ({}))) as { error?: string };
+                throw new Error(result.error || "Could not save that change.");
+            })
+            .catch((saveError: unknown) => {
+                for (const id of realIds) {
+                    const before = previous.get(id);
+                    if (before) replaceThread(id, () => before);
+                }
+                setError(saveError instanceof Error ? saveError.message : "Could not save that change.");
+            });
+    };
+
+    const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null);
+
+    /** Save a received file to the computer, showing any error in the banner. */
+    const downloadAttachment = async (attachmentId: string, fileName: string) => {
+        setDownloadingAttachmentId(attachmentId);
+        try {
+            const response = await fetch(`/api/dashboard/inbox/attachments/${encodeURIComponent(attachmentId)}`, {
+                credentials: "include",
+            });
+            if (!response.ok) {
+                const result = (await response.json().catch(() => ({}))) as { error?: string };
+                throw new Error(result.error || "The attachment could not be downloaded.");
+            }
+            const url = URL.createObjectURL(await response.blob());
+            const link = document.createElement("a");
+            link.href = url;
+            link.download = fileName;
+            document.body.append(link);
+            link.click();
+            link.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        } catch (downloadError) {
+            setError(downloadError instanceof Error ? downloadError.message : "The attachment could not be downloaded.");
+        } finally {
+            setDownloadingAttachmentId(null);
+        }
+    };
+
+    const toggleChecked = (threadId: string) =>
+        setCheckedIds((current) =>
+            current.includes(threadId) ? current.filter((id) => id !== threadId) : [...current, threadId]);
 
     const markSelectedThreadUnread = () => {
         if (selectedThread) saveThreadAction(selectedThread, { read: false });
@@ -1225,7 +1355,7 @@ export default function InboxPage() {
         if (selectedThread) saveThreadAction(selectedThread, { folder: null });
     };
 
-    const toggleSelectedThreadStar = () => {
+    const toggleSelectedThreadPin = () => {
         if (selectedThread) saveThreadAction(selectedThread, { starred: !selectedThread.starred });
     };
 
@@ -1239,7 +1369,7 @@ export default function InboxPage() {
         setComposeAccountPickerOpen(true);
         setReplySubject("");
         setReplyBody("");
-        setReplyAttachment(null);
+        setReplyAttachments([]);
         setReplyOptionsOpen(false);
         setCtaPickerOpen(false);
         setSavedEmailPickerOpen(false);
@@ -1264,7 +1394,7 @@ export default function InboxPage() {
         setComposeAccountPickerOpen(false);
         setReplySubject("");
         setReplyBody("");
-        setReplyAttachment(null);
+        setReplyAttachments([]);
         setReplyOptionsOpen(false);
         setCtaPickerOpen(false);
         setSavedEmailPickerOpen(false);
@@ -1293,7 +1423,15 @@ export default function InboxPage() {
             setSendError("Add a subject before sending.");
             return;
         }
-        if (replyAttachment && replyAttachment.size > MAX_ATTACHMENT_BYTES) {
+        if (replyAttachments.length > MAX_ATTACHMENTS) {
+            setSendError(`Attach up to ${MAX_ATTACHMENTS} files per email.`);
+            return;
+        }
+        if (replyAttachments.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_ATTACHMENT_BYTES) {
+            setSendError("Attachments can add up to 20 MB per email.");
+            return;
+        }
+        if (replyAttachments.some((file) => file.size > MAX_ATTACHMENT_BYTES)) {
             setSendError("Attachments must be 10 MB or smaller.");
             return;
         }
@@ -1304,7 +1442,7 @@ export default function InboxPage() {
             composeRecipient?.email ?? "",
             replySubject,
             html,
-            replyAttachment ? [replyAttachment.name, replyAttachment.size, replyAttachment.lastModified] : null,
+            replyAttachments.map((file) => [file.name, file.size, file.lastModified]),
         ]);
         if (sendKeyRef.current?.signature !== signature) {
             sendKeyRef.current = { signature, key: crypto.randomUUID() };
@@ -1320,7 +1458,7 @@ export default function InboxPage() {
             form.set("to", composeRecipient.email);
             form.set("toName", composeRecipient.name);
         }
-        if (replyAttachment) form.set("attachment", replyAttachment);
+        for (const file of replyAttachments) form.append("attachment", file);
         if (savedDraft.target === draftTarget && savedDraft.id) form.set("draftId", savedDraft.id);
         const sendingDraftSignature = draftSignature;
 
@@ -1365,7 +1503,7 @@ export default function InboxPage() {
         if (replyRef.current) {
             replyRef.current.innerHTML = "";
         }
-        setReplyAttachment(null);
+        setReplyAttachments([]);
         setReplyOptionsOpen(false);
         setCtaPickerOpen(false);
         setReplyFooterIncluded(false);
@@ -1859,8 +1997,8 @@ export default function InboxPage() {
         if (replyRef.current) {
             replyRef.current.innerHTML = "";
         }
-        setReplyAttachment(null);
-        setAttachmentPreviewOpen(false);
+        setReplyAttachments([]);
+        setPreviewAttachmentIndex(null);
         setReplyOptionsOpen(false);
 
         if (attachmentInputRef.current) {
@@ -1870,9 +2008,9 @@ export default function InboxPage() {
         requestAnimationFrame(() => replyRef.current?.focus());
     };
 
-    const removeReplyAttachment = () => {
-        setReplyAttachment(null);
-        setAttachmentPreviewOpen(false);
+    const removeReplyAttachment = (index: number) => {
+        setReplyAttachments((current) => current.filter((_, position) => position !== index));
+        setPreviewAttachmentIndex(null);
         setReplyOptionsOpen(false);
 
         if (attachmentInputRef.current) {
@@ -1993,11 +2131,21 @@ export default function InboxPage() {
 
     const selectedDateOption =
         dateRangeOptions.find((option) => option.value === dateRange) ??
-        dateRangeOptions[2];
+        dateRangeOptions[0];
 
     const listThreads = visibleThreads.filter((thread) => listFilter !== "unread" || thread.unread);
+    // Ticks only count for emails still in the list (a folder change or
+    // search drops the rest).
+    const checkedThreads = listThreads.filter((thread) => checkedIds.includes(thread.id));
+    const allChecked = listThreads.length > 0 && checkedThreads.length === listThreads.length;
+    const checkedInBin = checkedThreads.length > 0 &&
+        checkedThreads.every((thread) => thread.folder === "archived" || thread.folder === "deleted");
+    const checkedAllPinned = checkedThreads.length > 0 && checkedThreads.every((thread) => thread.starred);
     const allThreads = payload?.threads ?? [];
-    const channelThreads = (channel: InboxChannel) => allThreads.filter((thread) => channelOf(thread) === channel);
+    // Counts follow the chosen date range, so a folder never shows a number
+    // for emails the list then hides.
+    const channelThreads = (channel: InboxChannel) =>
+        allThreads.filter((thread) => channelOf(thread) === channel && inDateRange(thread, dateRange, loadedAt));
     const channelUnread = (channel: InboxChannel) =>
         channelThreads(channel).filter((thread) => thread.folder === "inbox" && thread.unread).length;
     const activeMeta = CHANNEL_META[activeChannel];
@@ -2038,7 +2186,22 @@ export default function InboxPage() {
         setSelectedThreadId("");
         router.replace(inboxUrl(folder, activeChannel), { scroll: false });
     };
-    const threadGroups = groupThreadsByDay(listThreads);
+    // In the Pinned folder everything is pinned, so it groups by day as usual.
+    const threadGroups = groupThreadsForList(listThreads, sortOrder, activeFolder !== "starred");
+    const sortLabel = INBOX_SORT_OPTIONS.find((option) => option.value === sortOrder)?.short ?? "Newest";
+    const chooseSort = (order: InboxSortOrder) => {
+        setSortOrder(order);
+        setSortMenuOpen(false);
+        try {
+            window.localStorage.setItem(SORT_STORAGE_KEY, order);
+        } catch {
+            // Storage unavailable: the choice lasts for this visit.
+        }
+    };
+    const exitSelectMode = () => {
+        setSelectMode(false);
+        setCheckedIds([]);
+    };
     const showComposer = composeOpen || (Boolean(selectedThread) && activeFolder === "inbox" && !selectedIsChat);
     /** Switch channel; the folder stays if that channel has it. */
     const openChannel = (channel: InboxChannel) => {
@@ -2088,6 +2251,36 @@ export default function InboxPage() {
             }),
         }));
     };
+    /**
+     * Share an email by forwarding it: Compose opens with "Fwd:" and the
+     * original quoted below. The original goes in as plain text, so none of
+     * the incoming email's HTML runs in the editor. Files aren't re-sent;
+     * the header lists them so the recipient knows what came with it.
+     */
+    const forwardSelectedThread = () => {
+        const message = displayedMessage;
+        if (!selectedThread || !message) return;
+        const subject = /^fwd?:/i.test(selectedThread.subject) ? selectedThread.subject : `Fwd: ${selectedThread.subject}`;
+        const files = message.attachments?.map((attachment) => attachment.fileName) ?? [];
+        const header = [
+            "---------- Forwarded message ----------",
+            `From: ${message.fromName} <${message.fromEmail}>`,
+            `Date: ${formatFullDate(message.sentAt)}`,
+            `Subject: ${selectedThread.subject}`,
+            `To: ${message.toEmail || message.toName}`,
+            ...(files.length ? [`Attachments (not included): ${files.join(", ")}`] : []),
+        ].map(escapeHtml).join("<br>");
+        const body = escapeHtml(message.plainText.trim()).replace(/\n/g, "<br>");
+        const html = `<p><br></p><p>${header}</p><blockquote>${body}</blockquote>`;
+
+        openCompose();
+        setReplySubject(subject);
+        setReplyBody(html);
+        requestAnimationFrame(() => {
+            if (replyRef.current) replyRef.current.innerHTML = html;
+        });
+    };
+
     const emailContact = (thread: InboxThread) => {
         openCompose();
         setComposeRecipient({ id: thread.customerId ?? thread.id, name: thread.customerName, email: thread.customerEmail, company: thread.customerCompany ?? undefined });
@@ -2103,6 +2296,20 @@ export default function InboxPage() {
     return (
         <main className={styles.page}>
             {error && <div className={styles.errorBanner} role="alert">{error}</div>}
+            {!setupNoticeDismissed && (resendSetup === "missing" || resendSetup === "sending_only") && (
+                <div className={styles.setupNotice} role="status">
+                    <CircleAlert size={15} aria-hidden="true" />
+                    <span>
+                        {resendSetup === "missing"
+                            ? "Connect Resend to send email from the inbox and receive replies."
+                            : "Your Resend key can only send, so customer replies won't arrive here. Reconnect Resend with a full-access key to receive them."}
+                    </span>
+                    <Link href="/dashboard/integrations" className={styles.ghostButton}>Open Integrations</Link>
+                    <button type="button" className={styles.iconButton} aria-label="Dismiss" onClick={() => setSetupNoticeDismissed(true)}>
+                        <X size={14} />
+                    </button>
+                </div>
+            )}
 
             <section className={`${styles.shell} ${foldersFolded ? styles.shellFolded : ""}`}>
                 {/* ---- Inbox sidebar: folders, views and channels ---- */}
@@ -2308,6 +2515,52 @@ export default function InboxPage() {
                         )}
                     </div>
 
+                    <div ref={sortMenuRef} className={styles.dateFilter}>
+                        <button
+                            type="button"
+                            className={styles.ghostButton}
+                            aria-haspopup="listbox"
+                            aria-expanded={sortMenuOpen}
+                            aria-label={`Sort emails: ${sortLabel}`}
+                            onClick={() => setSortMenuOpen((current) => !current)}
+                        >
+                            <ArrowUpDown size={13} aria-hidden="true" />
+                            {sortLabel}
+                        </button>
+                        {sortMenuOpen && (
+                            <div className={styles.menu} role="listbox" aria-label="Sort emails">
+                                <div className={styles.menuLabel}>Sort by</div>
+                                {INBOX_SORT_OPTIONS.map((option) => {
+                                    const isSelected = option.value === sortOrder;
+                                    return (
+                                        <button
+                                            key={option.value}
+                                            type="button"
+                                            role="option"
+                                            aria-selected={isSelected}
+                                            className={isSelected ? styles.menuItemActive : styles.menuItem}
+                                            onClick={() => chooseSort(option.value)}
+                                        >
+                                            {option.label}
+                                            {isSelected && <Check size={14} />}
+                                        </button>
+                                    );
+                                })}
+                            </div>
+                        )}
+                    </div>
+
+                    <button
+                        type="button"
+                        className={selectMode ? styles.ghostButtonActive : styles.ghostButton}
+                        aria-pressed={selectMode}
+                        onClick={() => (selectMode ? exitSelectMode() : setSelectMode(true))}
+                        disabled={listThreads.length === 0 && !selectMode}
+                    >
+                        <ListChecks size={13} aria-hidden="true" />
+                        {selectMode ? "Done" : "Select"}
+                    </button>
+
                     <div className={styles.pager}>
                         <button type="button" className={styles.iconButton} aria-label="Previous email" disabled={selectedIndex <= 0} onClick={() => stepThread(-1)}>
                             <ChevronLeft size={15} />
@@ -2332,7 +2585,58 @@ export default function InboxPage() {
 
                 {/* ---- Message list ---- */}
                 <aside className={styles.listPane}>
-                    <div className={styles.threadList}>
+                    {selectMode && (
+                        <div className={styles.bulkBar} role="toolbar" aria-label="Selected emails">
+                            <input
+                                type="checkbox"
+                                className={styles.bulkCheck}
+                                checked={allChecked}
+                                ref={(input) => {
+                                    if (input) input.indeterminate = checkedThreads.length > 0 && !allChecked;
+                                }}
+                                onChange={() => setCheckedIds(allChecked ? [] : listThreads.map((thread) => thread.id))}
+                                aria-label={allChecked ? "Clear selection" : "Select all emails"}
+                            />
+                            <span className={styles.bulkCount}>
+                                {checkedThreads.length ? `${checkedThreads.length} selected` : "Select emails"}
+                            </span>
+                            <span className={styles.spacer} />
+                            {checkedInBin ? (
+                                <button type="button" className={styles.iconButton} aria-label="Move back to the inbox" title="Restore" onClick={() => bulkThreadAction(checkedThreads, { folder: null })} disabled={checkedThreads.length === 0}>
+                                    <RotateCcw size={15} />
+                                </button>
+                            ) : (
+                                <>
+                                    <button type="button" className={styles.iconButton} aria-label="Archive selected" title="Archive" onClick={() => bulkThreadAction(checkedThreads, { folder: "archived" })} disabled={checkedThreads.length === 0}>
+                                        <Archive size={15} />
+                                    </button>
+                                    <button type="button" className={styles.iconButton} aria-label="Delete selected" title="Delete" onClick={() => bulkThreadAction(checkedThreads, { folder: "deleted" })} disabled={checkedThreads.length === 0}>
+                                        <Trash2 size={15} />
+                                    </button>
+                                </>
+                            )}
+                            <button type="button" className={styles.iconButton} aria-label="Mark selected as read" title="Mark read" onClick={() => bulkThreadAction(checkedThreads, { read: true })} disabled={checkedThreads.length === 0}>
+                                <MailCheck size={15} />
+                            </button>
+                            <button type="button" className={styles.iconButton} aria-label="Mark selected as unread" title="Mark unread" onClick={() => bulkThreadAction(checkedThreads, { read: false })} disabled={checkedThreads.length === 0}>
+                                <MailOpen size={15} />
+                            </button>
+                            <button
+                                type="button"
+                                className={styles.iconButton}
+                                aria-label={checkedAllPinned ? "Unpin selected" : "Pin selected"}
+                                title={checkedAllPinned ? "Unpin" : "Pin to the top"}
+                                onClick={() => bulkThreadAction(checkedThreads, { starred: !checkedAllPinned })}
+                                disabled={checkedThreads.length === 0}
+                            >
+                                {checkedAllPinned ? <PinOff size={15} /> : <Pin size={15} />}
+                            </button>
+                            <button type="button" className={styles.iconButton} aria-label="Stop selecting" title="Done" onClick={exitSelectMode}>
+                                <X size={15} />
+                            </button>
+                        </div>
+                    )}
+                    <div className={`${styles.threadList} ${selectMode ? styles.threadListSelecting : ""}`}>
                         {loading ? (
                             <div className={styles.emptyState}>
                                 <Loader2 size={18} className={styles.spinning} />
@@ -2370,45 +2674,65 @@ export default function InboxPage() {
                                         {!collapsed && group.threads.map((thread) => {
                                             const latestMessage = getLatestMessage(thread);
                                             const attachments = latestMessage?.attachments ?? [];
+                                            const checked = checkedIds.includes(thread.id);
                                             return (
-                                                <button
-                                                    key={thread.id}
-                                                    type="button"
-                                                    className={selectedThreadId === thread.id && !composeOpen ? styles.threadActive : styles.thread}
-                                                    onClick={() => {
-                                                        if (composeOpen) closeCompose();
-                                                        selectThread(thread);
-                                                    }}
-                                                >
-                                                    <span className={styles.threadTop}>
-                                                        <span className={styles.avatarWrap}>
-                                                            <span className={styles.avatar} style={avatarStyle(thread.customerName)}>
-                                                                {getInitials(thread.customerName)}
-                                                            </span>
-
-                                                        </span>
-                                                        <span className={styles.threadFrom}>{thread.customerName}</span>
-                                                        {thread.unread && <span className={styles.unreadDot} aria-label="Unread" />}
-                                                        {thread.starred && <Star size={11} className={styles.starIcon} fill="currentColor" aria-label="Starred" />}
-                                                        <time>{formatListDate(thread.lastMessageAt)}</time>
-                                                    </span>
-                                                    <span className={styles.threadSubject}>{thread.subject}</span>
-                                                    <span className={styles.threadPreview}>{thread.preview}</span>
-                                                    {attachments.length > 0 && (
-                                                        <span className={styles.threadChips}>
-                                                            {attachments.slice(0, 2).map((attachment) => {
-                                                                const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
-                                                                return (
-                                                                    <span key={attachment.id} className={styles.chip} title={attachment.fileName}>
-                                                                        <AttachmentIcon size={11} />
-                                                                        <span>{attachment.fileName}</span>
-                                                                    </span>
-                                                                );
-                                                            })}
-                                                            {attachments.length > 2 && <span className={styles.chip}>+{attachments.length - 2}</span>}
-                                                        </span>
+                                                <div key={thread.id} className={checked ? styles.threadRowChecked : styles.threadRow}>
+                                                    {selectMode && (
+                                                        <input
+                                                            type="checkbox"
+                                                            className={styles.threadCheck}
+                                                            checked={checked}
+                                                            onChange={() => toggleChecked(thread.id)}
+                                                            aria-label={`Select email from ${thread.customerName}: ${thread.subject}`}
+                                                        />
                                                     )}
-                                                </button>
+                                                    <button
+                                                        type="button"
+                                                        className={[
+                                                            selectedThreadId === thread.id && !composeOpen && !selectMode ? styles.threadActive : styles.thread,
+                                                            thread.unread ? styles.threadUnread : "",
+                                                        ].join(" ")}
+                                                        aria-pressed={selectMode ? checked : undefined}
+                                                        onClick={() => {
+                                                            // In select mode a click ticks the email instead of opening it.
+                                                            if (selectMode) {
+                                                                toggleChecked(thread.id);
+                                                                return;
+                                                            }
+                                                            if (composeOpen) closeCompose();
+                                                            selectThread(thread);
+                                                        }}
+                                                    >
+                                                        <span className={styles.threadTop}>
+                                                            <span className={styles.avatarWrap}>
+                                                                <span className={styles.avatar} style={avatarStyle(thread.customerName)}>
+                                                                    {getInitials(thread.customerName)}
+                                                                </span>
+
+                                                            </span>
+                                                            <span className={styles.threadFrom}>{thread.customerName}</span>
+                                                            {thread.unread && <span className={styles.unreadDot} aria-label="New" />}
+                                                            {thread.starred && <Pin size={11} className={styles.pinIcon} aria-label="Pinned" />}
+                                                            <time>{formatListDate(thread.lastMessageAt)}</time>
+                                                        </span>
+                                                        <span className={styles.threadSubject}>{thread.subject}</span>
+                                                        <span className={styles.threadPreview}>{thread.preview}</span>
+                                                        {attachments.length > 0 && (
+                                                            <span className={styles.threadChips}>
+                                                                {attachments.slice(0, 2).map((attachment) => {
+                                                                    const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
+                                                                    return (
+                                                                        <span key={attachment.id} className={styles.chip} title={attachment.fileName}>
+                                                                            <AttachmentIcon size={11} />
+                                                                            <span>{attachment.fileName}</span>
+                                                                        </span>
+                                                                    );
+                                                                })}
+                                                                {attachments.length > 2 && <span className={styles.chip}>+{attachments.length - 2}</span>}
+                                                            </span>
+                                                        )}
+                                                    </button>
+                                                </div>
                                             );
                                         })}
                                     </section>
@@ -2468,17 +2792,22 @@ export default function InboxPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            className={selectedThread.starred ? styles.iconButtonStar : styles.iconButton}
-                                            aria-label={selectedThread.starred ? "Unstar conversation" : "Star conversation"}
+                                            className={selectedThread.starred ? styles.iconButtonPinned : styles.iconButton}
+                                            aria-label={selectedThread.starred ? "Unpin conversation" : "Pin conversation"}
                                             aria-pressed={selectedThread.starred}
-                                            title={selectedThread.starred ? "Unstar" : "Star"}
-                                            onClick={toggleSelectedThreadStar}
+                                            title={selectedThread.starred ? "Unpin" : "Pin to the top"}
+                                            onClick={toggleSelectedThreadPin}
                                         >
-                                            <Star size={15} fill={selectedThread.starred ? "currentColor" : "none"} />
+                                            {selectedThread.starred ? <PinOff size={15} /> : <Pin size={15} />}
                                         </button>
                                         {activeFolder === "inbox" && !selectedIsChat && (
                                             <button type="button" className={styles.iconButton} aria-label="Reply" title="Reply" onClick={() => replyRef.current?.focus()}>
                                                 <Reply size={15} />
+                                            </button>
+                                        )}
+                                        {!selectedIsChat && !selectedThread.draft && (
+                                            <button type="button" className={styles.iconButton} aria-label="Forward email" title="Forward" onClick={forwardSelectedThread}>
+                                                <Forward size={15} />
                                             </button>
                                         )}
                                     </div>
@@ -2508,7 +2837,7 @@ export default function InboxPage() {
                                         draft={chatDraft}
                                         setDraft={setChatDraft}
                                         onSend={(text, file) => appendChatMessage(chatThread.id, text, file)}
-                                        onToggleStar={toggleSelectedThreadStar}
+                                        onTogglePin={toggleSelectedThreadPin}
                                         onMarkUnread={markSelectedThreadUnread}
                                         onArchive={archiveSelectedThread}
                                         onRestore={restoreSelectedThread}
@@ -2613,13 +2942,42 @@ export default function InboxPage() {
                                                 <div className={styles.attachmentGrid}>
                                                     {displayedMessage.attachments.map((attachment) => {
                                                         const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
-                                                        return (
-                                                            <div key={attachment.id} className={styles.attachment} title={attachment.fileName}>
+                                                        const copy = (
+                                                            <>
                                                                 <AttachmentIcon size={15} className={styles.attachmentIcon} />
                                                                 <span className={styles.attachmentCopy}>
                                                                     <span>{attachment.fileName}</span>
                                                                     <small>{attachment.sizeLabel}</small>
                                                                 </span>
+                                                            </>
+                                                        );
+                                                        // Received files live with Resend and can be downloaded;
+                                                        // for sent files only the name was kept.
+                                                        if (!selectedThread.demo && attachment.id.startsWith("rcv_")) {
+                                                            const busy = downloadingAttachmentId === attachment.id;
+                                                            return (
+                                                                <button
+                                                                    key={attachment.id}
+                                                                    type="button"
+                                                                    className={styles.attachmentButton}
+                                                                    title={`Download ${attachment.fileName}`}
+                                                                    disabled={busy}
+                                                                    onClick={() => void downloadAttachment(attachment.id, attachment.fileName)}
+                                                                >
+                                                                    {copy}
+                                                                    {busy ? <Loader2 size={14} className={styles.spinning} /> : <Download size={14} className={styles.attachmentIcon} />}
+                                                                </button>
+                                                            );
+                                                        }
+                                                        return (
+                                                            <div
+                                                                key={attachment.id}
+                                                                className={styles.attachment}
+                                                                title={selectedThread.demo
+                                                                    ? `${attachment.fileName} (sample file)`
+                                                                    : `${attachment.fileName}: only the file name is kept for files you send`}
+                                                            >
+                                                                {copy}
                                                             </div>
                                                         );
                                                     })}
@@ -2874,25 +3232,25 @@ export default function InboxPage() {
                                             )}
                                         </div>
 
-                                        {replyAttachment && (
-                                            <div className={styles.replyAttachment}>
+                                        {replyAttachments.map((file, index) => (
+                                            <div key={`${file.name}-${file.lastModified}-${index}`} className={styles.replyAttachment}>
                                                 <button
                                                     type="button"
                                                     className={styles.attachment}
-                                                    onClick={() => setAttachmentPreviewOpen(true)}
-                                                    title={`Preview ${replyAttachment.name}`}
+                                                    onClick={() => setPreviewAttachmentIndex(index)}
+                                                    title={`Preview ${file.name}`}
                                                 >
                                                     <File size={14} className={styles.attachmentIcon} />
                                                     <span className={styles.attachmentCopy}>
-                                                        <span>{replyAttachment.name}</span>
-                                                        <small>{(replyAttachment.size / 1024).toFixed(0)} KB</small>
+                                                        <span>{file.name}</span>
+                                                        <small>{Math.max(1, Math.round(file.size / 1024))} KB</small>
                                                     </span>
                                                 </button>
-                                                <button type="button" className={styles.iconButton} aria-label="Remove attachment" onClick={removeReplyAttachment}>
+                                                <button type="button" className={styles.iconButton} aria-label={`Remove ${file.name}`} onClick={() => removeReplyAttachment(index)}>
                                                     <X size={13} />
                                                 </button>
                                             </div>
-                                        )}
+                                        ))}
 
                                         <div className={styles.replyBar}>
                                             {canUseAi && (
@@ -3078,14 +3436,14 @@ export default function InboxPage() {
                                                             <Signature size={14} />
                                                             Insert signature
                                                         </button>
-                                                        {replyAttachment && (
+                                                        {replyAttachments.length > 0 && (
                                                             <button
                                                                 type="button"
                                                                 role="menuitem"
                                                                 className={styles.menuItem}
                                                                 onClick={() => {
                                                                     setReplyOptionsOpen(false);
-                                                                    setAttachmentPreviewOpen(true);
+                                                                    setPreviewAttachmentIndex(0);
                                                                 }}
                                                             >
                                                                 <File size={14} />
@@ -3130,10 +3488,18 @@ export default function InboxPage() {
                                         <input
                                             ref={attachmentInputRef}
                                             type="file"
+                                            multiple
                                             hidden
                                             onChange={(event) => {
-                                                setReplyAttachment(event.target.files?.[0] ?? null);
-                                                setAttachmentPreviewOpen(false);
+                                                const picked = Array.from(event.target.files ?? []);
+                                                const next = [...replyAttachments, ...picked];
+                                                if (next.length > MAX_ATTACHMENTS) {
+                                                    setSendError(`Attach up to ${MAX_ATTACHMENTS} files per email.`);
+                                                }
+                                                setReplyAttachments(next.slice(0, MAX_ATTACHMENTS));
+                                                setPreviewAttachmentIndex(null);
+                                                // Let the same file be picked again after removing it.
+                                                event.target.value = "";
                                             }}
                                         />
                                     </section>
@@ -3144,38 +3510,38 @@ export default function InboxPage() {
                 </section>
             </section>
 
-            {attachmentPreviewOpen && replyAttachment && replyAttachmentUrl && (
+            {attachmentPreviewOpen && previewAttachment && previewAttachmentUrl && (
                 <div
                     className={styles.overlay}
                     role="dialog"
                     aria-modal="true"
-                    aria-label={`Preview ${replyAttachment.name}`}
+                    aria-label={`Preview ${previewAttachment.name}`}
                     onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) setAttachmentPreviewOpen(false);
+                        if (event.target === event.currentTarget) setPreviewAttachmentIndex(null);
                     }}
                 >
                     <div className={styles.modal}>
                         <header className={styles.modalHead}>
                             <span>
-                                {replyAttachment.name}
-                                <small>{(replyAttachment.size / 1024).toFixed(0)} KB</small>
+                                {previewAttachment.name}
+                                <small>{(previewAttachment.size / 1024).toFixed(0)} KB</small>
                             </span>
-                            <button type="button" className={styles.iconButton} aria-label="Close attachment preview" onClick={() => setAttachmentPreviewOpen(false)}>
+                            <button type="button" className={styles.iconButton} aria-label="Close attachment preview" onClick={() => setPreviewAttachmentIndex(null)}>
                                 <X size={16} />
                             </button>
                         </header>
                         <div className={styles.modalBody}>
-                            {replyAttachment.type.startsWith("image/") ? (
+                            {previewAttachment.type.startsWith("image/") ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={replyAttachmentUrl} alt={replyAttachment.name} />
-                            ) : replyAttachment.type === "application/pdf" ? (
-                                <iframe src={replyAttachmentUrl} title={replyAttachment.name} />
+                                <img src={previewAttachmentUrl} alt={previewAttachment.name} />
+                            ) : previewAttachment.type === "application/pdf" ? (
+                                <iframe src={previewAttachmentUrl} title={previewAttachment.name} />
                             ) : (
                                 <div className={styles.emptyState}>
                                     <File size={22} />
-                                    {replyAttachment.name}
+                                    {previewAttachment.name}
                                     <small>A browser preview isn&apos;t available for this file type.</small>
-                                    <a href={replyAttachmentUrl} target="_blank" rel="noreferrer" className={styles.ghostButton}>Open file</a>
+                                    <a href={previewAttachmentUrl} target="_blank" rel="noreferrer" className={styles.ghostButton}>Open file</a>
                                 </div>
                             )}
                         </div>

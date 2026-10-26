@@ -6,7 +6,7 @@ export const MOVABLE_FOLDERS = ["archived", "deleted"] as const;
 export type MovableFolder = (typeof MOVABLE_FOLDERS)[number];
 
 /**
- * Whether a thread belongs in a folder. Starred and Sent overlap the others,
+ * Whether a thread belongs in a folder. Starred (shown as "Pinned") and Sent overlap the others,
  * and Inbox is the all-mail view: it also lists conversations you started.
  */
 export function threadInFolder(thread: InboxThread, folder: InboxFolder) {

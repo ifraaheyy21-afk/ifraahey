@@ -11,6 +11,9 @@ import type {
 } from "./inbox-data";
 
 export const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
+export const MAX_ATTACHMENTS = 5;
+// Resend caps a whole email at 40 MB once files are base64-encoded.
+export const MAX_TOTAL_ATTACHMENT_BYTES = 20 * 1024 * 1024;
 const MAX_SUBJECT_LENGTH = 500;
 const MAX_HTML_LENGTH = 500_000;
 const EMAIL_PATTERN = /^[^\s@<>()[\]\\,;:"]+@[^\s@<>()[\]\\,;:"]+\.[^\s@<>()[\]\\,;:"]+$/;
@@ -38,7 +41,7 @@ export type InboxSendInput = {
     toName: string | null;
     subject: string;
     html: string;
-    attachment: InboxSendAttachment | null;
+    attachments: InboxSendAttachment[];
 };
 
 export type InboxSentRecord = {
@@ -54,9 +57,12 @@ export type InboxSentRecord = {
     html: string;
     plainText: string;
     inReplyTo: string | null;
+    // The first file, kept for rows sent before several files were allowed.
     attachmentName: string | null;
     attachmentMimeType: string | null;
     attachmentSize: number | null;
+    /** Every file sent: SentAttachmentMeta[] (names and sizes; files aren't kept). */
+    attachments?: unknown;
     status: string;
     failureReason: string | null;
     providerMessageId: string | null;
@@ -65,10 +71,12 @@ export type InboxSentRecord = {
     createdAt: Date;
 };
 
+export type SentAttachmentMeta = { fileName: string; mimeType: string; size: number };
+
 export type InboxSentCreate = Omit<
     InboxSentRecord,
-    "id" | "status" | "failureReason" | "providerMessageId" | "providerRfcMessageId" | "sentAt" | "createdAt"
->;
+    "id" | "status" | "failureReason" | "providerMessageId" | "providerRfcMessageId" | "sentAt" | "createdAt" | "attachments"
+> & { attachments?: SentAttachmentMeta[] };
 
 export type InboxSentStore = {
     findBySendKey(workspaceId: string, sendKey: string): Promise<InboxSentRecord | null>;
@@ -245,24 +253,31 @@ export async function parseSendForm(form: FormData): Promise<InboxSendInput> {
         throw new InboxSendError("Write a message before sending.");
     }
 
-    let attachment: InboxSendAttachment | null = null;
-    const file = form.get("attachment");
-    if (file && typeof file !== "string" && file.size > 0) {
-        if (file.size > MAX_ATTACHMENT_BYTES) {
-            throw new InboxSendError(
-                `Attachments must be ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB or smaller.`,
-                413,
-            );
-        }
-        attachment = {
-            fileName: (file.name || "attachment").replace(/[\r\n"\\/]/g, "_").slice(0, 200),
-            mimeType: file.type || "application/octet-stream",
-            size: file.size,
-            content: Buffer.from(await file.arrayBuffer()),
-        };
+    const files = form.getAll("attachment")
+        .filter((file): file is File => typeof file !== "string" && file.size > 0);
+    if (files.length > MAX_ATTACHMENTS) {
+        throw new InboxSendError(`Attach up to ${MAX_ATTACHMENTS} files per email.`, 413);
     }
+    if (files.some((file) => file.size > MAX_ATTACHMENT_BYTES)) {
+        throw new InboxSendError(
+            `Attachments must be ${MAX_ATTACHMENT_BYTES / (1024 * 1024)} MB or smaller.`,
+            413,
+        );
+    }
+    if (files.reduce((total, file) => total + file.size, 0) > MAX_TOTAL_ATTACHMENT_BYTES) {
+        throw new InboxSendError(
+            `Attachments can add up to ${MAX_TOTAL_ATTACHMENT_BYTES / (1024 * 1024)} MB per email.`,
+            413,
+        );
+    }
+    const attachments = await Promise.all(files.map(async (file) => ({
+        fileName: (file.name || "attachment").replace(/[\r\n"\\/]/g, "_").slice(0, 200),
+        mimeType: file.type || "application/octet-stream",
+        size: file.size,
+        content: Buffer.from(await file.arrayBuffer()),
+    })));
 
-    return { sendKey, threadId, toEmail, toName, subject, html, attachment };
+    return { sendKey, threadId, toEmail, toName, subject, html, attachments };
 }
 
 function senderFrom(metadata: unknown) {
@@ -357,9 +372,12 @@ export async function sendInboxEmail(deps: InboxSendDeps, input: InboxSendInput)
         html,
         plainText,
         inReplyTo,
-        attachmentName: input.attachment?.fileName ?? null,
-        attachmentMimeType: input.attachment?.mimeType ?? null,
-        attachmentSize: input.attachment?.size ?? null,
+        attachmentName: input.attachments[0]?.fileName ?? null,
+        attachmentMimeType: input.attachments[0]?.mimeType ?? null,
+        attachmentSize: input.attachments[0]?.size ?? null,
+        ...(input.attachments.length
+            ? { attachments: input.attachments.map(({ fileName, mimeType, size }) => ({ fileName, mimeType, size })) }
+            : {}),
     };
 
     let record: InboxSentRecord;
@@ -386,13 +404,13 @@ export async function sendInboxEmail(deps: InboxSendDeps, input: InboxSendInput)
                 text: plainText,
                 replyTo: sender.replyTo,
                 headers,
-                ...(input.attachment
+                ...(input.attachments.length
                     ? {
-                        attachments: [{
-                            filename: input.attachment.fileName,
-                            content: input.attachment.content,
-                            contentType: input.attachment.mimeType,
-                        }],
+                        attachments: input.attachments.map((attachment) => ({
+                            filename: attachment.fileName,
+                            content: attachment.content,
+                            contentType: attachment.mimeType,
+                        })),
                     }
                     : {}),
             },
@@ -431,6 +449,29 @@ function formatSize(bytes: number) {
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+/** Files sent with an email: the full list, or the one file older rows kept. */
+function sentAttachments(record: InboxSentRecord): SentAttachmentMeta[] {
+    if (Array.isArray(record.attachments)) {
+        const list = record.attachments.flatMap((item) => {
+            const entry = item && typeof item === "object" ? item as Record<string, unknown> : null;
+            if (!entry || typeof entry.fileName !== "string") return [];
+            return [{
+                fileName: entry.fileName,
+                mimeType: typeof entry.mimeType === "string" ? entry.mimeType : "application/octet-stream",
+                size: typeof entry.size === "number" ? entry.size : 0,
+            }];
+        });
+        if (list.length) return list;
+    }
+    return record.attachmentName
+        ? [{
+            fileName: record.attachmentName,
+            mimeType: record.attachmentMimeType ?? "application/octet-stream",
+            size: record.attachmentSize ?? 0,
+        }]
+        : [];
+}
+
 export function sentRecordToMessage(record: InboxSentRecord): InboxMessage {
     return {
         id: `sent_${record.id}`,
@@ -443,14 +484,14 @@ export function sentRecordToMessage(record: InboxSentRecord): InboxMessage {
         status: "sent",
         html: record.html,
         plainText: record.plainText,
-        ...(record.attachmentName
+        ...(sentAttachments(record).length
             ? {
-                attachments: [{
-                    id: `sent_${record.id}_attachment`,
-                    fileName: record.attachmentName,
-                    mimeType: record.attachmentMimeType ?? "application/octet-stream",
-                    sizeLabel: formatSize(record.attachmentSize ?? 0),
-                }],
+                attachments: sentAttachments(record).map((attachment, index) => ({
+                    id: `sent_${record.id}_attachment${index ? `_${index}` : ""}`,
+                    fileName: attachment.fileName,
+                    mimeType: attachment.mimeType,
+                    sizeLabel: formatSize(attachment.size),
+                })),
             }
             : {}),
     };
