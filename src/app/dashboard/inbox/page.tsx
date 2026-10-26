@@ -2184,8 +2184,7 @@ export default function InboxPage() {
         setSelectedThreadId("");
         router.replace(inboxUrl(folder, activeChannel), { scroll: false });
     };
-    // In the Starred folder everything is starred, so it groups by day as usual.
-    const threadGroups = groupThreadsForList(listThreads, sortOrder, activeFolder !== "starred");
+    const threadGroups = groupThreadsForList(listThreads, sortOrder);
     const sortLabel = INBOX_SORT_OPTIONS.find((option) => option.value === sortOrder)?.short ?? "Newest";
     const chooseSort = (order: InboxSortOrder) => {
         setSortOrder(order);

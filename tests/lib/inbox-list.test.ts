@@ -37,19 +37,19 @@ describe("sortThreads", () => {
 
 describe("groupThreadsForList", () => {
     const labels = (order: Parameters<typeof sortThreads>[1]) =>
-        groupThreadsForList(sortThreads(threads, order), order, true, now)
+        groupThreadsForList(sortThreads(threads, order), order, now)
             .map((group) => `${group.label}:${group.threads.map((t) => t.id).join("")}`);
 
-    test("starred first, then by day", () => {
-        assert.deepEqual(labels("newest"), ["Starred:d", "Today:a", "Yesterday:c", "This week:b"]);
-        assert.deepEqual(labels("oldest"), ["Starred:d", "This week:b", "Yesterday:c", "Today:a"]);
+    test("groups by day; starred emails stay in date order", () => {
+        assert.deepEqual(labels("newest"), ["Today:da", "Yesterday:c", "This week:b"]);
+        assert.deepEqual(labels("oldest"), ["This week:b", "Yesterday:c", "Today:ad"]);
     });
 
     test("unread first splits New from Already read", () => {
-        assert.deepEqual(labels("unread"), ["Starred:d", "New:b", "Already read:ac"]);
+        assert.deepEqual(labels("unread"), ["New:db", "Already read:ac"]);
     });
 
     test("sender order is one list", () => {
-        assert.deepEqual(labels("sender"), ["Starred:d", "By sender:bca"]);
+        assert.deepEqual(labels("sender"), ["By sender:bdca"]);
     });
 });

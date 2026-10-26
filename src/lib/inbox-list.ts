@@ -58,22 +58,16 @@ function groupBy(threads: InboxThread[], labelFor: (thread: InboxThread) => stri
 }
 
 /**
- * Headings for an already-sorted list: by day for date orders, New / Earlier
- * for unread first, and one list for sender order. Starred emails sit in
- * their own group at the top when `starredFirst` is set.
+ * Headings for an already-sorted list: by day for date orders, New /
+ * Already read for unread first, and one list for sender order. Starred
+ * emails stay where the sort puts them.
  */
 export function groupThreadsForList(
     sorted: InboxThread[],
     order: InboxSortOrder,
-    starredFirst: boolean,
     now = new Date(),
 ): InboxListGroup[] {
-    const starred = starredFirst ? sorted.filter((thread) => thread.starred) : [];
-    const rest = starredFirst ? sorted.filter((thread) => !thread.starred) : sorted;
-    const groups = order === "unread"
-        ? groupBy(rest, (thread) => (thread.unread ? "New" : "Already read"))
-        : order === "sender"
-            ? (rest.length ? [{ label: "By sender", threads: rest }] : [])
-            : groupBy(rest, (thread) => dayLabel(thread, now));
-    return starred.length ? [{ label: "Starred", threads: starred }, ...groups] : groups;
+    if (order === "unread") return groupBy(sorted, (thread) => (thread.unread ? "New" : "Already read"));
+    if (order === "sender") return sorted.length ? [{ label: "By sender", threads: sorted }] : [];
+    return groupBy(sorted, (thread) => dayLabel(thread, now));
 }
