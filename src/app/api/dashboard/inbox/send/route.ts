@@ -7,7 +7,10 @@ import {
     InboxSendError,
     parseSendForm,
     sendInboxEmail,
+    sentAttachments,
     sentRecordToMessage,
+    withStoragePaths,
+    type InboxSentRecord,
 } from "../../../../../lib/inbox-send";
 import {
     findPendingRfcMessages,
@@ -38,7 +41,7 @@ export async function POST(request: Request) {
         }
 
         const input = await parseSendForm(form);
-        const record = await sendInboxEmail(
+        let record = await sendInboxEmail(
             {
                 workspaceId,
                 store: prismaInboxSentStore,
@@ -55,6 +58,10 @@ export async function POST(request: Request) {
             },
             input,
         );
+
+        // Keep the files so they can be opened from the thread later. Best
+        // effort: the email has already gone.
+        record = await keepSentFiles(workspaceId, record, input.attachments);
 
         // The email is out; a leftover draft would only confuse. Best effort.
         const draftId = typeof form.get("draftId") === "string" ? String(form.get("draftId")).slice(0, 100) : "";
@@ -80,5 +87,26 @@ export async function POST(request: Request) {
             { error: "The email could not be sent. Try again in a moment." },
             { status: 500, headers: noStore },
         );
+    }
+}
+
+async function keepSentFiles(
+    workspaceId: string,
+    record: InboxSentRecord,
+    files: Parameters<typeof import("../../../../../lib/inbox-attachment-store").storeSentAttachments>[2],
+): Promise<InboxSentRecord> {
+    const meta = sentAttachments(record);
+    if (files.length === 0 || meta.length !== files.length || meta.every((item) => item.storagePath)) return record;
+    try {
+        // Loaded here so a missing Supabase setting can't break sending itself.
+        const { storeSentAttachments } = await import("../../../../../lib/inbox-attachment-store");
+        const paths = await storeSentAttachments(workspaceId, record.id, files);
+        if (!paths.some(Boolean)) return record;
+        const attachments = withStoragePaths(meta, paths);
+        await prisma.inboxSentMessage.updateMany({ where: { id: record.id, workspaceId }, data: { attachments } });
+        return { ...record, attachments };
+    } catch (error) {
+        console.error("Failed to keep sent attachments", error instanceof Error ? error.message : error);
+        return record;
     }
 }

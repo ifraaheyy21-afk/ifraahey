@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireWorkspace } from "../../../../../../lib/auth/requireWorkspace";
 import { prisma } from "../../../../../../lib/prisma";
 import { getWorkspaceResendClient } from "../../../../../../lib/resendIntegration";
+import { sentAttachments, type InboxSentRecord } from "../../../../../../lib/inbox-send";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -10,8 +11,10 @@ export const dynamic = "force-dynamic";
 const noStore = { "Cache-Control": "private, no-store" };
 
 // Inbox attachment ids look like "rcv_<received message id>_att_<index>"
-// (see receivedAttachments in inbox-threads.ts).
+// (see receivedAttachments in inbox-threads.ts) for files sent to you, and
+// "snt_<sent message id>_att_<index>" (sentRecordToMessage) for files you sent.
 const ATTACHMENT_ID = /^rcv_([A-Za-z0-9-]{1,64})_att_(\d{1,2})$/;
+const SENT_ATTACHMENT_ID = /^snt_([A-Za-z0-9_-]{1,64})_att_(\d{1,2})$/;
 
 function fail(message: string, status: number) {
     return NextResponse.json({ error: message }, { status, headers: noStore });
@@ -47,6 +50,8 @@ export async function GET(request: Request, context: { params: Promise<{ attachm
     if (auth instanceof NextResponse) return auth;
 
     const { attachmentId } = await context.params;
+    const sentMatch = attachmentId.match(SENT_ATTACHMENT_ID);
+    if (sentMatch) return sentAttachment(auth.workspaceId, sentMatch[1], Number(sentMatch[2]));
     const match = attachmentId.match(ATTACHMENT_ID);
     if (!match) return fail("That attachment can't be downloaded.", 404);
 
@@ -98,5 +103,36 @@ export async function GET(request: Request, context: { params: Promise<{ attachm
     } catch (error) {
         console.error("Inbox attachment download failed", error instanceof Error ? error.message : error);
         return fail("The attachment could not be downloaded. Try again.", 502);
+    }
+}
+
+/** A file you sent, read back from the private attachment bucket. */
+async function sentAttachment(workspaceId: string, sentMessageId: string, index: number) {
+    const message = await prisma.inboxSentMessage.findFirst({
+        where: { id: sentMessageId, workspaceId },
+        select: { attachments: true },
+    });
+    const file = message ? sentAttachments({ attachments: message.attachments } as InboxSentRecord)[index] : undefined;
+    // Only the name was kept for this file, or the path points outside the workspace.
+    if (!file?.storagePath || !file.storagePath.startsWith(`${workspaceId}/`)) {
+        return fail("This file wasn't kept, so only its name is shown.", 404);
+    }
+    try {
+        const { readStoredAttachment } = await import("../../../../../../lib/inbox-attachment-store");
+        const blob = await readStoredAttachment(file.storagePath);
+        if (!blob) return fail("This file is no longer stored.", 404);
+        return new Response(blob.stream(), {
+            status: 200,
+            headers: {
+                ...noStore,
+                "Content-Type": /^[\w.+-]+\/[\w.+-]+$/.test(file.mimeType) ? file.mimeType : "application/octet-stream",
+                "Content-Disposition": contentDisposition(file.fileName),
+                "Content-Length": String(blob.size),
+                "X-Content-Type-Options": "nosniff",
+            },
+        });
+    } catch (error) {
+        console.error("Inbox sent attachment read failed", error instanceof Error ? error.message : error);
+        return fail("The attachment could not be opened. Try again.", 502);
     }
 }

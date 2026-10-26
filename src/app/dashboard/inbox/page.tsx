@@ -423,6 +423,20 @@ function buildEditableSavedEmailHtml(email: BuilderSavedEmail) {
     `;
 }
 
+// Received files that open in the preview window. SVG and HTML are left out
+// on purpose: they can carry script.
+const PREVIEWABLE_TYPES = new Set(["image/png", "image/jpeg", "image/gif", "image/webp", "application/pdf"]);
+
+/** Save a blob URL to the computer under a file name. */
+function saveBlobUrl(url: string, fileName: string) {
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = fileName;
+    document.body.append(link);
+    link.click();
+    link.remove();
+}
+
 // Mirror the limits in src/lib/inbox-send.ts.
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
 const MAX_ATTACHMENTS = 5;
@@ -644,7 +658,6 @@ export default function InboxPage() {
     // Which attached file is open in the preview, if any.
     const [previewAttachmentIndex, setPreviewAttachmentIndex] = useState<number | null>(null);
     const previewAttachment = previewAttachmentIndex === null ? null : replyAttachments[previewAttachmentIndex] ?? null;
-    const attachmentPreviewOpen = previewAttachment !== null;
     const [sending, setSending] = useState(false);
     const [sendError, setSendError] = useState("");
     // One key per unchanged draft, so clicking Send again after a failure
@@ -1287,30 +1300,58 @@ export default function InboxPage() {
 
     const [downloadingAttachmentId, setDownloadingAttachmentId] = useState<string | null>(null);
 
-    /** Save a received file to the computer, showing any error in the banner. */
-    const downloadAttachment = async (attachmentId: string, fileName: string) => {
-        setDownloadingAttachmentId(attachmentId);
+    // A received image or PDF open in the preview window.
+    const [receivedPreview, setReceivedPreview] = useState<
+        { fileName: string; mimeType: string; sizeLabel: string; url: string } | null
+    >(null);
+
+    /**
+     * Open a received file: images and PDFs show in the preview window,
+     * anything else downloads. Errors show in the banner.
+     */
+    const openReceivedAttachment = async (attachment: { id: string; fileName: string; mimeType: string; sizeLabel: string }) => {
+        setDownloadingAttachmentId(attachment.id);
         try {
-            const response = await fetch(`/api/dashboard/inbox/attachments/${encodeURIComponent(attachmentId)}`, {
+            const response = await fetch(`/api/dashboard/inbox/attachments/${encodeURIComponent(attachment.id)}`, {
                 credentials: "include",
             });
             if (!response.ok) {
                 const result = (await response.json().catch(() => ({}))) as { error?: string };
                 throw new Error(result.error || "The attachment could not be downloaded.");
             }
-            const url = URL.createObjectURL(await response.blob());
-            const link = document.createElement("a");
-            link.href = url;
-            link.download = fileName;
-            document.body.append(link);
-            link.click();
-            link.remove();
+            const blob = await response.blob();
+            const mimeType = (response.headers.get("content-type") || attachment.mimeType).split(";")[0].trim().toLowerCase();
+            const url = URL.createObjectURL(blob.type === mimeType ? blob : new Blob([blob], { type: mimeType }));
+            if (PREVIEWABLE_TYPES.has(mimeType)) {
+                setReceivedPreview({ fileName: attachment.fileName, mimeType, sizeLabel: attachment.sizeLabel, url });
+                return;
+            }
+            saveBlobUrl(url, attachment.fileName);
             setTimeout(() => URL.revokeObjectURL(url), 10_000);
         } catch (downloadError) {
             setError(downloadError instanceof Error ? downloadError.message : "The attachment could not be downloaded.");
         } finally {
             setDownloadingAttachmentId(null);
         }
+    };
+
+    const closeReceivedPreview = () => {
+        if (receivedPreview) URL.revokeObjectURL(receivedPreview.url);
+        setReceivedPreview(null);
+    };
+
+    // One preview window for both a received file and a file you're attaching.
+    const previewView = receivedPreview ?? (previewAttachment && previewAttachmentUrl
+        ? {
+            fileName: previewAttachment.name,
+            mimeType: previewAttachment.type,
+            sizeLabel: `${Math.max(1, Math.round(previewAttachment.size / 1024))} KB`,
+            url: previewAttachmentUrl,
+        }
+        : null);
+    const closePreview = () => {
+        closeReceivedPreview();
+        setPreviewAttachmentIndex(null);
     };
 
     const toggleChecked = (threadId: string) =>
@@ -2948,21 +2989,27 @@ export default function InboxPage() {
                                                                 </span>
                                                             </>
                                                         );
-                                                        // Received files live with Resend and can be downloaded;
-                                                        // for sent files only the name was kept.
-                                                        if (!selectedThread.demo && attachment.id.startsWith("rcv_")) {
+                                                        // Received files (kept by Resend) and sent files we stored
+                                                        // open here: images and PDFs in a preview, the rest download.
+                                                        // Older sent files kept only their name.
+                                                        if (!selectedThread.demo && (attachment.id.startsWith("rcv_") || attachment.stored)) {
                                                             const busy = downloadingAttachmentId === attachment.id;
+                                                            const previewable = PREVIEWABLE_TYPES.has(attachment.mimeType.toLowerCase());
                                                             return (
                                                                 <button
                                                                     key={attachment.id}
                                                                     type="button"
                                                                     className={styles.attachmentButton}
-                                                                    title={`Download ${attachment.fileName}`}
+                                                                    title={`${previewable ? "Open" : "Download"} ${attachment.fileName}`}
                                                                     disabled={busy}
-                                                                    onClick={() => void downloadAttachment(attachment.id, attachment.fileName)}
+                                                                    onClick={() => void openReceivedAttachment(attachment)}
                                                                 >
                                                                     {copy}
-                                                                    {busy ? <Loader2 size={14} className={styles.spinning} /> : <Download size={14} className={styles.attachmentIcon} />}
+                                                                    {busy
+                                                                        ? <Loader2 size={14} className={styles.spinning} />
+                                                                        : previewable
+                                                                            ? <Maximize2 size={14} className={styles.attachmentIcon} />
+                                                                            : <Download size={14} className={styles.attachmentIcon} />}
                                                                 </button>
                                                             );
                                                         }
@@ -3507,38 +3554,50 @@ export default function InboxPage() {
                 </section>
             </section>
 
-            {attachmentPreviewOpen && previewAttachment && previewAttachmentUrl && (
+            {previewView && (
                 <div
                     className={styles.overlay}
                     role="dialog"
                     aria-modal="true"
-                    aria-label={`Preview ${previewAttachment.name}`}
+                    aria-label={`Preview ${previewView.fileName}`}
                     onMouseDown={(event) => {
-                        if (event.target === event.currentTarget) setPreviewAttachmentIndex(null);
+                        if (event.target === event.currentTarget) closePreview();
                     }}
                 >
                     <div className={styles.modal}>
                         <header className={styles.modalHead}>
                             <span>
-                                {previewAttachment.name}
-                                <small>{(previewAttachment.size / 1024).toFixed(0)} KB</small>
+                                {previewView.fileName}
+                                <small>{previewView.sizeLabel}</small>
                             </span>
-                            <button type="button" className={styles.iconButton} aria-label="Close attachment preview" onClick={() => setPreviewAttachmentIndex(null)}>
+                            <span className={styles.spacer} />
+                            <button
+                                type="button"
+                                className={styles.iconButton}
+                                aria-label={`Download ${previewView.fileName}`}
+                                title="Download"
+                                onClick={() => saveBlobUrl(previewView.url, previewView.fileName)}
+                            >
+                                <Download size={16} />
+                            </button>
+                            <button type="button" className={styles.iconButton} aria-label="Close attachment preview" onClick={closePreview}>
                                 <X size={16} />
                             </button>
                         </header>
                         <div className={styles.modalBody}>
-                            {previewAttachment.type.startsWith("image/") ? (
+                            {previewView.mimeType.startsWith("image/") && previewView.mimeType !== "image/svg+xml" ? (
                                 // eslint-disable-next-line @next/next/no-img-element
-                                <img src={previewAttachmentUrl} alt={previewAttachment.name} />
-                            ) : previewAttachment.type === "application/pdf" ? (
-                                <iframe src={previewAttachmentUrl} title={previewAttachment.name} />
+                                <img src={previewView.url} alt={previewView.fileName} />
+                            ) : previewView.mimeType === "application/pdf" ? (
+                                <iframe src={previewView.url} title={previewView.fileName} />
                             ) : (
                                 <div className={styles.emptyState}>
                                     <File size={22} />
-                                    {previewAttachment.name}
+                                    {previewView.fileName}
                                     <small>A browser preview isn&apos;t available for this file type.</small>
-                                    <a href={previewAttachmentUrl} target="_blank" rel="noreferrer" className={styles.ghostButton}>Open file</a>
+                                    <button type="button" className={styles.ghostButton} onClick={() => saveBlobUrl(previewView.url, previewView.fileName)}>
+                                        Download
+                                    </button>
                                 </div>
                             )}
                         </div>

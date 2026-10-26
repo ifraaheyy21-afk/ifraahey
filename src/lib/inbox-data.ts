@@ -59,6 +59,9 @@ export type InboxAttachment = {
     /** A local preview link, for files added in the browser. */
     url?: string;
 
+    /** A sent file that was kept, so it can be opened again. */
+    stored?: boolean;
+
 };
 
 export type InboxMessage = {

@@ -71,7 +71,18 @@ export type InboxSentRecord = {
     createdAt: Date;
 };
 
-export type SentAttachmentMeta = { fileName: string; mimeType: string; size: number };
+export type SentAttachmentMeta = {
+    fileName: string;
+    mimeType: string;
+    size: number;
+    /** Where the file is kept in storage; missing if it wasn't saved. */
+    storagePath?: string;
+};
+
+/** Record where each sent file was saved (null: not saved). */
+export function withStoragePaths(meta: SentAttachmentMeta[], paths: Array<string | null>): SentAttachmentMeta[] {
+    return meta.map((item, index) => (paths[index] ? { ...item, storagePath: paths[index]! } : item));
+}
 
 export type InboxSentCreate = Omit<
     InboxSentRecord,
@@ -450,7 +461,7 @@ function formatSize(bytes: number) {
 }
 
 /** Files sent with an email: the full list, or the one file older rows kept. */
-function sentAttachments(record: InboxSentRecord): SentAttachmentMeta[] {
+export function sentAttachments(record: InboxSentRecord): SentAttachmentMeta[] {
     if (Array.isArray(record.attachments)) {
         const list = record.attachments.flatMap((item) => {
             const entry = item && typeof item === "object" ? item as Record<string, unknown> : null;
@@ -459,6 +470,7 @@ function sentAttachments(record: InboxSentRecord): SentAttachmentMeta[] {
                 fileName: entry.fileName,
                 mimeType: typeof entry.mimeType === "string" ? entry.mimeType : "application/octet-stream",
                 size: typeof entry.size === "number" ? entry.size : 0,
+                ...(typeof entry.storagePath === "string" && entry.storagePath ? { storagePath: entry.storagePath } : {}),
             }];
         });
         if (list.length) return list;
@@ -487,10 +499,12 @@ export function sentRecordToMessage(record: InboxSentRecord): InboxMessage {
         ...(sentAttachments(record).length
             ? {
                 attachments: sentAttachments(record).map((attachment, index) => ({
-                    id: `sent_${record.id}_attachment${index ? `_${index}` : ""}`,
+                    // snt_<id>_att_<n> is what the attachment route serves.
+                    id: `snt_${record.id}_att_${index}`,
                     fileName: attachment.fileName,
                     mimeType: attachment.mimeType,
                     sizeLabel: formatSize(attachment.size),
+                    ...(attachment.storagePath ? { stored: true } : {}),
                 })),
             }
             : {}),

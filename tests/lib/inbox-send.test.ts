@@ -10,6 +10,7 @@ import {
     sanitiseEmailHtml,
     sendInboxEmail,
     sentRecordToMessage,
+    withStoragePaths,
     type InboxSendDeps,
     type InboxSendInput,
     type InboxSentCreate,
@@ -452,5 +453,40 @@ describe("several attachments", () => {
             status: "sent", failureReason: null, providerMessageId: "re_1", sentAt: new Date(), createdAt: new Date(),
         });
         assert.deepEqual(message.attachments?.map((file) => file.fileName), ["report.pdf"]);
+    });
+});
+
+describe("kept sent files", () => {
+    const base = {
+        id: "s1", workspaceId: WORKSPACE, sendKey: "k", threadId: null, toEmail: "a@b.co", toName: null,
+        fromEmail: "t@c.co", fromName: null, subject: "s", html: "", plainText: "", inReplyTo: null,
+        attachmentName: "a.txt", attachmentMimeType: "text/plain", attachmentSize: 1,
+        status: "sent", failureReason: null, providerMessageId: "re_1", sentAt: new Date(), createdAt: new Date(),
+    };
+
+    test("withStoragePaths records only the files that were saved", () => {
+        const meta = [
+            { fileName: "a.txt", mimeType: "text/plain", size: 1 },
+            { fileName: "b.png", mimeType: "image/png", size: 2 },
+        ];
+        assert.deepEqual(withStoragePaths(meta, ["ws_1/s1/0-a.txt", null]), [
+            { fileName: "a.txt", mimeType: "text/plain", size: 1, storagePath: "ws_1/s1/0-a.txt" },
+            { fileName: "b.png", mimeType: "image/png", size: 2 },
+        ]);
+    });
+
+    test("kept files are marked so the inbox can open them; the path stays on the server", () => {
+        const message = sentRecordToMessage({
+            ...base,
+            attachments: [
+                { fileName: "a.txt", mimeType: "text/plain", size: 1, storagePath: "ws_1/s1/0-a.txt" },
+                { fileName: "b.png", mimeType: "image/png", size: 2 },
+            ],
+        });
+        assert.deepEqual(message.attachments, [
+            { id: "snt_s1_att_0", fileName: "a.txt", mimeType: "text/plain", sizeLabel: "1 B", stored: true },
+            { id: "snt_s1_att_1", fileName: "b.png", mimeType: "image/png", sizeLabel: "2 B" },
+        ]);
+        assert.equal(JSON.stringify(message).includes("storagePath"), false);
     });
 });
