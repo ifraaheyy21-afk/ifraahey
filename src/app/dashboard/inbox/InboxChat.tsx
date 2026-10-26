@@ -223,7 +223,7 @@ export default function InboxChat(props: Props) {
                     {popover === "menu" && (
                         <div className={styles.chatMenu} role="menu">
                             <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onToggleStar(); }}>
-                                <Star size={14} fill={thread.starred ? "currentColor" : "none"} />
+                                <Star size={14} className={thread.starred ? styles.starIcon : undefined} />
                                 {thread.starred ? "Unstar" : "Star"}
                             </button>
                             <button type="button" role="menuitem" className={styles.menuItem} onClick={() => { setPopover(null); onMarkUnread(); }}>

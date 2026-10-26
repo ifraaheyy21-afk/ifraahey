@@ -4,6 +4,7 @@
    the bottom. No bold: 500 is the heaviest weight used. */
 
 .page {
+    --star: #f5b301;
     --ink: #111827;
     --ink-2: #4b5563;
     --ink-3: #8b929c;
@@ -245,10 +246,10 @@
     color: var(--ai);
 }
 
-/* Starred: the button stays filled in so the state reads at a glance. */
+/* Starred: a gold star, so the state reads at a glance. */
 .iconButtonStarred {
     background: var(--hover);
-    color: var(--ink);
+    color: var(--star);
 }
 
 .linkButton {
@@ -903,7 +904,7 @@
 
 .starIcon {
     flex: none;
-    color: var(--ink-2);
+    color: var(--star);
     fill: currentColor;
 }
 
