@@ -1,16 +1,1 @@
-{
-    "crons": [
-        {
-            "path": "/api/internal/automation-worker",
-            "schedule": "* * * * *"
-        },
-        {
-            "path": "/api/email-agent/cron/send-scheduled",
-            "schedule": "* * * * *"
-        },
-        {
-            "path": "/api/email-agent/cron/retry-failed",
-            "schedule": "*/30 * * * *"
-        }
-    ]
-}
+{}
