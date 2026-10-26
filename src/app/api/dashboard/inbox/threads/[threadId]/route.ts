@@ -7,7 +7,7 @@ import { parseThreadUpdate, saveThreadStates } from "../../../../../../lib/inbox
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-/** Pin, read/unread, archive, delete, restore or tag one inbox thread. */
+/** Star, read/unread, archive, delete, restore or tag one inbox thread. */
 export async function PATCH(request: Request, context: { params: Promise<{ threadId: string }> }) {
     const auth = await requireWorkspace(request);
     if (auth instanceof NextResponse) return auth;

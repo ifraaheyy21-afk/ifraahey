@@ -215,7 +215,7 @@
 
 .iconButton,
 .iconButtonOn,
-.iconButtonPinned {
+.iconButtonStarred {
     box-sizing: border-box;
     width: 30px;
     height: 30px;
@@ -245,8 +245,8 @@
     color: var(--ai);
 }
 
-/* Pinned: the button stays filled in so the state reads at a glance. */
-.iconButtonPinned {
+/* Starred: the button stays filled in so the state reads at a glance. */
+.iconButtonStarred {
     background: var(--hover);
     color: var(--ink);
 }
@@ -892,18 +892,19 @@
     white-space: nowrap;
 }
 
+/* New mail: a small charcoal dot beside the sender. */
 .unreadDot {
     width: 6px;
     height: 6px;
     flex: none;
     border-radius: 50%;
-    background: #2f6bff;
+    background: var(--ink);
 }
 
-.pinIcon {
+.starIcon {
     flex: none;
     color: var(--ink-2);
-    transform: rotate(35deg);
+    fill: currentColor;
 }
 
 /* Read emails sit back; new ones (.threadUnread) stand out below. */
@@ -3266,11 +3267,8 @@ a.editValue {
 
 /* ---- New (unread) emails ---------------------------------------------- */
 
-/* A blue edge, the dot and darker type mark mail you haven't opened yet. */
-.threadUnread {
-    box-shadow: inset 3px 0 0 #2f6bff;
-}
-
+/* Darker type and the dot mark mail you haven't opened yet; read mail
+   stays in lighter grey. */
 .threadUnread .threadFrom,
 .threadUnread .threadSubject {
     color: var(--ink);

@@ -56,8 +56,8 @@ import {
     Signature,
     Send,
     Sparkles,
-    Pin,
-    PinOff,
+    Star,
+    StarOff,
     Trash2,
     Underline,
     Undo2,
@@ -201,7 +201,7 @@ function inDateRange(thread: { lastMessageAt: string }, range: DateRange, now: n
 
 const folderOptions: Array<{ value: InboxFolder; label: string }> = [
     { value: "inbox", label: "Received" },
-    { value: "starred", label: "Pinned" },
+    { value: "starred", label: "Starred" },
     { value: "sent", label: "Sent" },
     { value: "drafts", label: "Drafts" },
     { value: "scheduled", label: "Scheduled" },
@@ -551,7 +551,7 @@ function replySubjectFor(subject: string) {
 /** Folders in the inbox sidebar: the whole inbox lives on this one page. */
 const MAIN_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof Inbox }> = [
     { folder: "inbox", label: "Inbox", icon: Inbox },
-    { folder: "starred", label: "Pinned", icon: Pin },
+    { folder: "starred", label: "Starred", icon: Star },
     { folder: "sent", label: "Sent", icon: Send },
     { folder: "drafts", label: "Drafts", icon: FileText },
     { folder: "deleted", label: "Trash", icon: Trash2 },
@@ -563,8 +563,6 @@ const OTHER_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof In
 ];
 
 
-/** Groups threads under Today / Yesterday / This week / Earlier. */
-/** Pinned emails first (their own group), then the rest by day. */
 const AVATAR_TONES = [
     ["#eef2ff", "#4338ca"],
     ["#ecfdf3", "#027a48"],
@@ -1216,7 +1214,7 @@ export default function InboxPage() {
     };
 
     /**
-     * Apply a pin/read/folder/tag change at once and save it. Sample threads
+     * Apply a star/read/folder/tag change at once and save it. Sample threads
      * are saved in this browser; real ones on the server, undone if that fails.
      */
     const saveThreadAction = (thread: InboxThread, action: ThreadAction) => {
@@ -1355,7 +1353,7 @@ export default function InboxPage() {
         if (selectedThread) saveThreadAction(selectedThread, { folder: null });
     };
 
-    const toggleSelectedThreadPin = () => {
+    const toggleSelectedThreadStar = () => {
         if (selectedThread) saveThreadAction(selectedThread, { starred: !selectedThread.starred });
     };
 
@@ -2140,7 +2138,7 @@ export default function InboxPage() {
     const allChecked = listThreads.length > 0 && checkedThreads.length === listThreads.length;
     const checkedInBin = checkedThreads.length > 0 &&
         checkedThreads.every((thread) => thread.folder === "archived" || thread.folder === "deleted");
-    const checkedAllPinned = checkedThreads.length > 0 && checkedThreads.every((thread) => thread.starred);
+    const checkedAllStarred = checkedThreads.length > 0 && checkedThreads.every((thread) => thread.starred);
     const allThreads = payload?.threads ?? [];
     // Counts follow the chosen date range, so a folder never shows a number
     // for emails the list then hides.
@@ -2186,7 +2184,7 @@ export default function InboxPage() {
         setSelectedThreadId("");
         router.replace(inboxUrl(folder, activeChannel), { scroll: false });
     };
-    // In the Pinned folder everything is pinned, so it groups by day as usual.
+    // In the Starred folder everything is starred, so it groups by day as usual.
     const threadGroups = groupThreadsForList(listThreads, sortOrder, activeFolder !== "starred");
     const sortLabel = INBOX_SORT_OPTIONS.find((option) => option.value === sortOrder)?.short ?? "Newest";
     const chooseSort = (order: InboxSortOrder) => {
@@ -2624,12 +2622,12 @@ export default function InboxPage() {
                             <button
                                 type="button"
                                 className={styles.iconButton}
-                                aria-label={checkedAllPinned ? "Unpin selected" : "Pin selected"}
-                                title={checkedAllPinned ? "Unpin" : "Pin to the top"}
-                                onClick={() => bulkThreadAction(checkedThreads, { starred: !checkedAllPinned })}
+                                aria-label={checkedAllStarred ? "Unstar selected" : "Star selected"}
+                                title={checkedAllStarred ? "Unstar" : "Star"}
+                                onClick={() => bulkThreadAction(checkedThreads, { starred: !checkedAllStarred })}
                                 disabled={checkedThreads.length === 0}
                             >
-                                {checkedAllPinned ? <PinOff size={15} /> : <Pin size={15} />}
+                                {checkedAllStarred ? <StarOff size={15} /> : <Star size={15} />}
                             </button>
                             <button type="button" className={styles.iconButton} aria-label="Stop selecting" title="Done" onClick={exitSelectMode}>
                                 <X size={15} />
@@ -2712,7 +2710,7 @@ export default function InboxPage() {
                                                             </span>
                                                             <span className={styles.threadFrom}>{thread.customerName}</span>
                                                             {thread.unread && <span className={styles.unreadDot} aria-label="New" />}
-                                                            {thread.starred && <Pin size={11} className={styles.pinIcon} aria-label="Pinned" />}
+                                                            {thread.starred && <Star size={11} className={styles.starIcon} aria-label="Starred" />}
                                                             <time>{formatListDate(thread.lastMessageAt)}</time>
                                                         </span>
                                                         <span className={styles.threadSubject}>{thread.subject}</span>
@@ -2792,13 +2790,13 @@ export default function InboxPage() {
                                         </button>
                                         <button
                                             type="button"
-                                            className={selectedThread.starred ? styles.iconButtonPinned : styles.iconButton}
-                                            aria-label={selectedThread.starred ? "Unpin conversation" : "Pin conversation"}
+                                            className={selectedThread.starred ? styles.iconButtonStarred : styles.iconButton}
+                                            aria-label={selectedThread.starred ? "Unstar conversation" : "Star conversation"}
                                             aria-pressed={selectedThread.starred}
-                                            title={selectedThread.starred ? "Unpin" : "Pin to the top"}
-                                            onClick={toggleSelectedThreadPin}
+                                            title={selectedThread.starred ? "Unstar" : "Star"}
+                                            onClick={toggleSelectedThreadStar}
                                         >
-                                            {selectedThread.starred ? <PinOff size={15} /> : <Pin size={15} />}
+                                            <Star size={15} fill={selectedThread.starred ? "currentColor" : "none"} />
                                         </button>
                                         {activeFolder === "inbox" && !selectedIsChat && (
                                             <button type="button" className={styles.iconButton} aria-label="Reply" title="Reply" onClick={() => replyRef.current?.focus()}>
@@ -2837,7 +2835,7 @@ export default function InboxPage() {
                                         draft={chatDraft}
                                         setDraft={setChatDraft}
                                         onSend={(text, file) => appendChatMessage(chatThread.id, text, file)}
-                                        onTogglePin={toggleSelectedThreadPin}
+                                        onToggleStar={toggleSelectedThreadStar}
                                         onMarkUnread={markSelectedThreadUnread}
                                         onArchive={archiveSelectedThread}
                                         onRestore={restoreSelectedThread}

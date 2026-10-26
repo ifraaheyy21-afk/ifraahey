@@ -40,16 +40,16 @@ describe("groupThreadsForList", () => {
         groupThreadsForList(sortThreads(threads, order), order, true, now)
             .map((group) => `${group.label}:${group.threads.map((t) => t.id).join("")}`);
 
-    test("pinned first, then by day", () => {
-        assert.deepEqual(labels("newest"), ["Pinned:d", "Today:a", "Yesterday:c", "This week:b"]);
-        assert.deepEqual(labels("oldest"), ["Pinned:d", "This week:b", "Yesterday:c", "Today:a"]);
+    test("starred first, then by day", () => {
+        assert.deepEqual(labels("newest"), ["Starred:d", "Today:a", "Yesterday:c", "This week:b"]);
+        assert.deepEqual(labels("oldest"), ["Starred:d", "This week:b", "Yesterday:c", "Today:a"]);
     });
 
     test("unread first splits New from Already read", () => {
-        assert.deepEqual(labels("unread"), ["Pinned:d", "New:b", "Already read:ac"]);
+        assert.deepEqual(labels("unread"), ["Starred:d", "New:b", "Already read:ac"]);
     });
 
     test("sender order is one list", () => {
-        assert.deepEqual(labels("sender"), ["Pinned:d", "By sender:bca"]);
+        assert.deepEqual(labels("sender"), ["Starred:d", "By sender:bca"]);
     });
 });

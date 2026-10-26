@@ -11,7 +11,7 @@ export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
 /**
- * Apply one change (pin, read/unread, archive, delete, restore) to several
+ * Apply one change (star, read/unread, archive, delete, restore) to several
  * selected threads at once. Body: { threadIds: string[], ...change }.
  */
 export async function PATCH(request: Request) {

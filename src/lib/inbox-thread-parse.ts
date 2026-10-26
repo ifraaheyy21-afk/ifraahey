@@ -6,9 +6,9 @@ const MAX_LABEL_LENGTH = 40;
 /** The most threads one bulk request may change. */
 export const MAX_BULK_THREADS = 100;
 
-/** A change to one or more threads: pin, read/unread, move, or tag. */
+/** A change to one or more threads: star, read/unread, move, or tag. */
 export type ThreadUpdate = {
-    /** Stored as "starred"; the inbox shows it as pinned. */
+    /** Star or unstar the thread. */
     starred?: boolean;
     read?: boolean;
     /** "archived" or "deleted" moves the thread; null restores it. */
