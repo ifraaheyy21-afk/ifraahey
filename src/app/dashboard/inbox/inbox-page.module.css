@@ -216,6 +216,7 @@
 
 .iconButton,
 .iconButtonOn,
+.iconButtonActive,
 .iconButtonStarred {
     box-sizing: border-box;
     width: 30px;
@@ -244,6 +245,12 @@
 .iconButtonOn {
     background: var(--hover);
     color: var(--ai);
+}
+
+/* A filter that's on, such as a date range other than all time. */
+.iconButtonActive {
+    background: var(--hover);
+    color: var(--ink);
 }
 
 /* Starred: a gold star, so the state reads at a glance. */
@@ -676,6 +683,24 @@
     background: #ffffff;
 }
 
+/* Sits above the emails: the date filter, and the range it's set to. */
+.listHeader {
+    flex: none;
+    min-height: 38px;
+    padding: 4px 8px 4px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    border-bottom: 1px solid var(--line);
+}
+
+.listHeaderLabel {
+    margin-right: auto;
+    color: var(--ink-3);
+    font-size: 12px;
+}
+
 .listSearch {
     flex: none;
     margin: 10px 10px 4px;
@@ -894,14 +919,6 @@
 }
 
 /* New mail: a small charcoal dot beside the sender. */
-.unreadDot {
-    width: 6px;
-    height: 6px;
-    flex: none;
-    border-radius: 50%;
-    background: var(--ink);
-}
-
 .starIcon {
     flex: none;
     color: var(--star);
@@ -3273,7 +3290,7 @@ a.editValue {
 .threadUnread .threadFrom,
 .threadUnread .threadSubject {
     color: var(--ink);
-    font-weight: 500;
+    font-weight: 600;
 }
 
 .threadUnread .threadPreview {

@@ -13,7 +13,6 @@ import {
     Pencil,
     GripVertical,
     SlidersHorizontal,
-    ArrowUpDown,
     ListChecks,
     Minimize2,
     Maximize2,
@@ -31,6 +30,7 @@ import {
     Film,
     Image,
     Inbox,
+    ArrowDownLeft,
     Italic,
     Link as LinkIcon,
     Link2,
@@ -78,13 +78,7 @@ import {
 
 import { CHAT_CHANNELS, isChatChannel, type InboxChannel } from "../../../lib/inbox-data";
 import { threadInFolder } from "../../../lib/inbox-folders";
-import {
-    groupThreadsForList,
-    INBOX_SORT_OPTIONS,
-    isInboxSortOrder,
-    sortThreads,
-    type InboxSortOrder,
-} from "../../../lib/inbox-list";
+import { sortThreads } from "../../../lib/inbox-list";
 import type {
     InboxFolder,
     InboxPayload,
@@ -180,8 +174,6 @@ type BuilderSavedEmailMeta = {
     };
 };
 
-const SORT_STORAGE_KEY = "inbox-sort-order";
-
 const dateRangeOptions: Array<{ value: DateRange; label: string; days: number | null }> = [
     { value: "all", label: "All time", days: null },
     { value: "24h", label: "Last 24 hours", days: 1 },
@@ -200,7 +192,8 @@ function inDateRange(thread: { lastMessageAt: string }, range: DateRange, now: n
 
 
 const folderOptions: Array<{ value: InboxFolder; label: string }> = [
-    { value: "inbox", label: "Received" },
+    { value: "inbox", label: "Inbox" },
+    { value: "received", label: "Received" },
     { value: "starred", label: "Starred" },
     { value: "sent", label: "Sent" },
     { value: "drafts", label: "Drafts" },
@@ -562,9 +555,15 @@ function replySubjectFor(subject: string) {
     return /^re:/i.test(trimmed) ? trimmed : `Re: ${trimmed}`;
 }
 
+/** Folders whose emails you can reply to from the reading pane. */
+function canReplyIn(folder: InboxFolder) {
+    return folder === "inbox" || folder === "received";
+}
+
 /** Folders in the inbox sidebar: the whole inbox lives on this one page. */
 const MAIN_FOLDERS: Array<{ folder: InboxFolder; label: string; icon: typeof Inbox }> = [
     { folder: "inbox", label: "Inbox", icon: Inbox },
+    { folder: "received", label: "Received", icon: ArrowDownLeft },
     { folder: "starred", label: "Starred", icon: Star },
     { folder: "sent", label: "Sent", icon: Send },
     { folder: "drafts", label: "Drafts", icon: FileText },
@@ -610,8 +609,6 @@ export default function InboxPage() {
         useState<InboxFolder>(initialFolder);
     const [dateRange, setDateRange] = useState<DateRange>("all");
     const [dateMenuOpen, setDateMenuOpen] = useState(false);
-    const [sortOrder, setSortOrder] = useState<InboxSortOrder>("newest");
-    const [sortMenuOpen, setSortMenuOpen] = useState(false);
     // Whether Resend is set up well enough to send and to receive replies.
     const [resendSetup, setResendSetup] = useState<"unknown" | "missing" | "sending_only" | "ready">("unknown");
     const [setupNoticeDismissed, setSetupNoticeDismissed] = useState(false);
@@ -673,7 +670,6 @@ export default function InboxPage() {
     const replyRef = useRef<HTMLDivElement>(null);
     const searchRef = useRef<HTMLInputElement>(null);
     const [listFilter, setListFilter] = useState<ListFilter>("all");
-    const [collapsedGroups, setCollapsedGroups] = useState<string[]>([]);
     /* Emails ticked in the list for a bulk action. */
     const [checkedIds, setCheckedIds] = useState<string[]>([]);
     const [closedSections, setClosedSections] = useState<string[]>([]);
@@ -752,7 +748,6 @@ export default function InboxPage() {
     }, []);
     const attachmentInputRef = useRef<HTMLInputElement>(null);
     const dateFilterRef = useRef<HTMLDivElement>(null);
-    const sortMenuRef = useRef<HTMLDivElement>(null);
     const replyOptionsRef = useRef<HTMLDivElement>(null);
     const composeAccountPickerRef = useRef<HTMLDivElement>(null);
 
@@ -929,12 +924,6 @@ export default function InboxPage() {
             void loadComposeAccounts();
             void loadSavedEmails();
             void loadResendSetup();
-            try {
-                const storedSort = window.localStorage.getItem(SORT_STORAGE_KEY);
-                if (isInboxSortOrder(storedSort)) setSortOrder(storedSort);
-            } catch {
-                // Private mode or blocked storage: keep newest first.
-            }
         });
         return () => {
             active = false;
@@ -994,10 +983,6 @@ export default function InboxPage() {
                 setDateMenuOpen(false);
             }
 
-            if (sortMenuRef.current && !sortMenuRef.current.contains(event.target as Node)) {
-                setSortMenuOpen(false);
-            }
-
             if (
                 replyOptionsRef.current &&
                 !replyOptionsRef.current.contains(event.target as Node)
@@ -1018,7 +1003,6 @@ export default function InboxPage() {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === "Escape") {
                 setDateMenuOpen(false);
-                setSortMenuOpen(false);
                 setSelectMode(false);
                 setCheckedIds([]);
                 setReplyOptionsOpen(false);
@@ -1057,8 +1041,8 @@ export default function InboxPage() {
                 .some((value) => String(value).toLowerCase().includes(query));
         });
 
-        return sortThreads(filtered, sortOrder);
-    }, [activeChannel, activeFolder, dateRange, loadedAt, payload, search, sortOrder]);
+        return sortThreads(filtered, "newest");
+    }, [activeChannel, activeFolder, dateRange, loadedAt, payload, search]);
 
     // Keep a visible thread selected: fall back to the first one when the
     // selection leaves the list (folder change, search, delete).
@@ -1571,7 +1555,7 @@ export default function InboxPage() {
 
     // What a draft would be saved against right now: Compose, or a reply to a
     // real email conversation in the Inbox.
-    const replyDraftThread = !composeOpen && selectedThread && activeFolder === "inbox" &&
+    const replyDraftThread = !composeOpen && selectedThread && canReplyIn(activeFolder) &&
         !selectedThread.demo && !selectedThread.draft && !isChatChannel(selectedThread.channel)
         ? selectedThread
         : null;
@@ -2225,22 +2209,11 @@ export default function InboxPage() {
         setSelectedThreadId("");
         router.replace(inboxUrl(folder, activeChannel), { scroll: false });
     };
-    const threadGroups = groupThreadsForList(listThreads, sortOrder);
-    const sortLabel = INBOX_SORT_OPTIONS.find((option) => option.value === sortOrder)?.short ?? "Newest";
-    const chooseSort = (order: InboxSortOrder) => {
-        setSortOrder(order);
-        setSortMenuOpen(false);
-        try {
-            window.localStorage.setItem(SORT_STORAGE_KEY, order);
-        } catch {
-            // Storage unavailable: the choice lasts for this visit.
-        }
-    };
     const exitSelectMode = () => {
         setSelectMode(false);
         setCheckedIds([]);
     };
-    const showComposer = composeOpen || (Boolean(selectedThread) && activeFolder === "inbox" && !selectedIsChat);
+    const showComposer = composeOpen || (Boolean(selectedThread) && canReplyIn(activeFolder) && !selectedIsChat);
     /** Switch channel; the folder stays if that channel has it. */
     const openChannel = (channel: InboxChannel) => {
         if (channel === activeChannel) return;
@@ -2516,78 +2489,6 @@ export default function InboxPage() {
                         {listThreads.length ? `${selectedIndex >= 0 ? selectedIndex + 1 : 1}–${listThreads.length}` : "0"} of {listThreads.length}
                     </span>
 
-                    <div ref={dateFilterRef} className={styles.dateFilter}>
-                        <button
-                            type="button"
-                            className={styles.ghostButton}
-                            aria-haspopup="listbox"
-                            aria-expanded={dateMenuOpen}
-                            onClick={() => setDateMenuOpen((current) => !current)}
-                        >
-                            <SlidersHorizontal size={13} aria-hidden="true" />
-                            {selectedDateOption.label}
-                        </button>
-                        {dateMenuOpen && (
-                            <div className={styles.menu} role="listbox" aria-label="Filter emails by date">
-                                <div className={styles.menuLabel}>Date</div>
-                                {dateRangeOptions.map((option) => {
-                                    const isSelected = option.value === dateRange;
-                                    return (
-                                        <button
-                                            key={option.value}
-                                            type="button"
-                                            role="option"
-                                            aria-selected={isSelected}
-                                            className={isSelected ? styles.menuItemActive : styles.menuItem}
-                                            onClick={() => {
-                                                setDateRange(option.value);
-                                                setDateMenuOpen(false);
-                                            }}
-                                        >
-                                            {option.label}
-                                            {isSelected && <Check size={14} />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-
-                    <div ref={sortMenuRef} className={styles.dateFilter}>
-                        <button
-                            type="button"
-                            className={styles.ghostButton}
-                            aria-haspopup="listbox"
-                            aria-expanded={sortMenuOpen}
-                            aria-label={`Sort emails: ${sortLabel}`}
-                            onClick={() => setSortMenuOpen((current) => !current)}
-                        >
-                            <ArrowUpDown size={13} aria-hidden="true" />
-                            {sortLabel}
-                        </button>
-                        {sortMenuOpen && (
-                            <div className={styles.menu} role="listbox" aria-label="Sort emails">
-                                <div className={styles.menuLabel}>Sort by</div>
-                                {INBOX_SORT_OPTIONS.map((option) => {
-                                    const isSelected = option.value === sortOrder;
-                                    return (
-                                        <button
-                                            key={option.value}
-                                            type="button"
-                                            role="option"
-                                            aria-selected={isSelected}
-                                            className={isSelected ? styles.menuItemActive : styles.menuItem}
-                                            onClick={() => chooseSort(option.value)}
-                                        >
-                                            {option.label}
-                                            {isSelected && <Check size={14} />}
-                                        </button>
-                                    );
-                                })}
-                            </div>
-                        )}
-                    </div>
-
                     <button
                         type="button"
                         className={selectMode ? styles.ghostButtonActive : styles.ghostButton}
@@ -2623,6 +2524,47 @@ export default function InboxPage() {
 
                 {/* ---- Message list ---- */}
                 <aside className={styles.listPane}>
+                    {/* Date filter, just above the emails. */}
+                    <div className={styles.listHeader}>
+                        {dateRange !== "all" && <span className={styles.listHeaderLabel}>{selectedDateOption.label}</span>}
+                        <div ref={dateFilterRef} className={styles.dateFilter}>
+                            <button
+                                type="button"
+                                className={dateRange === "all" ? styles.iconButton : styles.iconButtonActive}
+                                aria-haspopup="listbox"
+                                aria-expanded={dateMenuOpen}
+                                aria-label={`Filter by date: ${selectedDateOption.label}`}
+                                title={selectedDateOption.label}
+                                onClick={() => setDateMenuOpen((current) => !current)}
+                            >
+                                <SlidersHorizontal size={14} aria-hidden="true" />
+                            </button>
+                            {dateMenuOpen && (
+                                <div className={styles.menu} role="listbox" aria-label="Filter emails by date">
+                                    <div className={styles.menuLabel}>Date</div>
+                                    {dateRangeOptions.map((option) => {
+                                        const isSelected = option.value === dateRange;
+                                        return (
+                                            <button
+                                                key={option.value}
+                                                type="button"
+                                                role="option"
+                                                aria-selected={isSelected}
+                                                className={isSelected ? styles.menuItemActive : styles.menuItem}
+                                                onClick={() => {
+                                                    setDateRange(option.value);
+                                                    setDateMenuOpen(false);
+                                                }}
+                                            >
+                                                {option.label}
+                                                {isSelected && <Check size={14} />}
+                                            </button>
+                                        );
+                                    })}
+                                </div>
+                            )}
+                        </div>
+                    </div>
                     {selectMode && (
                         <div className={styles.bulkBar} role="toolbar" aria-label="Selected emails">
                             <input
@@ -2687,93 +2629,67 @@ export default function InboxPage() {
                                 <small>Try another folder, date range or search.</small>
                             </div>
                         ) : (
-                            threadGroups.map((group) => {
-                                const collapsed = collapsedGroups.includes(group.label);
+                            listThreads.map((thread) => {
+                                const latestMessage = getLatestMessage(thread);
+                                const attachments = latestMessage?.attachments ?? [];
+                                const checked = checkedIds.includes(thread.id);
                                 return (
-                                    <section key={group.label} className={styles.group}>
+                                    <div key={thread.id} className={checked ? styles.threadRowChecked : styles.threadRow}>
+                                        {selectMode && (
+                                            <input
+                                                type="checkbox"
+                                                className={styles.threadCheck}
+                                                checked={checked}
+                                                onChange={() => toggleChecked(thread.id)}
+                                                aria-label={`Select email from ${thread.customerName}: ${thread.subject}`}
+                                            />
+                                        )}
                                         <button
                                             type="button"
-                                            className={styles.groupHead}
-                                            aria-expanded={!collapsed}
-                                            onClick={() =>
-                                                setCollapsedGroups((current) =>
-                                                    current.includes(group.label)
-                                                        ? current.filter((label) => label !== group.label)
-                                                        : [...current, group.label])}
+                                            className={[
+                                                selectedThreadId === thread.id && !composeOpen && !selectMode ? styles.threadActive : styles.thread,
+                                                thread.unread ? styles.threadUnread : "",
+                                            ].join(" ")}
+                                            aria-pressed={selectMode ? checked : undefined}
+                                            onClick={() => {
+                                                // In select mode a click ticks the email instead of opening it.
+                                                if (selectMode) {
+                                                    toggleChecked(thread.id);
+                                                    return;
+                                                }
+                                                if (composeOpen) closeCompose();
+                                                selectThread(thread);
+                                            }}
                                         >
-                                            {group.label}
-                                            <span className={styles.groupCount}>
-                                                <Mail size={13} aria-hidden="true" />
-                                                {group.threads.length}
-                                                <ChevronDown size={13} className={collapsed ? styles.chevronClosed : undefined} aria-hidden="true" />
+                                            <span className={styles.threadTop}>
+                                                <span className={styles.avatarWrap}>
+                                                    <span className={styles.avatar} style={avatarStyle(thread.customerName)}>
+                                                        {getInitials(thread.customerName)}
+                                                    </span>
+
+                                                </span>
+                                                <span className={styles.threadFrom}>{thread.customerName}</span>
+                                                {thread.starred && <Star size={11} className={styles.starIcon} aria-label="Starred" />}
+                                                <time>{formatListDate(thread.lastMessageAt)}</time>
                                             </span>
+                                            <span className={styles.threadSubject}>{thread.subject}</span>
+                                            <span className={styles.threadPreview}>{thread.preview}</span>
+                                            {attachments.length > 0 && (
+                                                <span className={styles.threadChips}>
+                                                    {attachments.slice(0, 2).map((attachment) => {
+                                                        const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
+                                                        return (
+                                                            <span key={attachment.id} className={styles.chip} title={attachment.fileName}>
+                                                                <AttachmentIcon size={11} />
+                                                                <span>{attachment.fileName}</span>
+                                                            </span>
+                                                        );
+                                                    })}
+                                                    {attachments.length > 2 && <span className={styles.chip}>+{attachments.length - 2}</span>}
+                                                </span>
+                                            )}
                                         </button>
-
-                                        {!collapsed && group.threads.map((thread) => {
-                                            const latestMessage = getLatestMessage(thread);
-                                            const attachments = latestMessage?.attachments ?? [];
-                                            const checked = checkedIds.includes(thread.id);
-                                            return (
-                                                <div key={thread.id} className={checked ? styles.threadRowChecked : styles.threadRow}>
-                                                    {selectMode && (
-                                                        <input
-                                                            type="checkbox"
-                                                            className={styles.threadCheck}
-                                                            checked={checked}
-                                                            onChange={() => toggleChecked(thread.id)}
-                                                            aria-label={`Select email from ${thread.customerName}: ${thread.subject}`}
-                                                        />
-                                                    )}
-                                                    <button
-                                                        type="button"
-                                                        className={[
-                                                            selectedThreadId === thread.id && !composeOpen && !selectMode ? styles.threadActive : styles.thread,
-                                                            thread.unread ? styles.threadUnread : "",
-                                                        ].join(" ")}
-                                                        aria-pressed={selectMode ? checked : undefined}
-                                                        onClick={() => {
-                                                            // In select mode a click ticks the email instead of opening it.
-                                                            if (selectMode) {
-                                                                toggleChecked(thread.id);
-                                                                return;
-                                                            }
-                                                            if (composeOpen) closeCompose();
-                                                            selectThread(thread);
-                                                        }}
-                                                    >
-                                                        <span className={styles.threadTop}>
-                                                            <span className={styles.avatarWrap}>
-                                                                <span className={styles.avatar} style={avatarStyle(thread.customerName)}>
-                                                                    {getInitials(thread.customerName)}
-                                                                </span>
-
-                                                            </span>
-                                                            <span className={styles.threadFrom}>{thread.customerName}</span>
-                                                            {thread.unread && <span className={styles.unreadDot} aria-label="New" />}
-                                                            {thread.starred && <Star size={11} className={styles.starIcon} aria-label="Starred" />}
-                                                            <time>{formatListDate(thread.lastMessageAt)}</time>
-                                                        </span>
-                                                        <span className={styles.threadSubject}>{thread.subject}</span>
-                                                        <span className={styles.threadPreview}>{thread.preview}</span>
-                                                        {attachments.length > 0 && (
-                                                            <span className={styles.threadChips}>
-                                                                {attachments.slice(0, 2).map((attachment) => {
-                                                                    const AttachmentIcon = getAttachmentIcon(attachment.mimeType, attachment.fileName);
-                                                                    return (
-                                                                        <span key={attachment.id} className={styles.chip} title={attachment.fileName}>
-                                                                            <AttachmentIcon size={11} />
-                                                                            <span>{attachment.fileName}</span>
-                                                                        </span>
-                                                                    );
-                                                                })}
-                                                                {attachments.length > 2 && <span className={styles.chip}>+{attachments.length - 2}</span>}
-                                                            </span>
-                                                        )}
-                                                    </button>
-                                                </div>
-                                            );
-                                        })}
-                                    </section>
+                                    </div>
                                 );
                             })
                         )}
@@ -2838,7 +2754,7 @@ export default function InboxPage() {
                                         >
                                             <Star size={15} fill={selectedThread.starred ? "currentColor" : "none"} />
                                         </button>
-                                        {activeFolder === "inbox" && !selectedIsChat && (
+                                        {canReplyIn(activeFolder) && !selectedIsChat && (
                                             <button type="button" className={styles.iconButton} aria-label="Reply" title="Reply" onClick={() => replyRef.current?.focus()}>
                                                 <Reply size={15} />
                                             </button>

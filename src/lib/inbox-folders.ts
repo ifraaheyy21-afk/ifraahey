@@ -13,6 +13,11 @@ export function threadInFolder(thread: InboxThread, folder: InboxFolder) {
     if (folder === "inbox") {
         return thread.folder === "inbox" || thread.folder === "sent";
     }
+    // Received: conversations with at least one email sent to you.
+    if (folder === "received") {
+        return (thread.folder === "inbox" || thread.folder === "sent")
+            && thread.messages.some((message) => message.direction === "inbound");
+    }
     if (folder === "starred") {
         return thread.folder === "starred" || (thread.starred && thread.folder !== "deleted");
     }

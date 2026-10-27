@@ -2,6 +2,8 @@ export type InboxFolder =
 
     | "inbox"
 
+    | "received"
+
     | "starred"
 
     | "sent"

@@ -100,6 +100,14 @@ describe("buildInboxThreads", () => {
         assert.ok(threadInFolder(thread, "sent"));
     });
 
+    test("Received lists conversations with an email sent to you", () => {
+        const [replied] = build({ scheduled: [scheduled()], received: [received()] });
+        const [unanswered] = build({ scheduled: [scheduled()] });
+        assert.ok(threadInFolder(replied, "received"));
+        assert.equal(threadInFolder(unanswered, "received"), false);
+        assert.equal(threadInFolder({ ...replied, folder: "deleted" }, "received"), false);
+    });
+
     test("saved state stars, archives and tags a thread", () => {
         const [thread] = build({
             scheduled: [scheduled()],

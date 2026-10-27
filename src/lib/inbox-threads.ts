@@ -14,7 +14,7 @@ import { threadInFolder } from "./inbox-folders";
 import { sentRecordToMessage, type InboxSentRecord } from "./inbox-send";
 
 export const INBOX_FOLDER_ORDER: InboxFolder[] = [
-    "inbox", "starred", "sent", "scheduled", "drafts", "deleted", "failed", "archived",
+    "inbox", "received", "starred", "sent", "scheduled", "drafts", "deleted", "failed", "archived",
 ];
 
 export { MOVABLE_FOLDERS, type MovableFolder } from "./inbox-folders";
